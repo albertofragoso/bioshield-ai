@@ -3,3 +3,8 @@ __pycache__/
 node_modules/
 chroma_db/
 *.pdf
+<<<<<<< HEAD
+=======
+.venv/
+.DS_Store
+>>>>>>> a5e4e35 (Initial commit: Project structure (FastAPI + Next.js))
