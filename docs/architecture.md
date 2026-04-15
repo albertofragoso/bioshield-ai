@@ -22,6 +22,7 @@
 erDiagram
     users ||--o{ biomarkers : "sube"
     users ||--o{ scan_history : "escanea"
+    products ||--o{ scan_history : "registra"
     ingredients ||--o{ regulatory_status : "tiene estatus en"
     ingredients ||--o{ conflicts : "genera"
     data_sources ||--o{ regulatory_status : "provee"
@@ -35,10 +36,20 @@ erDiagram
         timestamp created_at
     }
 
+    products {
+        uuid id PK
+        varchar barcode UK
+        varchar name
+        varchar brand
+        varchar image_url
+        timestamp created_at
+    }
+
     biomarkers {
         uuid id PK
         uuid user_id FK
         bytea encrypted_data
+        bytes encryption_iv
         timestamp uploaded_at
         timestamp expires_at
     }
@@ -46,7 +57,7 @@ erDiagram
     scan_history {
         uuid id PK
         uuid user_id FK
-        varchar product_barcode
+        varchar product_barcode FK
         uuid ingredient_id FK
         varchar semaphore_result
         float confidence_score
@@ -126,6 +137,20 @@ Gestión de cuentas de usuario.
 
 ---
 
+#### `products`
+Catálogo normalizado de productos escaneados. Evita duplicar datos de producto en cada fila de `scan_history`.
+
+| Campo | Tipo | Restricción | Descripción |
+|---|---|---|---|
+| `id` | `UUID` | `PK` | Identificador único |
+| `barcode` | `VARCHAR(50)` | `UNIQUE, NOT NULL` | Código de barras (EAN-13, UPC-A, etc.) |
+| `name` | `VARCHAR(255)` | — | Nombre del producto (obtenido de Open Food Facts o Gemini OCR) |
+| `brand` | `VARCHAR(255)` | — | Marca del producto |
+| `image_url` | `VARCHAR(500)` | — | URL de la imagen del producto |
+| `created_at` | `TIMESTAMP` | `DEFAULT NOW()` | Fecha del primer escaneo del producto |
+
+---
+
 #### `biomarkers`
 Datos biométricos encriptados del usuario. Expiran en 180 días por política de privacidad.
 
@@ -133,7 +158,8 @@ Datos biométricos encriptados del usuario. Expiran en 180 días por política d
 |---|---|---|---|
 | `id` | `UUID` | `PK` | Identificador único |
 | `user_id` | `UUID` | `FK → users.id, NOT NULL` | Usuario propietario |
-| `encrypted_data` | `BYTEA` | `NOT NULL` | Datos cifrados con AES-256 |
+| `encrypted_data` | `BYTEA` | `NOT NULL` | Datos cifrados con AES-256-GCM |
+| `encryption_iv` | `BYTEA(16)` | `NOT NULL` | IV (Initialization Vector) del cifrado AES-256-GCM |
 | `uploaded_at` | `TIMESTAMP` | `DEFAULT NOW()` | Fecha de carga |
 | `expires_at` | `TIMESTAMP` | `NOT NULL` | Fecha de expiración (uploaded_at + 180 días) |
 
@@ -148,7 +174,7 @@ Historial de escaneos de productos. Enriquecida con métricas de confianza del s
 |---|---|---|---|
 | `id` | `UUID` | `PK` | Identificador único |
 | `user_id` | `UUID` | `FK → users.id, NOT NULL` | Usuario que escanea |
-| `product_barcode` | `VARCHAR(50)` | `NOT NULL` | Código de barras del producto |
+| `product_barcode` | `VARCHAR(50)` | `FK → products.barcode, NOT NULL` | Código de barras del producto |
 | `ingredient_id` | `UUID` | `FK → ingredients.id` | Ingrediente consultado (nullable para escaneos multi-ingrediente) |
 | `semaphore_result` | `VARCHAR(10)` | `NOT NULL` | Resultado semáforo: `GREEN`, `YELLOW`, `RED` |
 | `confidence_score` | `FLOAT` | `CHECK (0.0 <= val <= 1.0)` | Confianza de la resolución de entidad (1.0 = Exact Match CAS) |
@@ -252,6 +278,9 @@ Log de ejecuciones del pipeline de ingesta. Garantiza trazabilidad completa.
 ### 1.4 Índices Recomendados
 
 ```sql
+-- Búsqueda de productos por barcode
+CREATE INDEX idx_products_barcode ON products(barcode);
+
 -- Búsqueda de ingredientes por identificador regulatorio
 CREATE INDEX idx_ingredients_cas ON ingredients(cas_number);
 CREATE INDEX idx_ingredients_e_number ON ingredients(e_number);
