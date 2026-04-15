@@ -1,10 +1,25 @@
+# Python
 __pycache__/
-.env
-node_modules/
-chroma_db/
-*.pdf
-<<<<<<< HEAD
-=======
+*.pyc
+*.pyo
 .venv/
+
+# Environment
+.env
+
+# Databases
+*.db
+*.sqlite3
+
+# Vector store
+chroma_db/
+
+# Frontend
+node_modules/
+.next/
+
+# OS
 .DS_Store
->>>>>>> a5e4e35 (Initial commit: Project structure (FastAPI + Next.js))
+
+# Misc
+*.pdf

@@ -1,7 +1,7 @@
 # 🧬 Data Sources Specification v3.0: High-Fidelity Hybrid RAG
 
 **Estatus:** Especificación de Arquitectura de Producción  
-**Versión:** 3.0  
+**Versión:** 3.1 (2026-04-15 — URL fixes, token inconsistency resolved, HITL calibration plan, ChromaDB fallback)  
 **Arquitectura:** RAG Híbrido + Re-ranking + Entity Resolution Progresiva.
 
 ---
@@ -17,7 +17,8 @@ El sistema BioShield AI opera como un motor de **Confianza Crítica**. La arquit
 
 * **Fuentes:** * **EAFUS** (Substances Added to Food Inventory)
     * **GRAS Notice Inventory** (Substances Generally Recognized as Safe)
-* **URL:** [FDA EAFUS](https://www.fda.gov/food/food-additives-petitions/substances-added-food-inventory) | [GRAS Notices](https://www.cfsanappsexternal.fda.gov/scripts/fdcc/?set=GRASNotices)
+* **URL:** [FDA EAFUS](https://www.fda.gov/food/food-additives-petitions/substances-added-food-inventory) | [GRAS Notices](https://www.fda.gov/food/generally-recognized-safe-gras/gras-notice-inventory)
+* **⚠️ Nota de URL:** La URL original usaba el portal legacy `cfsanappsexternal.fda.gov`. La URL actualizada apunta al portal FDA actual. Verificar disponibilidad de descarga en cada ciclo de ingesta.
 * **Formato:** Excel (.xlsx) / CSV.
 * **Licencia:** Dominio Público (Gobierno de EE.UU.).
 * **Registros:** ~4,000 (EAFUS) + ~1,200 (GRAS).
@@ -27,11 +28,11 @@ El sistema BioShield AI opera como un motor de **Confianza Crítica**. La arquit
 
 * **Fuentes:** * **EU Food Additives Database**
     * **OpenFoodTox** (Chemical Hazards Database)
-* **URL:** [EU Food Additives](https://webgate.ec.europa.eu/foods_system/main/) | [Zenodo OpenFoodTox](https://zenodo.org/record/latest)
+* **URL:** [EU Food Additives](https://www.efsa.europa.eu/en/applications/food-additives) | [Zenodo OpenFoodTox](https://zenodo.org/records/8120114)
 * **Formato:** XML / XLSX / CSV.
 * **Licencia:** CC BY 4.0 (Creative Commons Attribution).
 * **Registros:** ~350 (Aditivos autorizados) + ~5,700 (Sustancias en OpenFoodTox).
-* **Plan de Ingesta:** Ingesta automatizada vía Zenodo API para OpenFoodTox. Esta fuente actúa como el "Golden Dataset" para los Scientific Embeddings, por lo que requiere una validación de esquema estricta y control de integridad de datos antes de la indexación.
+* **Plan de Ingesta:** Ingesta automatizada vía Zenodo API para OpenFoodTox (`GET https://zenodo.org/api/records/8120114`). Esta fuente actúa como el "Golden Dataset" para los Scientific Embeddings, por lo que requiere una validación de esquema estricta y control de integridad de datos antes de la indexación.
 
 ### 2.3 Codex Alimentarius (FAO/WHO) - Global
 
@@ -49,9 +50,11 @@ El sistema BioShield AI opera como un motor de **Confianza Crítica**. La arquit
 Para garantizar la precisión del RAG, se aplica una partición semántica estricta:
 
 * **Strategy:** Recursive Character Text Splitting con preservación de fronteras lógicas.
-* **Chunk Size:** 512 tokens (optimizado para el modelo de embedding).
+* **Chunk Size:** 512 tokens (texto fuente de la fuente regulatoria/científica original).
 * **Overlap:** 10% (50 tokens) para mantener la coherencia técnica.
 * **Semantic Boundaries:** Los chunks NO deben fragmentar tablas de límites (Codex) u objetos de riesgo específicos de OpenFoodTox.
+
+> **Aclaración sobre tokens (resolución de inconsistencia):** Los 512 tokens del chunk corresponden al texto fuente que se ingiere. A partir de ese chunk, el pipeline genera un **Embedding Template** estructurado de máximo 256 tokens (ver Sección 5) que es lo que se vectoriza. Son dos representaciones distintas del mismo dato: el chunk es el texto de recuperación (`page_content`), el template es el texto de indexación vectorial (`embedding_input`). Ambos se almacenan en ChromaDB — el chunk como `document`, el template como input del vector.
 
 ---
 
@@ -116,8 +119,10 @@ El sistema maneja la incertidumbre de datos mediante una capa de resolución de 
 1.  **Confidence Scoring:** Cada match de ingrediente recibe un score de confianza:
     * **Exact Match (CAS/E-Number):** 1.0
     * **Fuzzy Name Match:** 0.6 - 0.8
+    * **Sin match:** < 0.6 → rechazado automáticamente como "Ingrediente No Identificado".
 2.  **Composite Ingredients:** Para ingredientes compuestos (ej. "Mezcla de gomas"), el pipeline descompone el string en sub-tokens y genera consultas individuales para cada componente.
 3.  **Human-in-the-Loop (HITL):** Cualquier resolución con confianza < 0.7 se envía a una cola de revisión manual, se marca como "Pendiente de Verificación" en la UI y se almacena con un checksum para asegurar la reproducibilidad.
+    * **⚠️ Calibración del umbral:** El valor de 0.7 es el punto de partida inicial. Debe calibrarse en la Fase 3 con un set de validación de al menos 200 ingredientes anotados manualmente (ground truth). La métrica objetivo es minimizar falsos negativos (matches perdidos) sin saturar la cola HITL. El umbral final debe documentarse en `docs/embedding-strategy.md` junto con la curva precisión/recall del dataset de calibración.
 
 ## 8. Conflict Detection 2.0 (Logic-Based)
 
@@ -136,6 +141,18 @@ Se implementa una matriz de severidad para categorizar las discrepancias detecta
     * **Latencia:** < 50ms para búsqueda vectorial y filtrado en el volumen esperado (~20k chunks).
     * **Escala:** Compatible con la infraestructura actual (8GB RAM), permitiendo ejecución local y bajo costo operativo.
 * **Tradeoff:** Se establece una ruta de migración hacia **Qdrant** si el sistema escala a >100k registros o requiere capacidades de búsqueda geográfica compleja.
+
+### 9.1 Estrategia de Fallback (Obligatoria)
+
+El servicio `backend/app/services/retrieval.py` debe implementar un circuit breaker ante fallo de ChromaDB:
+
+| Nivel | Condición | Acción |
+| :--- | :--- | :--- |
+| **L1 — Retry** | ChromaDB timeout < 500ms | 2 reintentos con backoff exponencial (100ms, 200ms). |
+| **L2 — Keyword Fallback** | ChromaDB inalcanzable después de reintentos | Búsqueda BM25 pura sobre metadatos en PostgreSQL (campos `canonical_name`, `cas_number`, `e_number`). Score devuelto marcado con `retrieval_mode: "keyword_only"`. |
+| **L3 — Degraded Response** | PostgreSQL también falla | Devolver respuesta con `risk_level: "UNKNOWN"`, `conflict_flag: null`, y mensaje al usuario: *"Análisis regulatorio temporalmente no disponible. Consulta fuentes oficiales."* |
+
+> El endpoint nunca debe retornar `500` al usuario final por fallo del vector store. El nivel de degradación se registra en el campo `retrieval_metadata` de la respuesta y en los logs de telemetría.
 
 ## 10. Future Iterations
 
