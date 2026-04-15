@@ -1,0 +1,32 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# Data validation
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Database
+sqlalchemy==2.0.37
+alembic==1.14.1
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Encryption
+cryptography==44.0.0
+
+# LLM / AI
+google-generativeai==0.8.3
+chromadb==0.6.3
+langchain==0.3.17
+langchain-google-genai==2.0.9
+langgraph==0.3.5
+
+# HTTP client
+httpx==0.28.1
+
+# Config
+python-dotenv==1.0.1
