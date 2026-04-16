@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import get_settings
+from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
 from app.routers import auth, biosync, scan
 
 settings = get_settings()
@@ -13,6 +17,11 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
 )
 
+# Attach limiter so @limiter.limit decorators can resolve it from app.state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

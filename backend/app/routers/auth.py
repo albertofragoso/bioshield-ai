@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.middleware.rate_limit import limiter
 from app.models import User
 from app.models.base import get_db
 from app.schemas.models import LoginRequest, RegisterRequest, TokenResponse, UserResponse
@@ -47,7 +48,9 @@ def _set_auth_cookies(response: Response, access: str, refresh: str, settings: S
 # ─────────────────────────────────────────────
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 def register(
+    request: Request,
     body: RegisterRequest,
     response: Response,
     db: Session = Depends(get_db),
@@ -74,7 +77,9 @@ def register(
 # ─────────────────────────────────────────────
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 def login(
+    request: Request,
     body: LoginRequest,
     response: Response,
     db: Session = Depends(get_db),
