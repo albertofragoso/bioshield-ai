@@ -17,7 +17,7 @@ mediante búsqueda semántica, y cruza hallazgos con biomarcadores de sangre del
 - Usar Pydantic v2 para todos los schemas de request/response.
 - Usar Structured Outputs de Gemini para extracción (no parsear JSON manualmente).
 - Los prompt templates viven en docs/prompts.md y se importan como constantes.
-- Todo endpoint requiere JWT excepto /auth/login y /auth/register.
+- Todo endpoint requiere JWT excepto /auth/login, /auth/register y /auth/refresh.
 - Los datos médicos se encriptan con AES-256 antes de persistir.
 - Los datos de biomarkers expiran en 180 días; un cron job elimina registros donde expires_at < NOW().
 
