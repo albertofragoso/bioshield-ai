@@ -17,7 +17,7 @@ El sistema BioShield AI opera como un motor de **Confianza Crítica**. La arquit
 
 * **Fuentes:** * **EAFUS** (Substances Added to Food Inventory)
     * **GRAS Notice Inventory** (Substances Generally Recognized as Safe)
-* **URL:** [FDA EAFUS](https://www.fda.gov/food/food-additives-petitions/substances-added-food-inventory) | [GRAS Notices](https://www.fda.gov/food/generally-recognized-safe-gras/gras-notice-inventory)
+* **URL:** [FDA EAFUS](https://www.fda.gov/food/food-additives-petitions/food-additive-status-list) | [GRAS Notices](https://www.fda.gov/food/generally-recognized-safe-gras/gras-notice-inventory)
 * **⚠️ Nota de URL:** La URL original usaba el portal legacy `cfsanappsexternal.fda.gov`. La URL actualizada apunta al portal FDA actual. Verificar disponibilidad de descarga en cada ciclo de ingesta.
 * **Formato:** Excel (.xlsx) / CSV.
 * **Licencia:** Dominio Público (Gobierno de EE.UU.).
@@ -28,7 +28,7 @@ El sistema BioShield AI opera como un motor de **Confianza Crítica**. La arquit
 
 * **Fuentes:** * **EU Food Additives Database**
     * **OpenFoodTox** (Chemical Hazards Database)
-* **URL:** [EU Food Additives](https://www.efsa.europa.eu/en/applications/food-additives) | [Zenodo OpenFoodTox](https://zenodo.org/records/8120114)
+* **URL:** [EU Food Additives](https://www.efsa.europa.eu/en/topics/topic/food-additives) | [Zenodo OpenFoodTox](https://zenodo.org/records/8120114)
 * **Formato:** XML / XLSX / CSV.
 * **Licencia:** CC BY 4.0 (Creative Commons Attribution).
 * **Registros:** ~350 (Aditivos autorizados) + ~5,700 (Sustancias en OpenFoodTox).
