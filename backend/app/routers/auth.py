@@ -1,5 +1,6 @@
+from uuid import uuid4
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
-from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -11,8 +12,10 @@ from app.schemas.models import LoginRequest, RegisterRequest, TokenResponse, Use
 from app.services.auth import (
     create_access_token,
     create_refresh_token,
-    decode_refresh_token,
     hash_password,
+    revoke_user_token,
+    store_refresh_token,
+    validate_and_rotate_refresh_token,
     verify_password,
 )
 
@@ -62,13 +65,16 @@ def register(
 
     user = User(email=body.email, password_hash=hash_password(body.password))
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    db.flush()  # assigns user.id within the transaction without committing
 
     access = create_access_token(user.id, settings)
     refresh = create_refresh_token(user.id, settings)
-    _set_auth_cookies(response, access, refresh, settings)
+    store_refresh_token(db, user.id, refresh, str(uuid4()), settings)
 
+    db.commit()
+    db.refresh(user)
+
+    _set_auth_cookies(response, access, refresh, settings)
     return UserResponse(id=user.id, email=user.email, created_at=user.created_at)
 
 
@@ -91,8 +97,10 @@ def login(
 
     access = create_access_token(user.id, settings)
     refresh = create_refresh_token(user.id, settings)
-    _set_auth_cookies(response, access, refresh, settings)
+    store_refresh_token(db, user.id, refresh, str(uuid4()), settings)
+    db.commit()
 
+    _set_auth_cookies(response, access, refresh, settings)
     return TokenResponse(
         access_token=access,
         refresh_token=refresh,
@@ -111,24 +119,13 @@ def refresh(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
-    credentials_error = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
-    )
     if not refresh_token:
-        raise credentials_error
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
 
-    try:
-        user_id = decode_refresh_token(refresh_token, settings)
-    except JWTError:
-        raise credentials_error
-
-    user = db.get(User, user_id)
-    if not user:
-        raise credentials_error
-
-    # Token rotation: issue a new pair on every refresh
-    new_access = create_access_token(user.id, settings)
-    new_refresh = create_refresh_token(user.id, settings)
+    _, new_access, new_refresh = validate_and_rotate_refresh_token(db, refresh_token, settings)
     _set_auth_cookies(response, new_access, new_refresh, settings)
 
     return TokenResponse(
@@ -143,6 +140,12 @@ def refresh(
 # ─────────────────────────────────────────────
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response):
+def logout(
+    response: Response,
+    refresh_token: str | None = Cookie(default=None, alias=_REFRESH_COOKIE),
+    db: Session = Depends(get_db),
+):
+    if refresh_token:
+        revoke_user_token(db, refresh_token)
     response.delete_cookie(_ACCESS_COOKIE)
     response.delete_cookie(_REFRESH_COOKIE, path="/auth/refresh")

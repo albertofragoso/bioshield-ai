@@ -52,6 +52,33 @@ class User(Base):
 
     biomarkers: Mapped[list["Biomarker"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     scan_history: Mapped[list["ScanHistory"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+
+# ─────────────────────────────────────────────
+# refresh_tokens
+# ─────────────────────────────────────────────
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    family_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    is_revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    user: Mapped["User"] = relationship(back_populates="refresh_tokens")
+
+    __table_args__ = (
+        Index("idx_refresh_tokens_user", "user_id"),
+        Index("idx_refresh_tokens_family", "family_id"),
+        Index("idx_refresh_tokens_hash", "token_hash", unique=True),
+    )
 
 
 # ─────────────────────────────────────────────
@@ -251,6 +278,7 @@ __all__ = [
     "Ingredient",
     "IngestionLog",
     "Product",
+    "RefreshToken",
     "RegulatoryStatus",
     "ScanHistory",
     "User",
