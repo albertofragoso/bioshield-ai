@@ -1,0 +1,50 @@
+{
+  "description": "Curated bootstrap dataset for BioShield MVP. Simulates FDA/EFSA/Codex records for ~30 well-known additives with real CAS/E numbers. Live ingestion via scripts/seed_rag.py --live is the production path; this file ensures deterministic tests and offline development.",
+  "version": "2026.04.18",
+  "fda_eafus": [
+    {"canonical_name": "Titanium Dioxide", "cas_number": "13463-67-7", "status": "APPROVED"},
+    {"canonical_name": "Aspartame", "cas_number": "22839-47-0", "status": "APPROVED"},
+    {"canonical_name": "Monosodium Glutamate", "cas_number": "142-47-2", "status": "APPROVED"},
+    {"canonical_name": "Tartrazine", "cas_number": "1934-21-0", "status": "APPROVED"},
+    {"canonical_name": "Allura Red AC", "cas_number": "25956-17-6", "status": "APPROVED"},
+    {"canonical_name": "Sodium Nitrite", "cas_number": "7632-00-0", "status": "APPROVED"},
+    {"canonical_name": "Sodium Benzoate", "cas_number": "532-32-1", "status": "APPROVED"},
+    {"canonical_name": "Potassium Sorbate", "cas_number": "24634-61-5", "status": "APPROVED"},
+    {"canonical_name": "Butylated Hydroxyanisole", "cas_number": "25013-16-5", "status": "APPROVED"},
+    {"canonical_name": "Butylated Hydroxytoluene", "cas_number": "128-37-0", "status": "APPROVED"},
+    {"canonical_name": "High-Fructose Corn Syrup", "cas_number": null, "status": "APPROVED"},
+    {"canonical_name": "Carrageenan", "cas_number": "9000-07-1", "status": "APPROVED"},
+    {"canonical_name": "Sucralose", "cas_number": "56038-13-2", "status": "APPROVED"},
+    {"canonical_name": "Acesulfame Potassium", "cas_number": "55589-62-3", "status": "APPROVED"},
+    {"canonical_name": "Sodium Phosphate", "cas_number": "7601-54-9", "status": "APPROVED"},
+    {"canonical_name": "Citric Acid", "cas_number": "77-92-9", "status": "APPROVED"},
+    {"canonical_name": "Ascorbic Acid", "cas_number": "50-81-7", "status": "APPROVED"},
+    {"canonical_name": "Xanthan Gum", "cas_number": "11138-66-2", "status": "APPROVED"},
+    {"canonical_name": "Sorbitol", "cas_number": "50-70-4", "status": "APPROVED"},
+    {"canonical_name": "Potassium Bromate", "cas_number": "7758-01-2", "status": "APPROVED"}
+  ],
+  "efsa": [
+    {"name": "Titanium Dioxide", "cas": "13463-67-7", "e_number": "E171", "conclusion": "BANNED", "hazard": "Genotoxicity cannot be ruled out (EFSA 2021)", "evaluated_at": "2021-05-06"},
+    {"name": "Aspartame", "cas": "22839-47-0", "e_number": "E951", "conclusion": "APPROVED", "hazard": "IARC Group 2B (possibly carcinogenic to humans), 2023", "evaluated_at": "2023-07-14"},
+    {"name": "Monosodium Glutamate", "cas": "142-47-2", "e_number": "E621", "conclusion": "RESTRICTED", "hazard": "Group ADI 30 mg/kg bw/day", "evaluated_at": "2017-07-12"},
+    {"name": "Tartrazine", "cas": "1934-21-0", "e_number": "E102", "conclusion": "RESTRICTED", "hazard": "Hyperactivity warning required", "evaluated_at": "2009-11-12"},
+    {"name": "Allura Red AC", "cas": "25956-17-6", "e_number": "E129", "conclusion": "RESTRICTED", "hazard": "Hyperactivity warning required", "evaluated_at": "2009-11-12"},
+    {"name": "Sodium Nitrite", "cas": "7632-00-0", "e_number": "E250", "conclusion": "RESTRICTED", "hazard": "Nitrosamine formation under high-temperature cooking", "evaluated_at": "2017-06-15"},
+    {"name": "Sodium Benzoate", "cas": "532-32-1", "e_number": "E211", "conclusion": "APPROVED", "hazard": null, "evaluated_at": "2016-03-22"},
+    {"name": "Potassium Sorbate", "cas": "24634-61-5", "e_number": "E202", "conclusion": "APPROVED", "hazard": null, "evaluated_at": "2015-06-09"},
+    {"name": "Butylated Hydroxyanisole", "cas": "25013-16-5", "e_number": "E320", "conclusion": "APPROVED", "hazard": "IARC Group 2B", "evaluated_at": "2011-10-21"},
+    {"name": "Butylated Hydroxytoluene", "cas": "128-37-0", "e_number": "E321", "conclusion": "APPROVED", "hazard": null, "evaluated_at": "2012-03-12"},
+    {"name": "Carrageenan", "cas": "9000-07-1", "e_number": "E407", "conclusion": "RESTRICTED", "hazard": "Not permitted in infant formula (precautionary)", "evaluated_at": "2018-07-04"},
+    {"name": "Sucralose", "cas": "56038-13-2", "e_number": "E955", "conclusion": "APPROVED", "hazard": null, "evaluated_at": "2011-09-12"},
+    {"name": "Potassium Bromate", "cas": "7758-01-2", "e_number": "E924a", "conclusion": "BANNED", "hazard": "Carcinogenic; IARC Group 2B", "evaluated_at": "1992-01-01"}
+  ],
+  "codex": [
+    {"name": "Titanium Dioxide", "ins": "171", "status": "RESTRICTED", "usage": "Approved with usage limits varying by category"},
+    {"name": "Aspartame", "ins": "951", "status": "APPROVED", "usage": "ADI 40 mg/kg bw"},
+    {"name": "Monosodium Glutamate", "ins": "621", "status": "APPROVED", "usage": "GMP"},
+    {"name": "Tartrazine", "ins": "102", "status": "APPROVED", "usage": "Max 100 mg/kg in soft drinks"},
+    {"name": "Allura Red AC", "ins": "129", "status": "APPROVED", "usage": "Max 100 mg/kg"},
+    {"name": "Sodium Nitrite", "ins": "250", "status": "APPROVED", "usage": "Max 150 mg/kg in cured meat"},
+    {"name": "Carrageenan", "ins": "407", "status": "APPROVED", "usage": "GMP"}
+  ]
+}

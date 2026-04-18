@@ -31,7 +31,7 @@ backend/
 │   ├── config.py                  # Settings (Pydantic) — todas las env vars
 │   ├── routers/                   # Endpoints HTTP: auth.py, scan.py, biosync.py
 │   ├── schemas/                   # Pydantic v2 request/response models
-│   ├── models.py                  # SQLAlchemy ORM models
+│   ├── models/                    # SQLAlchemy ORM models (Base, tables, relationships)
 │   ├── agents/                    # LangGraph: graph.py, nodes.py, state.py
 │   └── services/                  # Clientes externos: gemini.py, off_client.py, embeddings.py
 ├── alembic/                       # Migraciones de base de datos
