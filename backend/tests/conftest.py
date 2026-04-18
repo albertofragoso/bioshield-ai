@@ -18,7 +18,7 @@ TEST_SETTINGS = Settings(
     jwt_secret="test-jwt-secret-not-for-production",
     jwt_access_token_expire_minutes=30,
     jwt_refresh_token_expire_days=7,
-    aes_key="test-aes-key-32-bytes-xxxxxxxxxxx",
+    aes_key="test-aes-key-32-bytes-xxxxxxxxxx",
     gemini_api_key="test-key",
     chroma_persist_directory="",
     allowed_origins=["http://testserver"],
@@ -36,9 +36,9 @@ def override_settings():
 @pytest.fixture(scope="session", autouse=True)
 def disable_rate_limiting():
     """Disable slowapi rate limiting so tests can call endpoints freely."""
-    limiter._enabled = False
+    limiter.enabled = False
     yield
-    limiter._enabled = True
+    limiter.enabled = True
 
 
 # ─────────────────────────────────────────────

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     jwt_refresh_token_expire_days: int = 7
 
     # Encryption (AES-256)
-    aes_key: str = "dev-aes-key-32-bytes-change-this!"  # Must be 32 bytes in prod
+    aes_key: str = "dev-aes-key-32-bytes-changethis!"  # Must be exactly 32 bytes
 
     # Gemini
     gemini_api_key: str = ""
