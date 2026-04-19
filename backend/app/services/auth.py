@@ -1,7 +1,7 @@
 """Password hashing and JWT utilities for BioShield auth."""
 
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import bcrypt
@@ -11,7 +11,6 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-
 
 # ─────────────────────────────────────────────
 # Password
@@ -35,7 +34,7 @@ def _create_token(
     expires_delta: timedelta,
     settings: Settings,
 ) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": user_id,
         "type": token_type,
@@ -97,7 +96,7 @@ def store_refresh_token(
 ) -> "RefreshToken":  # noqa: F821 — avoids circular import at module level
     from app.models import RefreshToken
 
-    expires_at = datetime.now(timezone.utc) + timedelta(
+    expires_at = datetime.now(UTC) + timedelta(
         days=settings.jwt_refresh_token_expire_days
     )
     record = RefreshToken(

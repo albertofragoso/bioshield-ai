@@ -1,6 +1,6 @@
 """Tests for /biosync endpoints + TTL maintenance job."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
@@ -82,14 +82,14 @@ async def test_upload_empty_data_rejected(client):
 
 async def test_upload_sets_180d_expiry(client, db_session):
     await _register(client)
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
     await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
-    after = datetime.now(timezone.utc)
+    after = datetime.now(UTC)
 
     biomarker = db_session.scalar(select(Biomarker))
     # SQLite strips tzinfo on round-trip; re-attach UTC for comparison
-    uploaded = biomarker.uploaded_at.replace(tzinfo=timezone.utc)
-    expires = biomarker.expires_at.replace(tzinfo=timezone.utc)
+    uploaded = biomarker.uploaded_at.replace(tzinfo=UTC)
+    expires = biomarker.expires_at.replace(tzinfo=UTC)
     delta = expires - uploaded
     assert timedelta(days=180) - timedelta(seconds=2) <= delta <= timedelta(days=180)
     assert before <= uploaded <= after
@@ -167,7 +167,7 @@ async def test_expire_biomarkers_removes_past_due(client, db_session):
     assert biomarker is not None
 
     # Force expiration into the past
-    biomarker.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+    biomarker.expires_at = datetime.now(UTC) - timedelta(days=1)
     db_session.commit()
 
     removed = expire_biomarkers(db_session)

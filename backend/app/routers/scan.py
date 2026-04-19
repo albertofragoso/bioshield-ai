@@ -6,7 +6,7 @@ avoid duplicating product metadata per scan.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -187,5 +187,5 @@ def _build_response(state: dict, barcode: str, product_name: str | None) -> Scan
         ingredients=state.get("resolved") or [],
         conflict_severity=state.get("conflict_severity"),
         source=state.get("source", "barcode"),
-        scanned_at=datetime.now(timezone.utc),
+        scanned_at=datetime.now(UTC),
     )

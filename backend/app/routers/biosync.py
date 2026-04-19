@@ -5,7 +5,7 @@ Decrypted values never leave the request-processing scope.
 One Biomarker row per user — upload replaces any existing record.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
@@ -44,7 +44,7 @@ def upload_biomarkers(
     ciphertext, iv = encrypt_biomarker(body.data, settings.aes_key)
 
     existing = db.scalar(select(Biomarker).where(Biomarker.user_id == current_user.id))
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires_at = now + timedelta(days=_BIOMARKER_TTL_DAYS)
 
     if existing:

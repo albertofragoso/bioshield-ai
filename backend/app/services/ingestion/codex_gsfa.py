@@ -2,14 +2,17 @@
 
 The GSFA (General Standard for Food Additives) is published as a relational
 HTML database at gsfaonline.fao.org. Rate-limited to 1 req / 2 s.
-For MVP we accept pre-downloaded HTML / curated records to avoid flakiness.
+Supports pagination via `?start=N` query param. Falls back to the curated
+fixture (data/seed/additives.json["codex"]) if the live service is unavailable.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
-from typing import Iterable
+from collections.abc import Iterable
+from pathlib import Path
 
 import httpx
 from selectolax.parser import HTMLParser
@@ -33,6 +36,12 @@ logger = logging.getLogger(__name__)
 SOURCE_NAME = "Codex_GSFA"
 BASE_URL = "https://www.fao.org/gsfaonline/additives/results.html"
 REQUEST_DELAY_SECONDS = 2.0
+PAGE_SIZE = 50
+FIXTURE_PATH = Path(__file__).parents[3] / "data" / "seed" / "additives.json"
+
+
+class CodexFetchError(RuntimeError):
+    """Raised when live GSFA fetch fails."""
 
 
 def parse_additives_page(html: str) -> list[IngestionRecord]:
@@ -61,13 +70,38 @@ def parse_additives_page(html: str) -> list[IngestionRecord]:
     return records
 
 
-async def fetch_pages(client: httpx.AsyncClient, urls: list[str]) -> list[str]:
-    """Fetch multiple GSFA pages with polite rate limiting."""
+def _load_fixture() -> list[IngestionRecord]:
+    data = json.loads(FIXTURE_PATH.read_text())
+    records = []
+    for item in data.get("codex", []):
+        ins = str(item.get("ins", ""))
+        records.append(
+            IngestionRecord(
+                canonical_name=item["name"],
+                e_number=f"E{ins}" if ins else None,
+                status=item.get("status", "APPROVED"),
+                usage_limits=item.get("usage"),
+            )
+        )
+    return records
+
+
+async def fetch_pages(client: httpx.AsyncClient) -> list[str]:
+    """Fetch GSFA pages with pagination and polite rate limiting."""
     pages: list[str] = []
-    for url in urls:
+    start = 0
+    while True:
+        url = BASE_URL if start == 0 else f"{BASE_URL}?start={start}"
         response = await client.get(url)
         response.raise_for_status()
-        pages.append(response.text)
+        html = response.text
+        recs = parse_additives_page(html)
+        if not recs:
+            break
+        pages.append(html)
+        if len(recs) < PAGE_SIZE:
+            break
+        start += PAGE_SIZE
         await asyncio.sleep(REQUEST_DELAY_SECONDS)
     return pages
 
@@ -80,11 +114,20 @@ async def run(
 ) -> IngestionLog:
     if records is None:
         if not html_pages:
-            async with httpx.AsyncClient(timeout=30) as client:
-                html_pages = await fetch_pages(client, [BASE_URL])
-        records = []
-        for html in html_pages:
-            records.extend(parse_additives_page(html))
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    html_pages = await fetch_pages(client)
+                records = []
+                for html in html_pages:
+                    records.extend(parse_additives_page(html))
+            except (httpx.HTTPStatusError, httpx.RequestError) as exc:
+                logger.warning("Codex live fetch failed (%s); using bundled fixture", exc)
+                records = _load_fixture()
+                html_pages = []
+        else:
+            records = []
+            for html in html_pages:
+                records.extend(parse_additives_page(html))
 
     records_list = list(records)
     raw = "\n".join(html_pages or []).encode() if html_pages else str(len(records_list)).encode()

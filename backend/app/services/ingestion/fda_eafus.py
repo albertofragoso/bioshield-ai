@@ -1,18 +1,16 @@
 """FDA EAFUS ingestion: parse the FDA 'Everything Added to Food' Excel workbook.
 
-Live URL varies over time; callers may inject `raw_bytes` with a pre-downloaded
-.xlsx to keep ingestion deterministic. The parser expects columns:
+Live URL varies over time; we try a list of candidate URLs and fall back to a
+bundled fixture (.xlsx) if all live fetches fail. The parser expects columns:
     'CAS Reg No. (or other ID)', 'Substance', 'Document Number', etc.
-
-For MVP without live download, `scripts/seed_rag.py` uses the curated
-fixture at `backend/data/seed/additives.json`.
 """
 
 from __future__ import annotations
 
 import io
 import logging
-from typing import Iterable
+from collections.abc import Iterable
+from pathlib import Path
 
 import httpx
 from openpyxl import load_workbook
@@ -34,7 +32,18 @@ from app.services.ingestion.common import (
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "FDA_EAFUS"
-DEFAULT_URL = "https://www.cfsanappsexternal.fda.gov/scripts/fdcc/eafus.xlsx"  # subject to change
+FIXTURE_PATH = Path(__file__).parents[3] / "data" / "seed" / "fda_eafus_fixture.xlsx"
+
+# FDA rotates this URL; try candidates in order.
+CANDIDATE_URLS = [
+    "https://www.cfsanappsexternal.fda.gov/scripts/fdcc/eafus.xlsx",
+    "https://www.cfsanappsexternal.fda.gov/scripts/fdcc/index.cfm?set=EAFUS&exportopt=default&Qformat=EXCEL_SLIMVALUE",
+    "https://www.cfsanappsexternal.fda.gov/scripts/fdcc/?set=EAFUS&exportopt=default&Qformat=EXCEL_SLIMVALUE",
+]
+
+
+class FDAFetchError(RuntimeError):
+    """Raised when all candidate URLs fail."""
 
 
 def parse_workbook(raw_bytes: bytes) -> list[IngestionRecord]:
@@ -58,17 +67,33 @@ def parse_workbook(raw_bytes: bytes) -> list[IngestionRecord]:
             IngestionRecord(
                 canonical_name=substance,
                 cas_number=cas if cas and "-" in cas else None,
-                status="APPROVED",  # EAFUS = approved for use in food
+                status="APPROVED",
                 hazard_note=None,
             )
         )
     return records
 
 
-async def fetch_live_bytes(client: httpx.AsyncClient, url: str = DEFAULT_URL) -> bytes:
-    response = await client.get(url)
-    response.raise_for_status()
-    return response.content
+async def fetch_live_bytes(client: httpx.AsyncClient) -> bytes:
+    """Try candidate URLs in order; raise FDAFetchError if all fail."""
+    last_exc: Exception | None = None
+    for url in CANDIDATE_URLS:
+        try:
+            response = await client.get(url)
+            response.raise_for_status()
+            content = response.content
+            # Sanity check: xlsx files start with PK (zip magic bytes)
+            if content[:2] == b"PK":
+                logger.info("FDA EAFUS fetched from %s (%d bytes)", url, len(content))
+                return content
+            logger.warning("FDA URL %s returned non-xlsx content, skipping", url)
+        except httpx.HTTPStatusError as exc:
+            logger.warning("FDA URL %s → %s", url, exc.response.status_code)
+            last_exc = exc
+        except httpx.RequestError as exc:
+            logger.warning("FDA URL %s network error: %s", url, exc)
+            last_exc = exc
+    raise FDAFetchError("All FDA EAFUS candidate URLs failed") from last_exc
 
 
 async def run(
@@ -79,14 +104,16 @@ async def run(
 ) -> IngestionLog:
     """Ingest FDA EAFUS records into SQL + Chroma.
 
-    - If `records` is provided, use them directly (test path).
-    - Else if `raw_bytes` is provided, parse the workbook.
-    - Else fetch the live URL (may 404 depending on FDA's schedule).
+    Priority: records > raw_bytes > live fetch > bundled fixture.
     """
     if records is None:
         if raw_bytes is None:
-            async with httpx.AsyncClient(timeout=60) as client:
-                raw_bytes = await fetch_live_bytes(client)
+            try:
+                async with httpx.AsyncClient(timeout=60) as client:
+                    raw_bytes = await fetch_live_bytes(client)
+            except FDAFetchError:
+                logger.warning("FDA live fetch failed; using bundled fixture at %s", FIXTURE_PATH)
+                raw_bytes = FIXTURE_PATH.read_bytes()
         records = parse_workbook(raw_bytes)
 
     records_list = list(records)

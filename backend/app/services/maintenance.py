@@ -5,7 +5,7 @@ upload. This module provides the delete operation; scheduling (cron) is
 handled externally (Render cron / GitHub Actions).
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
@@ -18,7 +18,7 @@ def expire_biomarkers(db: Session) -> int:
 
     Returns the number of rows removed.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     result = db.execute(delete(Biomarker).where(Biomarker.expires_at < now))
     db.commit()
     return result.rowcount or 0

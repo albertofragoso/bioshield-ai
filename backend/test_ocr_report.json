@@ -1,0 +1,274 @@
+[
+  {
+    "image": "1.jpeg",
+    "ok": true,
+    "count": 16,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "HARINA DE TRIGO (GLUTEN)",
+      "AZÚCARES AÑADIDOS (AZÚCAR, DEXTROSA)",
+      "LEVADURA",
+      "ACEITE Y GRASA VEGETAL",
+      "AJONJOLÍ",
+      "GLUTEN DE TRIGO",
+      "HARINA DE TRIGO FERMENTADA",
+      "SAL YODADA",
+      "AJONJOLÍ NEGRO",
+      "MONO Y DIGLICÉRIDOS",
+      "ENZIMAS",
+      "PROTEÍNAS VEGETALES (CHÍCHARO, PAPA, HABA)",
+      "MALTODEXTRINA",
+      "ÁCIDO LÁCTICO",
+      "GOMA XANTANA",
+      "DATEM"
+    ],
+    "error": null
+  },
+  {
+    "image": "10.jpeg",
+    "ok": true,
+    "count": 9,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "az\r\ncar\r\nes a\r\n\r\n\r\n\r\nadidos (jarabe de ma\r\n\r\n\r\n\r\nz de alta fructosa, jarabe de ma\r\n\r\n\r\n\r\nz, sacarosa)",
+      "agua",
+      "cocoa",
+      "sorbato de potasio",
+      "goma xantana",
+      "sal yodada",
+      "mono y diglic\r\n\r\n\r\n\r\neridos",
+      "polisorbato 60",
+      "saborizante artificial"
+    ],
+    "error": null
+  },
+  {
+    "image": "11.jpeg",
+    "ok": true,
+    "count": 6,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "AZÚCARES AÑADIDOS (AZÚCAR)",
+      "AGUA",
+      "CHABACANO",
+      "ÁCIDO CÍTRICO",
+      "PECTINA",
+      "SORBATO DE POTASIO"
+    ],
+    "error": null
+  },
+  {
+    "image": "12.jpeg",
+    "ok": true,
+    "count": 8,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "Azúcares añadidos (glucosa de maíz, jarabe de maíz de alta fructosa)",
+      "agua",
+      "sal yodada",
+      "benzoato de sodio (0,1% como conservador)",
+      "color caramelo clase IV",
+      "saborizante artificial maple",
+      "ácido cítrico",
+      "saborizante artificial vainilla"
+    ],
+    "error": null
+  },
+  {
+    "image": "13.jpeg",
+    "ok": true,
+    "count": 23,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "Pasta enriquecida [sémola de trigo durum, hierro, niacina, vitamina B1 (tiamina), vitamina B2 (riboflavina) y ácido fólico (folacina)]",
+      "sal yodada",
+      "tomate deshidratado (3.8%)",
+      "maltodextrina",
+      "almidón",
+      "saborizantes naturales y artificiales",
+      "proteína vegetal hidrolizada (de soya)",
+      "carne de pollo en polvo (1.4%)",
+      "glutamato monosódico",
+      "hidrolizado de levadura",
+      "ácido cítrico",
+      "perejil",
+      "mono y diglicéridos",
+      "extracto de paprika",
+      "curcumina",
+      "goma xantana",
+      "goma acacia",
+      "inosinato de sodio",
+      "guanilato de sodio",
+      "aceite vegetal",
+      "TBHQ",
+      "dióxido de silicio",
+      "silicato de calcio"
+    ],
+    "error": null
+  },
+  {
+    "image": "2.jpeg",
+    "ok": true,
+    "count": 4,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "HARINA DE MAÍZ BLANCO NIXTAMALIZADO",
+      "SAL DE MAR YODADA",
+      "TOCOFEROLES",
+      "SABORIZANTE NATURAL"
+    ],
+    "error": null
+  },
+  {
+    "image": "3.jpeg",
+    "ok": true,
+    "count": 27,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "SÉMOLA DE MAÍZ",
+      "ACEITE VEGETAL",
+      "SÓLIDOS DE LA LECHE",
+      "MALTODEXTRINA",
+      "CHILES",
+      "SAL YODADA",
+      "HARINA DE SOYA",
+      "QUESO",
+      "SABORIZANTES NATURALES, IDÉNTICOS AL NATURAL Y ARTIFICIALES (CONTIENEN CEBADA)",
+      "ÁCIDO CÍTRICO",
+      "CLORURO DE POTASIO",
+      "GLUTAMATO MONOSÓDICO",
+      "CASEINATO DE SODIO",
+      "PROTEÍNA VEGETAL HIDROLIZADA DE SOYA",
+      "HIDROLIZADO DE LEVADURA",
+      "LECHE ENTERA FERMENTADA",
+      "TARTRAZINA Y SUS LACAS",
+      "AMARILLO OCASO FCF Y SUS LACAS",
+      "GUANILATO DE SODIO",
+      "INOSINATO DE SODIO",
+      "ACHIOTE",
+      "ÁCIDO LÁCTICO",
+      "ÁCIDO FUMÁRICO",
+      "ÁCIDO MÁLICO",
+      "ÁCIDO ASCÓRBICO",
+      "ROJO ALLURA AC Y SUS LACAS",
+      "AMARILLO OCASO FCF Y SUS LACAS"
+    ],
+    "error": null
+  },
+  {
+    "image": "4.jpeg",
+    "ok": true,
+    "count": 12,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "Agua Carbonatada",
+      "Ácido Cítrico",
+      "Concentrado Mirinda Naranja",
+      "Almidón Modificado",
+      "Aspartame",
+      "Benzoato de Sodio",
+      "Goma Arábiga",
+      "Éster de Glicerol de Goma Rosina",
+      "Acesulfame K",
+      "Amarillo Ocaso FCF",
+      "Sucralosa",
+      "Citrato de Sodio"
+    ],
+    "error": null
+  },
+  {
+    "image": "5.jpeg",
+    "ok": true,
+    "count": 5,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "HARINA DE MAÍZ",
+      "SAL YODATADA",
+      "ACEITE VEGETAL",
+      "ANTOXIDANTE (BHA, BHT Y ÁCIDO CÍTRICO)",
+      "COLORANTES ARTIFICIALES No. 6 Y ROJO No. 40"
+    ],
+    "error": null
+  },
+  {
+    "image": "6.jpeg",
+    "ok": true,
+    "count": 10,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "HARINA DE TRIGO (GLUTEN)",
+      "RELLENO SABOR A CHOCOLATE (36%) [AZÚCAR, AZÚCAR INVERTIDO, GRASA VEGETAL, COCOA, LECITINA DE SOYA, SABORIZANTE ARTIFICIAL]",
+      "AZÚCARES AÑADIDOS (AZÚCAR)",
+      "GRASA VEGETAL",
+      "HUEVO",
+      "SAL YODADA",
+      "BICARBONATO DE SODIO",
+      "LECITINA DE SOYA",
+      "SABORIZANTE NATURAL (LECHE)",
+      "BENZOATO DE SODIO"
+    ],
+    "error": null
+  },
+  {
+    "image": "7.jpeg",
+    "ok": true,
+    "count": 7,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "Azúcares añadidos (Sacarosa)",
+      "Aceite vegetal",
+      "Avellanas 13%",
+      "Leche descremada en polvo 8,7%",
+      "Cacao magro en polvo 7,4%",
+      "Lecitina",
+      "Saborizante idéntico al natural de vainillina"
+    ],
+    "error": null
+  },
+  {
+    "image": "8.jpeg",
+    "ok": true,
+    "count": 7,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "CONCENTRADO DE TOMATE (AGUA Y PASTA DE TOMATE)",
+      "AZÚCARES AÑADIDOS (JARABE DE MAÍZ DE ALTA FRUCTOSA Y JARABE DE MAÍZ)",
+      "VINAGRE",
+      "SAL YODADA",
+      "OLEORRESINA DE PAPRIKA",
+      "CEBOLLA EN POLVO",
+      "SABORIZANTE NATURAL"
+    ],
+    "error": null
+  },
+  {
+    "image": "9.jpeg",
+    "ok": true,
+    "count": 8,
+    "language": "es",
+    "has_additives": true,
+    "ingredients": [
+      "CONCENTRADO DE TOMATE (AGUA Y PASTA DE TOMATE)",
+      "JARABE DE MAÍZ DE ALTA FRUCTOSA",
+      "JARABE DE MAÍZ",
+      "VINAGRE",
+      "SAL YODADA",
+      "OLEORRESINA DE PAPRIKA",
+      "CEBOLLA EN POLVO",
+      "SABORIZANTE NATURAL"
+    ],
+    "error": null
+  }
+]

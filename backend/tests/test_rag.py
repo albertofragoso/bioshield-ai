@@ -7,12 +7,11 @@ Gemini are mocked; real API keys are never needed in the test suite.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import pytest
 from sqlalchemy import select
 
-from app.models import Conflict, DataSource, Ingredient, RegulatoryStatus
+from app.models import Ingredient, RegulatoryStatus
 from app.services.conflicts import detect_conflicts
 from app.services.entity_resolution import resolve
 from app.services.ingestion.common import (
@@ -22,7 +21,6 @@ from app.services.ingestion.common import (
     upsert_regulatory_status,
 )
 from app.services.rag import build_embedding_template
-
 
 # ─────────────────────────────────────────────
 # rag.py helpers
@@ -209,7 +207,7 @@ def test_detect_temporal_conflict_low(db_session):
     ing = upsert_ingredient(
         db_session, IngestionRecord(canonical_name="BHA", cas_number="25013-16-5")
     )
-    stale = datetime.now(timezone.utc) - timedelta(days=900)
+    stale = datetime.now(UTC) - timedelta(days=900)
     upsert_regulatory_status(
         db_session, ing, fda,
         IngestionRecord(canonical_name="BHA", status="APPROVED", evaluated_at=stale),
@@ -232,7 +230,7 @@ def test_no_conflict_single_approval(db_session):
         IngestionRecord(
             canonical_name="Salt",
             status="APPROVED",
-            evaluated_at=datetime.now(timezone.utc),
+            evaluated_at=datetime.now(UTC),
         ),
     )
     assert detect_conflicts(ing, db_session) == []

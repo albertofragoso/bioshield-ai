@@ -6,17 +6,15 @@ Covers all 5 semaphore colors from PRD §7.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import select
 
 from app.agents.graph import build_scan_graph
-from app.models import Biomarker, Ingredient, RegulatoryStatus
+from app.models import Biomarker
 from app.schemas.models import SemaphoreColor
 from app.services import gemini as gemini_service
-from app.services import off_client
-from app.services import retrieval
+from app.services import off_client, retrieval
 from app.services.crypto import encrypt_biomarker
 from app.services.ingestion.common import (
     IngestionRecord,
@@ -50,7 +48,7 @@ def seeded_db(db_session):
         IngestionRecord(
             canonical_name="Titanium Dioxide", status="BANNED",
             hazard_note="Genotoxicity cannot be ruled out",
-            evaluated_at=datetime.now(timezone.utc),
+            evaluated_at=datetime.now(UTC),
         ),
     )
 
@@ -64,7 +62,7 @@ def seeded_db(db_session):
             canonical_name="Butylated Hydroxyanisole",
             status="APPROVED",
             hazard_note="IARC Group 2B carcinogen",
-            evaluated_at=datetime.now(timezone.utc),
+            evaluated_at=datetime.now(UTC),
         ),
     )
 
@@ -75,7 +73,7 @@ def seeded_db(db_session):
         db_session, salt, fda,
         IngestionRecord(
             canonical_name="Salt", status="APPROVED",
-            evaluated_at=datetime.now(timezone.utc),
+            evaluated_at=datetime.now(UTC),
         ),
     )
 
@@ -88,7 +86,7 @@ def seeded_db(db_session):
         IngestionRecord(
             canonical_name="High-Fructose Corn Syrup",
             status="APPROVED",
-            evaluated_at=datetime.now(timezone.utc),
+            evaluated_at=datetime.now(UTC),
         ),
     )
     db_session.commit()

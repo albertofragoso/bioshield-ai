@@ -4,10 +4,11 @@ Compatible with SQLite (dev) and PostgreSQL (prod).
 UUID fields use String(36); JSONB uses JSON; BYTEA uses LargeBinary.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -15,7 +16,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSON,
     LargeBinary,
     String,
     Text,
@@ -27,7 +27,7 @@ from app.models.base import Base
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _uuid() -> str:
@@ -35,7 +35,7 @@ def _uuid() -> str:
 
 
 def _expires_at() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(days=180)
+    return datetime.now(UTC) + timedelta(days=180)
 
 
 # ─────────────────────────────────────────────

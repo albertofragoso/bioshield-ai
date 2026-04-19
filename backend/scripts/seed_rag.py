@@ -42,6 +42,7 @@ def load_curated() -> dict[str, list[IngestionRecord]]:
             canonical_name=row["canonical_name"],
             cas_number=row.get("cas_number"),
             status=row.get("status", "APPROVED"),
+            synonyms=row.get("synonyms", []),
         )
         for row in data["fda_eafus"]
     ]
@@ -99,9 +100,15 @@ async def run_curated(db: Session) -> None:
 async def run_live(db: Session) -> None:
     settings = get_settings()
     logger.info("Live ingestion — hitting upstream sources (may take several minutes)")
-    await fda_eafus.run(db, settings)
-    await efsa_zenodo.run(db, settings)
-    await codex_gsfa.run(db, settings)
+    for name, coro in [
+        ("FDA EAFUS", fda_eafus.run(db, settings)),
+        ("EFSA Zenodo", efsa_zenodo.run(db, settings)),
+        ("Codex GSFA", codex_gsfa.run(db, settings)),
+    ]:
+        try:
+            await coro
+        except Exception as exc:
+            logger.warning("PARTIAL FAILURE — %s skipped: %s", name, exc)
 
     all_ingredients = list(db.scalars(select(Ingredient)))
     for ing in all_ingredients:

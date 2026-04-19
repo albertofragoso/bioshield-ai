@@ -1,0 +1,119 @@
+[
+  {
+    "image": "1.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "10.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "11.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "12.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "13.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "2.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "3.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "4.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "5.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "6.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "7.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "8.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  },
+  {
+    "image": "9.jpeg",
+    "semaphore": "ERROR",
+    "product_name": "-",
+    "extracted": 0,
+    "resolved": 0,
+    "severity": "-",
+    "error": "429: Gemini API quota exceeded, retry later"
+  }
+]

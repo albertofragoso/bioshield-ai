@@ -1,8 +1,7 @@
 """Tests for /auth endpoints: register, login, refresh, logout, and protected routes."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import pytest
 from jose import jwt
 
 from tests.conftest import TEST_SETTINGS
@@ -25,8 +24,8 @@ def _make_expired_access_token(user_id: str) -> str:
     payload = {
         "sub": user_id,
         "type": "access",
-        "iat": datetime.now(timezone.utc) - timedelta(hours=2),
-        "exp": datetime.now(timezone.utc) - timedelta(hours=1),
+        "iat": datetime.now(UTC) - timedelta(hours=2),
+        "exp": datetime.now(UTC) - timedelta(hours=1),
     }
     return jwt.encode(payload, TEST_SETTINGS.jwt_secret, algorithm=TEST_SETTINGS.jwt_algorithm)
 
@@ -134,8 +133,8 @@ async def test_protected_route_with_refresh_token_rejected(client):
     payload = {
         "sub": user_id,
         "type": "refresh",
-        "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "iat": datetime.now(UTC),
+        "exp": datetime.now(UTC) + timedelta(days=7),
     }
     refresh_token = jwt.encode(payload, TEST_SETTINGS.jwt_secret, algorithm=TEST_SETTINGS.jwt_algorithm)
     response = await client.get(PROTECTED_URL, cookies={"access_token": refresh_token})
@@ -173,8 +172,8 @@ async def test_refresh_with_access_token_as_refresh_rejected(client):
     payload = {
         "sub": user_id,
         "type": "access",
-        "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+        "iat": datetime.now(UTC),
+        "exp": datetime.now(UTC) + timedelta(minutes=30),
     }
     access_as_refresh = jwt.encode(payload, TEST_SETTINGS.jwt_secret, algorithm=TEST_SETTINGS.jwt_algorithm)
     response = await client.post(REFRESH_URL, cookies={"refresh_token": access_as_refresh})

@@ -17,6 +17,8 @@ Eres un experto en tecnología de alimentos. Analiza la imagen de la etiqueta pr
 Reglas:
 - Devuelve SOLO los ingredientes literales que aparecen en la lista; excluye valores nutricionales, claims ("sin gluten", "natural", "light"), marca y logos.
 - Si detectas un número CAS (formato NNNNN-NN-N) o un E-number (E###), conserva el identificador junto al nombre común.
+- Normaliza cada nombre de ingrediente: elimina saltos de línea y espacios múltiples internos; cada elemento de la lista debe ser texto continuo en una sola línea.
+- Si en la etiqueta aparecen dos sustancias distintas unidas por "y" o "/" en una misma línea (ej. "dióxido de silicio y silicato de calcio"), sepáralas en dos elementos independientes. No apliques esta regla a nombres compuestos que contienen "y" como parte del nombre (ej. "mono y diglicéridos").
 - Idioma: el campo `language` refleja el idioma predominante de la etiqueta ("es", "en", "pt", etc.).
 - Si la imagen es ilegible o no contiene una lista de ingredientes, devuelve ingredients=[] y has_additives=false.
 ```

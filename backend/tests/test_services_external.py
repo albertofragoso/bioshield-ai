@@ -5,12 +5,10 @@ import base64
 import httpx
 import pytest
 
-from app.config import Settings
 from app.schemas.models import ProductExtraction
 from app.services import gemini as gemini_service
 from app.services.off_client import _parse_ingredients, fetch_product
 from tests.conftest import TEST_SETTINGS
-
 
 # ─────────────────────────────────────────────
 # _parse_ingredients

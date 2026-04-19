@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass
 
 from rapidfuzz import fuzz, process
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Ingredient

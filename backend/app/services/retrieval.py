@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.models import Ingredient
 from app.services.embeddings import embed_text
-from app.services.rag import RAGHit, get_collection, query_by_embedding
+from app.services.rag import get_collection, query_by_embedding
 
 logger = logging.getLogger(__name__)
 

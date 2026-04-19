@@ -1,18 +1,20 @@
 """EFSA OpenFoodTox ingestion via Zenodo API.
 
-OpenFoodTox is the canonical source for EFSA hazard assessments (NOAEL,
-genotoxicity, carcinogenicity). The Zenodo record ID is parameterized via
-settings.
+Zenodo record 8120114 contains Excel files. We download
+SubstanceCharacterisation_KJ_2023.xlsx to extract substance names, CAS, and
+EC reference numbers. Status defaults to UNDER_REVIEW (EFSA assessments are
+ongoing risk evaluations, not binary approved/banned decisions).
 """
 
 from __future__ import annotations
 
-import json
+import io
 import logging
-from datetime import datetime, timezone
-from typing import Iterable
+import re
+from collections.abc import Iterable
 
 import httpx
+from openpyxl import load_workbook
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -31,51 +33,70 @@ from app.services.ingestion.common import (
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "EFSA_OpenFoodTox"
-ZENODO_RECORD_URL = "https://zenodo.org/api/records/8120114"  # current OpenFoodTox release
+ZENODO_RECORD_URL = "https://zenodo.org/api/records/8120114"
+TARGET_FILE = "SubstanceCharacterisation_KJ_2023.xlsx"
+
+_XML_ENTITY_RE = re.compile(r"_x([0-9A-Fa-f]{4})_")
 
 
-def parse_records(payload: dict) -> list[IngestionRecord]:
-    """Translate OpenFoodTox JSON rows into canonical IngestionRecords.
+def _decode_name(raw: str) -> str:
+    """Decode Excel XML-escaped characters like _x0028_ → ("""
+    return _XML_ENTITY_RE.sub(lambda m: chr(int(m.group(1), 16)), raw).strip()
 
-    The exact schema depends on the Zenodo dataset version; parser looks for
-    common fields: name, cas, e_number, conclusion, noael.
-    """
+
+def parse_workbook_bytes(raw_bytes: bytes) -> list[IngestionRecord]:
+    wb = load_workbook(filename=io.BytesIO(raw_bytes), read_only=True, data_only=True)
+    ws = wb.active
+
     records: list[IngestionRecord] = []
-    items = payload.get("data") or payload.get("records") or []
-    for row in items:
-        name = (row.get("name") or row.get("substance") or "").strip()
-        if not name:
-            continue
-        cas = (row.get("cas") or row.get("cas_number") or "").strip() or None
-        e_num = (row.get("e_number") or "").strip() or None
-        status = row.get("conclusion") or row.get("status") or "UNDER REVIEW"
-        hazard = row.get("hazard") or row.get("notes") or None
-        evaluated = row.get("evaluated_at")
+    seen: set[str] = set()
 
-        evaluated_dt: datetime | None = None
-        if evaluated:
-            try:
-                evaluated_dt = datetime.fromisoformat(evaluated).replace(tzinfo=timezone.utc)
-            except (ValueError, TypeError):
-                pass
+    for i, row in enumerate(ws.iter_rows(values_only=True)):
+        if i == 0:
+            continue  # header row
+        if not row or not row[0]:
+            continue
+
+        relation = str(row[1] or "").strip()
+        if relation != "as_x0020_such" and relation != "as such":
+            continue  # skip metabolite / component rows
+
+        name = _decode_name(str(row[0]))
+        if not name or name in seen:
+            continue
+        seen.add(name)
+
+        cas = _decode_name(str(row[3] or "")).strip() or None
+        ec_ref = _decode_name(str(row[4] or "")).strip() or None
+
+        if cas and "-" not in cas:
+            cas = None
 
         records.append(
             IngestionRecord(
                 canonical_name=name,
                 cas_number=cas,
-                e_number=e_num,
-                status=str(status).upper(),
-                hazard_note=hazard,
-                evaluated_at=evaluated_dt,
+                e_number=ec_ref,
+                status="UNDER_REVIEW",
+                hazard_note=None,
+                evaluated_at=None,
             )
         )
+
     return records
 
 
-async def fetch_live(client: httpx.AsyncClient, url: str = ZENODO_RECORD_URL) -> dict:
-    response = await client.get(url)
+async def fetch_live_bytes(client: httpx.AsyncClient) -> bytes:
+    meta = (await client.get(ZENODO_RECORD_URL)).json()
+    files = meta.get("files", [])
+    file_url = next(
+        (f["links"]["self"] for f in files if f["key"] == TARGET_FILE), None
+    )
+    if not file_url:
+        raise ValueError(f"{TARGET_FILE} not found in Zenodo record {ZENODO_RECORD_URL}")
+    response = await client.get(file_url)
     response.raise_for_status()
-    return response.json()
+    return response.content
 
 
 async def run(
@@ -84,25 +105,26 @@ async def run(
     records: Iterable[IngestionRecord] | None = None,
     payload: dict | None = None,
 ) -> IngestionLog:
+    raw_bytes: bytes | None = None
+
     if records is None:
-        if payload is None:
-            async with httpx.AsyncClient(timeout=60) as client:
-                payload = await fetch_live(client)
-        records = parse_records(payload)
+        async with httpx.AsyncClient(timeout=120) as client:
+            raw_bytes = await fetch_live_bytes(client)
+        records = parse_workbook_bytes(raw_bytes)
 
     records_list = list(records)
-    raw = json.dumps(payload).encode() if payload else str(len(records_list)).encode()
+    src_bytes = raw_bytes or str(len(records_list)).encode()
 
     source = get_or_create_source(
         db,
         name=SOURCE_NAME,
         region="EU",
-        version="OpenFoodTox_latest",
-        source_checksum=checksum(raw),
+        version="OpenFoodTox_KJ_2023",
+        source_checksum=checksum(src_bytes),
         license_="CC BY 4.0",
-        format_="JSON",
+        format_="XLSX",
     )
-    log = start_log(db, source, checksum(raw))
+    log = start_log(db, source, checksum(src_bytes))
 
     for rec in records_list:
         ing = upsert_ingredient(db, rec)

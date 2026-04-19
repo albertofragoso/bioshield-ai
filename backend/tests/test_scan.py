@@ -6,13 +6,10 @@ and we replace those attributes per test.
 """
 
 import base64
-from datetime import datetime, timezone
 
-import pytest
 from sqlalchemy import select
 
 from app.models import (
-    Conflict,
     DataSource,
     Ingredient,
     Product,

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -13,12 +14,14 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.models import (
     DataSource,
-    Ingredient,
     IngestionLog,
+    Ingredient,
     RegulatoryStatus,
 )
 from app.services.embeddings import embed_text
 from app.services.rag import build_embedding_template, get_collection, upsert_record
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -59,14 +62,14 @@ def get_or_create_source(
             source_checksum=source_checksum,
             license=license_,
             format=format_,
-            last_ingested_at=datetime.now(timezone.utc),
+            last_ingested_at=datetime.now(UTC),
         )
         db.add(source)
         db.flush()
     else:
         source.version = version
         source.source_checksum = source_checksum
-        source.last_ingested_at = datetime.now(timezone.utc)
+        source.last_ingested_at = datetime.now(UTC)
     return source
 
 
@@ -135,7 +138,12 @@ def upsert_regulatory_status(
 async def index_record(
     ingredient: Ingredient, record: IngestionRecord, source_name: str, settings: Settings
 ) -> None:
-    """Upsert embedding + metadata into ChromaDB."""
+    """Upsert embedding + metadata into ChromaDB.
+
+    Embedding failures (quota exhaustion, API outage) are non-fatal: the SQL
+    upsert already persisted the record, so BM25 retrieval still works. Chroma
+    will be back-filled on the next successful seed run.
+    """
     template = build_embedding_template(
         entity_id=ingredient.entity_id or record.entity_id,
         canonical_name=ingredient.canonical_name,
@@ -145,7 +153,14 @@ async def index_record(
     # Skip embedding on empty gemini_api_key (unit tests run offline)
     if not settings.gemini_api_key or settings.gemini_api_key == "test-key":
         return
-    embedding = await embed_text(template, settings)
+    try:
+        embedding = await embed_text(template, settings)
+    except (RuntimeError, Exception) as exc:
+        logger.warning(
+            "Chroma indexing skipped for %s (%s): %s — BM25 still available",
+            ingredient.canonical_name, source_name, exc,
+        )
+        return
     collection = get_collection(settings)
     metadata: dict[str, Any] = {
         "entity_id": ingredient.entity_id or record.entity_id,
@@ -167,11 +182,11 @@ async def index_record(
 def start_log(db: Session, source: DataSource, source_checksum: str) -> IngestionLog:
     log = IngestionLog(
         source_id=source.id,
-        ingestion_id=f"ingest_{source.name}_{datetime.now(timezone.utc).timestamp():.0f}",
+        ingestion_id=f"ingest_{source.name}_{datetime.now(UTC).timestamp():.0f}",
         source_checksum=source_checksum,
         data_version=source.version or "unknown",
         status="RUNNING",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
     )
     db.add(log)
     db.flush()
@@ -181,4 +196,4 @@ def start_log(db: Session, source: DataSource, source_checksum: str) -> Ingestio
 def finish_log(log: IngestionLog, records_processed: int, status: str = "SUCCESS") -> None:
     log.records_processed = records_processed
     log.status = status
-    log.completed_at = datetime.now(timezone.utc)
+    log.completed_at = datetime.now(UTC)

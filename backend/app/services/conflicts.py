@@ -6,8 +6,8 @@ Per docs/embedding-strategy.md and PRD §3.B severity matrix. Writes to the
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Iterable
+from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -90,8 +90,8 @@ def detect_conflicts(ingredient: Ingredient, db: Session) -> list[Conflict]:
     if evaluations:
         latest = max(evaluations)
         if latest.tzinfo is None:
-            latest = latest.replace(tzinfo=timezone.utc)
-        if datetime.now(timezone.utc) - latest > _STALE_THRESHOLD:
+            latest = latest.replace(tzinfo=UTC)
+        if datetime.now(UTC) - latest > _STALE_THRESHOLD:
             detected.append(
                 (
                     ConflictType.TEMPORAL,

@@ -15,11 +15,9 @@ from app.agents.state import ScanState
 from app.config import Settings
 from app.models import Biomarker
 from app.schemas.models import (
-    ConflictSeverity,
     IngredientConflict,
     IngredientResult,
     RegulatoryStatus,
-    SemaphoreColor,
 )
 from app.services import gemini as gemini_service
 from app.services import off_client

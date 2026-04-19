@@ -4,7 +4,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-
 # ─────────────────────────────────────────────
 # Enums
 # ─────────────────────────────────────────────

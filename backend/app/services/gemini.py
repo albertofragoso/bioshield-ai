@@ -17,6 +17,7 @@ import google.generativeai as genai
 from fastapi import HTTPException, status
 from google.api_core import exceptions as google_exceptions
 from pydantic import BaseModel
+from pydantic import BaseModel as _PydanticBase
 
 from app.agents.prompts import EXTRACTOR_PROMPT, RECONCILER_PROMPT
 from app.config import Settings
@@ -39,6 +40,43 @@ class _ReconcilerResponse(BaseModel):
     severity: ConflictSeverity | None = None
     summary: str | None = None
     sources: list[str] | None = None
+
+
+_GEMINI_SCHEMA_ALLOWED = {
+    "type", "format", "description", "nullable", "enum",
+    "properties", "required", "items", "anyOf",
+    "minItems", "maxItems", "minimum", "maximum",
+}
+
+
+def _to_gemini_schema(schema: dict) -> dict:
+    """Recursively keep only fields supported by Gemini proto.Schema.
+
+    Pydantic JSON Schema emits 'title', 'default', '$defs', etc. that the
+    Gemini SDK proto rejects with 'Unknown field for Schema: <key>'.
+
+    'properties' is special: its keys are property names (not schema keywords),
+    so we recurse into each value without filtering the keys themselves.
+    """
+    result = {}
+    for k, v in schema.items():
+        if k not in _GEMINI_SCHEMA_ALLOWED:
+            continue
+        if k == "properties" and isinstance(v, dict):
+            # keys are property names — preserve them, recurse into their schemas
+            result[k] = {prop: _to_gemini_schema(sub) for prop, sub in v.items()}
+        elif isinstance(v, dict):
+            result[k] = _to_gemini_schema(v)
+        elif isinstance(v, list):
+            result[k] = [_to_gemini_schema(i) if isinstance(i, dict) else i for i in v]
+        else:
+            result[k] = v
+    return result
+
+
+def _gemini_schema(model_cls: type[_PydanticBase]) -> dict:
+    """Return a Gemini-compatible JSON schema dict for a Pydantic model."""
+    return _to_gemini_schema(model_cls.model_json_schema())
 
 
 def _configure(settings: Settings) -> None:
@@ -89,7 +127,7 @@ async def extract_from_image(image_b64: str, settings: Settings) -> ProductExtra
             ],
             generation_config={
                 "response_mime_type": "application/json",
-                "response_schema": ProductExtraction,
+                "response_schema": _gemini_schema(ProductExtraction),
             },
         )
     except google_exceptions.ResourceExhausted as exc:
@@ -133,7 +171,7 @@ async def reconcile_ingredient(
             prompt,
             generation_config={
                 "response_mime_type": "application/json",
-                "response_schema": _ReconcilerResponse,
+                "response_schema": _gemini_schema(_ReconcilerResponse),
             },
         )
     except google_exceptions.ResourceExhausted as exc:
