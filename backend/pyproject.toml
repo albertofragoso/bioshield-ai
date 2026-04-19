@@ -1,0 +1,23 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = ["alembic/", "scripts/"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "UP007",  # X | Y union syntax — keep Optional for Pydantic compat
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F811"]  # redefinition of unused name (fixtures)
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["tests/", "alembic/", "scripts/"]
+
+# Relaxed for a codebase not originally written with mypy
+warn_unused_ignores = false
+no_implicit_reexport = false
