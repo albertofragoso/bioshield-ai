@@ -1,0 +1,303 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$metadata": {
+    "project": "BioShield AI",
+    "version": "1.0.0",
+    "date": "2026-04-21",
+    "screen": "/login",
+    "notes": "Tokens derivados del avatar mascota (piña con escudo de ADN). Compatible con Style Dictionary y Tailwind CSS."
+  },
+
+  "color": {
+    "green": {
+      "$value": "#4ADE80",
+      "$type": "color",
+      "$description": "Primary — DNA glow del escudo. CTA, bordes activos, glow."
+    },
+    "amber": {
+      "$value": "#F59E0B",
+      "$type": "color",
+      "$description": "Accent — cuerpo dorado de la piña. Wordmark 'AI', links de registro."
+    },
+    "teal": {
+      "$value": "#2DD4BF",
+      "$type": "color",
+      "$description": "Secondary — espada bioluminiscente. Links secundarios (olvidaste contraseña)."
+    },
+    "red": {
+      "$value": "#F87171",
+      "$type": "color",
+      "$description": "Error — alert 401."
+    },
+    "amber-warn": {
+      "$value": "#FCD34D",
+      "$type": "color",
+      "$description": "Warning — alert 429."
+    },
+    "bg": {
+      "$value": "#080C07",
+      "$type": "color",
+      "$description": "Background global — negro con subtono verde orgánico."
+    },
+    "surface": {
+      "$value": "#0D1310",
+      "$type": "color",
+      "$description": "Card / superficie elevada."
+    },
+    "border": {
+      "$value": "rgba(74, 222, 128, 0.18)",
+      "$type": "color",
+      "$description": "Borde del card en reposo."
+    },
+    "border-focus": {
+      "$value": "#4ADE80",
+      "$type": "color",
+      "$description": "Borde de input en estado focus."
+    },
+    "border-idle": {
+      "$value": "rgba(74, 222, 128, 0.15)",
+      "$type": "color",
+      "$description": "Borde de input en estado idle."
+    },
+    "text": {
+      "$value": "#DCF0DC",
+      "$type": "color",
+      "$description": "Texto principal."
+    },
+    "subtext": {
+      "$value": "#6B8A6A",
+      "$type": "color",
+      "$description": "Labels, placeholders, metadata."
+    },
+    "muted": {
+      "$value": "#4B5E4A",
+      "$type": "color",
+      "$description": "Iconos en idle, elementos deshabilitados."
+    }
+  },
+
+  "typography": {
+    "font-display": {
+      "$value": "Pacifico",
+      "$type": "fontFamily",
+      "$description": "Wordmark 'BioShield'. Google Fonts. Solo para el nombre de marca."
+    },
+    "font-body": {
+      "$value": "Space Grotesk",
+      "$type": "fontFamily",
+      "$description": "Cuerpo general — inputs, botones, párrafos. Google Fonts."
+    },
+    "font-mono": {
+      "$value": "JetBrains Mono",
+      "$type": "fontFamily",
+      "$description": "Labels de campos, alerts, metadata técnica. Google Fonts."
+    },
+    "size-wordmark": {
+      "$value": "28px",
+      "$type": "fontSize",
+      "$description": "Tamaño del wordmark 'BioShield'."
+    },
+    "size-wordmark-ai": {
+      "$value": "26px",
+      "$type": "fontSize",
+      "$description": "Tamaño del sufijo 'AI' en el wordmark."
+    },
+    "size-label": {
+      "$value": "10px",
+      "$type": "fontSize",
+      "$description": "Labels de inputs en JetBrains Mono UPPERCASE."
+    },
+    "size-input": {
+      "$value": "14px",
+      "$type": "fontSize",
+      "$description": "Texto dentro de los inputs."
+    },
+    "size-button": {
+      "$value": "13px",
+      "$type": "fontSize",
+      "$description": "Texto del botón CTA."
+    },
+    "size-tagline": {
+      "$value": "9.5px",
+      "$type": "fontSize",
+      "$description": "Tagline debajo del wordmark."
+    },
+    "size-meta": {
+      "$value": "9px",
+      "$type": "fontSize",
+      "$description": "Stamp de versión al pie del card."
+    },
+    "weight-display": {
+      "$value": "400",
+      "$type": "fontWeight",
+      "$description": "Pacifico es siempre 400 (su único peso)."
+    },
+    "weight-ai": {
+      "$value": "700",
+      "$type": "fontWeight",
+      "$description": "Space Grotesk Bold para el sufijo 'AI'."
+    },
+    "weight-label": {
+      "$value": "500",
+      "$type": "fontWeight",
+      "$description": "JetBrains Mono Medium para labels."
+    },
+    "tracking-label": {
+      "$value": "0.1em",
+      "$type": "letterSpacing",
+      "$description": "Letter spacing de labels de inputs."
+    },
+    "tracking-button": {
+      "$value": "0.12em",
+      "$type": "letterSpacing",
+      "$description": "Letter spacing del botón CTA."
+    },
+    "tracking-tagline": {
+      "$value": "0.18em",
+      "$type": "letterSpacing",
+      "$description": "Letter spacing de la tagline."
+    }
+  },
+
+  "spacing": {
+    "card-padding": {
+      "$value": "40px 36px 36px",
+      "$type": "spacing",
+      "$description": "Padding interno del card en desktop."
+    },
+    "card-padding-mobile": {
+      "$value": "28px 16px 24px",
+      "$type": "spacing",
+      "$description": "Padding del card en mobile (375px)."
+    },
+    "field-gap": {
+      "$value": "16px",
+      "$type": "spacing",
+      "$description": "Gap vertical entre campos del formulario."
+    },
+    "field-padding": {
+      "$value": "14px",
+      "$type": "spacing",
+      "$description": "Padding vertical interno de cada input."
+    },
+    "field-padding-h": {
+      "$value": "14px",
+      "$type": "spacing",
+      "$description": "Padding horizontal interno de cada input."
+    },
+    "button-padding": {
+      "$value": "15px",
+      "$type": "spacing",
+      "$description": "Padding vertical del botón CTA."
+    },
+    "logo-margin-bottom": {
+      "$value": "32px",
+      "$type": "spacing",
+      "$description": "Espacio entre área del logo y el formulario."
+    }
+  },
+
+  "border-radius": {
+    "card": {
+      "$value": "18px",
+      "$type": "borderRadius",
+      "$description": "Border radius del card principal."
+    },
+    "input": {
+      "$value": "8px",
+      "$type": "borderRadius",
+      "$description": "Border radius de los inputs."
+    },
+    "button": {
+      "$value": "10px",
+      "$type": "borderRadius",
+      "$description": "Border radius del botón CTA."
+    },
+    "alert": {
+      "$value": "8px",
+      "$type": "borderRadius",
+      "$description": "Border radius de los alerts."
+    }
+  },
+
+  "shadow": {
+    "card": {
+      "$value": "0 0 0 1px rgba(74,222,128,0.06), 0 32px 80px rgba(0,0,0,0.9), inset 0 0 60px rgba(74,222,128,0.04)",
+      "$type": "shadow",
+      "$description": "Sombra completa del card."
+    },
+    "button-idle": {
+      "$value": "0 0 20px rgba(74,222,128,0.2)",
+      "$type": "shadow",
+      "$description": "Glow del botón CTA en reposo."
+    },
+    "button-hover": {
+      "$value": "0 0 30px rgba(74,222,128,0.35)",
+      "$type": "shadow",
+      "$description": "Glow del botón CTA en hover."
+    },
+    "input-focus": {
+      "$value": "0 0 0 3px rgba(74,222,128,0.1), inset 0 0 20px rgba(74,222,128,0.03)",
+      "$type": "shadow",
+      "$description": "Ring de foco en inputs."
+    },
+    "avatar-glow": {
+      "$value": "drop-shadow(0 0 16px rgba(74,222,128,0.5))",
+      "$type": "shadow",
+      "$description": "CSS filter drop-shadow del avatar mascota al cargar."
+    }
+  },
+
+  "animation": {
+    "wobble-duration": {
+      "$value": "5s",
+      "$type": "duration",
+      "$description": "Duración del ciclo wobble del avatar."
+    },
+    "wobble-keyframes": {
+      "$value": "0% translateY(0) rotate(-1.5deg) | 20% translateY(-7px) rotate(1.5deg) | 40% translateY(-3px) rotate(-1deg) | 60% translateY(-8px) rotate(2deg) | 80% translateY(-2px) rotate(-1deg) | 100% translateY(0) rotate(-1.5deg)",
+      "$type": "string",
+      "$description": "Keyframes de la animación wobble del avatar mascota."
+    },
+    "wobble-origin": {
+      "$value": "bottom center",
+      "$type": "string",
+      "$description": "transform-origin de la animación wobble."
+    },
+    "transition-default": {
+      "$value": "0.2s ease",
+      "$type": "duration",
+      "$description": "Transición estándar para colores y sombras."
+    },
+    "transition-glow": {
+      "$value": "1s ease",
+      "$type": "duration",
+      "$description": "Transición del drop-shadow del avatar al montar."
+    }
+  },
+
+  "component": {
+    "card-max-width": {
+      "$value": "420px",
+      "$type": "dimension"
+    },
+    "avatar-size": {
+      "$value": "140px",
+      "$type": "dimension",
+      "$description": "Width y height del avatar mascota."
+    },
+    "input-border-width": {
+      "$value": "1.5px",
+      "$type": "borderWidth"
+    },
+    "button-border-width": {
+      "$value": "1.5px",
+      "$type": "borderWidth"
+    },
+    "corner-accent-size": {
+      "$value": "60px",
+      "$type": "dimension",
+      "$description": "Tamaño del corner accent decorativo en las esquinas del card."
+    }
+  }
+}

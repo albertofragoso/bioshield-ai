@@ -2,43 +2,69 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* BioShield AI — Design tokens
+ * Referencia: .claude/plans/frontend.md (Fase B) + docs/design/tokens.md
+ * Estética: biotech hacker (dark-only, glows verdes, scanlines, hex-grid).
+ * Fuente de verdad para tokens: frontend/temp/login/design-tokens.json.
+ */
 
 @theme inline {
+  /* Fuentes — cargadas desde app/layout.tsx via next/font */
+  --font-display: var(--font-pacifico);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-space-grotesk);
+
+  /* Puente shadcn → tokens de marca (los componentes ui/* leen estos) */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Tokens de marca accesibles como clases utilitarias: bg-brand-green, text-brand-amber, etc. */
+  --color-brand-green: var(--brand-green);
+  --color-brand-amber: var(--brand-amber);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-red: var(--brand-red);
+  --color-brand-amber-warn: var(--brand-amber-warn);
+  --color-surface: var(--surface);
+  --color-subtext: var(--subtext);
+
+  /* Semáforo — ajustado para dark (luminancia +, saturación moderada) */
+  --color-semaphore-gray: var(--semaphore-gray);
+  --color-semaphore-blue: var(--semaphore-blue);
+  --color-semaphore-yellow: var(--semaphore-yellow);
+  --color-semaphore-orange: var(--semaphore-orange);
+  --color-semaphore-red: var(--semaphore-red);
+
+  /* Radios */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -46,104 +72,250 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  /* Semaphore tokens — used by SemaphoreHero + SemaphoreBadge */
-  --color-semaphore-gray: var(--semaphore-gray);
-  --color-semaphore-blue: var(--semaphore-blue);
-  --color-semaphore-yellow: var(--semaphore-yellow);
-  --color-semaphore-orange: var(--semaphore-orange);
-  --color-semaphore-red: var(--semaphore-red);
+  --radius-card: 18px;
+  --radius-input: 8px;
+  --radius-button: 10px;
+
+  /* Animaciones */
+  --animate-wobble: wobble 5s ease-in-out infinite;
+  --animate-scan-line: scan-line 2s linear infinite;
+  --animate-pulse-glow: pulse-glow 2.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.5s infinite;
 }
 
-:root {
-  /* BioShield brand: stone-50 background, stone-900 foreground, teal-600 primary */
-  --background: oklch(0.988 0.002 106);
-  --foreground: oklch(0.180 0.010 60);
-  --card: oklch(0.988 0.002 106);
-  --card-foreground: oklch(0.180 0.010 60);
-  --popover: oklch(0.988 0.002 106);
-  --popover-foreground: oklch(0.180 0.010 60);
-  --primary: oklch(0.600 0.118 181);
-  --primary-foreground: oklch(0.988 0.002 106);
-  --secondary: oklch(0.971 0.002 106);
-  --secondary-foreground: oklch(0.180 0.010 60);
-  --muted: oklch(0.971 0.002 106);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.971 0.002 106);
-  --accent-foreground: oklch(0.180 0.010 60);
-  --destructive: oklch(0.634 0.232 29);
-  --border: oklch(0.923 0.004 60);
-  --input: oklch(0.923 0.004 60);
-  --ring: oklch(0.600 0.118 181);
-  --chart-1: oklch(0.600 0.118 181);
-  --chart-2: oklch(0.795 0.184 86);
-  --chart-3: oklch(0.704 0.191 34);
-  --chart-4: oklch(0.634 0.232 29);
-  --chart-5: oklch(0.697 0.013 251);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.971 0.002 106);
-  --sidebar-foreground: oklch(0.180 0.010 60);
-  --sidebar-primary: oklch(0.600 0.118 181);
-  --sidebar-primary-foreground: oklch(0.988 0.002 106);
-  --sidebar-accent: oklch(0.923 0.004 60);
-  --sidebar-accent-foreground: oklch(0.180 0.010 60);
-  --sidebar-border: oklch(0.923 0.004 60);
-  --sidebar-ring: oklch(0.600 0.118 181);
-  /* Semaphore colors */
-  --semaphore-gray: oklch(0.697 0.013 251);
-  --semaphore-blue: oklch(0.623 0.214 259);
-  --semaphore-yellow: oklch(0.795 0.184 86);
-  --semaphore-orange: oklch(0.704 0.191 34);
-  --semaphore-red: oklch(0.634 0.232 29);
-}
-
+/* Dark-only: BioShield es dark por diseño (no hay variante light).
+ * Definimos tokens en :root directamente — la clase .dark queda como alias
+ * para shadcn/next-themes si alguno espera encontrarla. */
+:root,
 .dark {
-  --background: oklch(0.090 0 0);
-  --foreground: oklch(0.988 0.002 106);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.988 0.002 106);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.988 0.002 106);
-  --primary: oklch(0.650 0.118 181);
-  --primary-foreground: oklch(0.090 0 0);
-  --secondary: oklch(0.205 0 0);
-  --secondary-foreground: oklch(0.988 0.002 106);
-  --muted: oklch(0.205 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.205 0 0);
-  --accent-foreground: oklch(0.988 0.002 106);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.650 0.118 181);
-  --chart-1: oklch(0.650 0.118 181);
-  --chart-2: oklch(0.795 0.184 86);
-  --chart-3: oklch(0.704 0.191 34);
-  --chart-4: oklch(0.634 0.232 29);
-  --chart-5: oklch(0.697 0.013 251);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.988 0.002 106);
-  --sidebar-primary: oklch(0.650 0.118 181);
-  --sidebar-primary-foreground: oklch(0.090 0 0);
-  --sidebar-accent: oklch(0.205 0 0);
-  --sidebar-accent-foreground: oklch(0.988 0.002 106);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.650 0.118 181);
-  /* Semaphore colors (slightly desaturated in dark) */
-  --semaphore-gray: oklch(0.650 0.010 251);
-  --semaphore-blue: oklch(0.580 0.190 259);
-  --semaphore-yellow: oklch(0.760 0.165 86);
-  --semaphore-orange: oklch(0.670 0.175 34);
-  --semaphore-red: oklch(0.600 0.210 29);
+  /* Marca — paleta derivada del avatar mascota (piña con escudo de ADN).
+   * Ver frontend/temp/login/design-tokens.json. */
+  --brand-green: #4ade80; /* Primary — CTA, bordes activos, glow */
+  --brand-amber: #f59e0b; /* Accent — wordmark "AI", links registro */
+  --brand-teal: #2dd4bf; /* Secondary — links olvidé contraseña */
+  --brand-red: #f87171; /* Error — alert 401 */
+  --brand-amber-warn: #fcd34d; /* Warning — alert 429 */
+
+  /* Superficies */
+  --background: #080c07; /* Fondo global, negro con subtono verde orgánico */
+  --surface: #0d1310; /* Card / superficie elevada */
+  --foreground: #dcf0dc; /* Texto principal */
+  --subtext: #6b8a6a; /* Labels, placeholders, metadata */
+
+  /* Bordes — siempre verde translúcido para mantener el mood */
+  --border: rgba(74, 222, 128, 0.18);
+  --input: rgba(74, 222, 128, 0.15);
+  --ring: #4ade80;
+
+  /* Mapeo shadcn — componentes ui/* lo usan tal cual */
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --primary: var(--brand-green);
+  --primary-foreground: var(--background);
+  --secondary: var(--brand-amber);
+  --secondary-foreground: var(--background);
+  --muted: var(--surface);
+  --muted-foreground: var(--subtext);
+  --accent: var(--brand-teal);
+  --accent-foreground: var(--background);
+  --destructive: var(--brand-red);
+
+  /* Semáforo ajustado para dark — ratios WCAG AA verificados contra #080C07.
+   * Los mantienes semánticos (rojo es rojo, amarillo es amarillo) pero más
+   * luminosos que las versiones light del plan original. */
+  --semaphore-gray: #a8b3a7; /* 9.1:1 — gray neutral con tono verde sutil */
+  --semaphore-blue: #60a5fa; /* 7.2:1 — blue-400, más luminoso que 500 */
+  --semaphore-yellow: #facc15; /* 13.4:1 — yellow-400 cálido */
+  --semaphore-orange: #fb923c; /* 9.0:1 — orange-400 */
+  --semaphore-red: #f87171; /* 6.8:1 — red-400, matching brand-red */
+
+  /* Charts — reutilizan la paleta para consistencia */
+  --chart-1: var(--brand-green);
+  --chart-2: var(--brand-amber);
+  --chart-3: var(--brand-teal);
+  --chart-4: var(--brand-red);
+  --chart-5: var(--subtext);
+
+  /* Sidebar — para shadcn, aunque por ahora no lo usamos */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--brand-green);
+  --sidebar-primary-foreground: var(--background);
+  --sidebar-accent: var(--background);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  --radius: 0.5rem;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Fondo decorativo global — hex-grid + glow radial superior + scanlines
+     * subtiles. Se aplica en body para que todas las pantallas lo hereden. */
+    background-image:
+      radial-gradient(
+        ellipse 70% 50% at 50% 0%,
+        rgba(74, 222, 128, 0.08) 0%,
+        transparent 65%
+      ),
+      radial-gradient(
+        ellipse 50% 40% at 80% 90%,
+        rgba(245, 158, 11, 0.04) 0%,
+        transparent 60%
+      ),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='64'%3E%3Cpath d='M28 2 L54 17 L54 47 L28 62 L2 47 L2 17 Z' fill='none' stroke='rgba(74,222,128,0.04)' stroke-width='1'/%3E%3C/svg%3E");
+    background-size: auto, auto, 56px 64px;
+    background-attachment: fixed;
+  }
+  body::after {
+    /* Scanlines overlay — sutil, no interfiere con contenido */
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.03) 3px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+  }
+}
+
+/* ---------- Utilidades de marca ---------- */
+
+@layer utilities {
+  /* Card con glow + corner accents. Usado en login, register, dashboard hero. */
+  .bs-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 0 0 1px rgba(74, 222, 128, 0.06),
+      0 32px 80px rgba(0, 0, 0, 0.9),
+      inset 0 0 60px rgba(74, 222, 128, 0.04);
+    backdrop-filter: blur(20px);
+  }
+
+  /* Glow ring — útil para botones primary y avatares. */
+  .bs-glow-green {
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);
+  }
+  .bs-glow-green-strong {
+    box-shadow: 0 0 30px rgba(74, 222, 128, 0.35);
+  }
+
+  /* Input focus ring — matching login */
+  .bs-input-focus {
+    box-shadow:
+      0 0 0 3px rgba(74, 222, 128, 0.1),
+      inset 0 0 20px rgba(74, 222, 128, 0.03);
+  }
+
+  /* Drop-shadow del mascot avatar — aplicar en el wrapper del <Image/> */
+  .bs-mascot-glow {
+    filter: drop-shadow(0 0 16px rgba(74, 222, 128, 0.5));
+    transition: filter 1s ease;
+  }
+
+  /* Corner accents decorativos — 4 esquinas con <span class="bs-corner bs-corner-tl"/> */
+  .bs-corner {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    border-color: rgba(74, 222, 128, 0.35);
+  }
+  .bs-corner-tl {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+    border-top-left-radius: var(--radius-card);
+  }
+  .bs-corner-tr {
+    top: -1px;
+    right: -1px;
+    border-top: 1px solid;
+    border-right: 1px solid;
+    border-top-right-radius: var(--radius-card);
+  }
+  .bs-corner-bl {
+    bottom: -1px;
+    left: -1px;
+    border-bottom: 1px solid;
+    border-left: 1px solid;
+    border-bottom-left-radius: var(--radius-card);
+  }
+  .bs-corner-br {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+    border-bottom-right-radius: var(--radius-card);
+  }
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes wobble {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  20% {
+    transform: translateY(-7px) rotate(1.5deg);
+  }
+  40% {
+    transform: translateY(-3px) rotate(-1deg);
+  }
+  60% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+  80% {
+    transform: translateY(-2px) rotate(-1deg);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(74, 222, 128, 0.5));
+  }
+  50% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 24px rgba(74, 222, 128, 0.75));
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
   }
 }
