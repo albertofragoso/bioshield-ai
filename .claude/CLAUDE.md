@@ -8,7 +8,7 @@ mediante búsqueda semántica, y cruza hallazgos con biomarcadores de sangre del
 - Backend: FastAPI (Python 3.11+)
 - Orquestación: LangGraph
 - Vector Store: ChromaDB
-- LLM: Gemini 1.5 Flash (visión + parsing)
+- LLM: Gemini 2.5 Flash (visión + parsing)
 - Embeddings: gemini-embedding-001 (API) con fallback a BGE-M3 (local)
 - Frontend: Next.js
 - Base de datos: SQLite (dev) / PostgreSQL (prod) — ver docs/architecture.md

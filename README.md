@@ -17,7 +17,7 @@ Agentic assistant that analyzes nutritional labels, detects hidden additives via
 |---|---|
 | Backend | FastAPI 0.115 + Python 3.11 |
 | Agent orchestration | LangGraph 0.3 |
-| LLM / Vision | Gemini 1.5 Flash |
+| LLM / Vision | Gemini 2.5 Flash |
 | Embeddings | gemini-embedding-001 (API) · BGE-M3 (local fallback) |
 | Vector store | ChromaDB |
 | Database | SQLite (dev) · PostgreSQL (prod) |

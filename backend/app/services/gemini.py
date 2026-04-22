@@ -1,4 +1,4 @@
-"""Gemini 1.5 Flash client: Vision extraction + textual reconciliation.
+"""Gemini 2.5 Flash client: Vision extraction + textual reconciliation.
 
 Vision path uses Structured Outputs (response_schema) so we never parse
 JSON by hand — per the project convention.

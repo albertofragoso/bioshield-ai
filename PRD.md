@@ -2,7 +2,7 @@
 
 **Estatus:** Especificación Final de Ingeniería (MVP Listo para Desarrollo)  
 **Autor:** Alberto Fragoso  
-**Stack Core:** Next.js (Frontend), FastAPI (Backend), LangGraph, ChromaDB, Gemini 1.5 Flash, Open Food Facts API.  
+**Stack Core:** Next.js (Frontend), FastAPI (Backend), LangGraph, ChromaDB, Gemini 2.5 Flash, Open Food Facts API.  
 **Licencia:** MIT License (Software) / ODbL (Datos).
 
 ---
@@ -11,7 +11,7 @@
 
 * **Frontend:** Next.js (React) hosteado en Vercel. Gestión de estado con SWR para cacheo de peticiones por código de barras.
 * **Backend:** FastAPI (Python) hosteado en Render/Railway. Orquestación de agentes con LangGraph.
-* **Modelos:** Gemini 1.5 Flash (Visión y Razonamiento) y `gemini-embedding-001` (Semántica).
+* **Modelos:** Gemini 2.5 Flash (Visión y Razonamiento) y `gemini-embedding-001` (Semántica).
 
 ---
 
