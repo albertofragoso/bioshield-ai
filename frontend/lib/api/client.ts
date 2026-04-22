@@ -64,7 +64,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     if (isRefreshing) {
       const ok = await waitForRefresh();
       if (!ok) {
-        window.location.href = "/login";
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("session-expired"));
+        }
         throw new HttpError(401, "Session expired");
       }
       return apiFetch<T>(path, { ...options, _retry: true });
@@ -76,7 +78,10 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     flushRefreshQueue(ok);
 
     if (!ok) {
-      window.location.href = "/login";
+      // Emite evento para que el layout muestre SessionExpiredDialog en lugar de redirigir abruptamente
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("session-expired"));
+      }
       throw new HttpError(401, "Session expired");
     }
     return apiFetch<T>(path, { ...options, _retry: true });

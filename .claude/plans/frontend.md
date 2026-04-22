@@ -435,7 +435,7 @@ porque parece que la tecnología es seria, no porque sea un formulario estéril.
 ```
 Diseña la pantalla de registro de BioShield AI. Misma estética que el login
 ya diseñado: dark-only, hex-grid + scanlines + glows verdes bioluminiscentes,
-card con corner accents, avatar mascota piña con escudo ADN.
+card con corner accents, avatar mascota piña con escudo ADN -welcome.png-.
 
 PANTALLA: Registro
 ROUTE: /register
@@ -933,8 +933,8 @@ El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe
 **Archivos:**
 - `frontend/app/layout.tsx` — `<QueryClientProvider>` + fuentes (Pacifico/SpaceGrotesk/JetBrains). ✅ IMPLEMENTADO
 - `frontend/app/globals.css` — tokens dark-only + hex-grid + semáforo ajustado. ✅ IMPLEMENTADO
-- `frontend/lib/stores/auth.ts` — Zustand store con `user`, `setUser`, `logout`.
-- `frontend/lib/api/client.ts` — fetcher con refresh automático (descrito en A.2).
+- `frontend/lib/stores/auth.ts` — Zustand store con `user`, `setUser`, `logout`. ✅ IMPLEMENTADO
+- `frontend/lib/api/client.ts` — fetcher con refresh automático (descrito en A.2). ✅ IMPLEMENTADO (emite evento `session-expired` en vez de redirect duro)
 
 **Checks de éxito:**
 - `pnpm dev` arranca en :3000.
@@ -944,14 +944,23 @@ El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe
 
 **Nota sobre la desviación del doc:** el review §7 dice "zustand/SWR". Cambiamos SWR → TanStack Query porque tiene mejor DX para mutations, optimistic updates, y el cache por barcode (item 7.6) es trivial con `queryKey: ["scan", barcode]`. Zustand se queda para client state (auth).
 
-### 7.2 · Auth UI consumiendo JWT HTTP-only
+### 7.2 · Auth UI consumiendo JWT HTTP-only ✅ IMPLEMENTADO
 
 **Archivos:**
-- `frontend/app/(auth)/login/page.tsx` — referencia visual: Prompt 1.
-- `frontend/app/(auth)/register/page.tsx` — referencia visual: Prompt 2.
-- `frontend/lib/api/auth.ts` — `login`, `register`, `logout`, `refresh`.
-- `frontend/app/(app)/layout.tsx` — middleware guard: si `GET /biosync/status` responde 401 → redirect a `/login`.
-- `frontend/middleware.ts` (Next.js) — chequea cookie presence para SSR routes.
+- `frontend/app/(auth)/login/page.tsx` ✅ — referencia visual: Prompt 1.
+- `frontend/app/(auth)/register/page.tsx` ✅ — referencia visual: Prompt 2 (spec E.3).
+- `frontend/lib/api/auth.ts` ✅ — `login` (raw fetch, no interceptor 401), `register`, `logout`, `refresh`.
+- `frontend/app/(app)/layout.tsx` ✅ — navbar + SessionExpiredDialog (escucha evento `session-expired`).
+- `frontend/proxy.ts` ✅ (renombrado de middleware.ts — Next.js 16) — chequea cookie `access_token`.
+
+### 7.2b · Dashboard placeholder ✅ IMPLEMENTADO
+- `frontend/app/(app)/page.tsx` ✅ — placeholder hasta Prompt 3 (claude.ai/design)
+
+### 7.2c · Global UI states ✅ IMPLEMENTADO
+- `frontend/components/SessionExpiredDialog.tsx` ✅ — main.png + "entrar de nuevo"
+- `frontend/components/ErrorPage.tsx` ✅ — support.png + retry + ir al inicio
+- `frontend/app/error.tsx` ✅ — Next.js error boundary global
+- `frontend/components/Skeletons.tsx` ✅ — SkeletonCard / SkeletonRow / SkeletonHero (shimmer verde)
 
 **Checks de éxito:**
 - Registro → auto-login → dashboard.
