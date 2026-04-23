@@ -440,6 +440,7 @@ Runbook completo que cubre:
 | GET | `/scan/ping` | JWT | — | 200 |
 | POST | `/scan/barcode` | JWT | 20/min | 200, 404, 429 |
 | POST | `/scan/photo` | JWT | 20/min | 200, 400, 413, 422, 429, 503 |
+| POST | `/scan/contribute` | JWT | 10/min | 202, 422, 429 |
 | POST | `/biosync/upload` | JWT | 20/min | 201, 422 |
 | GET | `/biosync/status` | JWT | — | 200, 404 |
 | DELETE | `/biosync/data` | JWT | — | 204, 404 |
@@ -473,6 +474,10 @@ IngredientResult      { name, canonical_name?, cas_number?, e_number?,
 ScanResponse          { product_barcode, product_name?, semaphore, ingredients,
                         conflict_severity?, source, scanned_at }
 
+# Scan — OFF Contribution (Fase 2)
+OFFContributeRequest  { barcode, ingredients: list[str], image_base64?, consent: true }
+OFFContributeResponse { contribution_id: UUID, status: PENDING|SUBMITTED|FAILED, message }
+
 # Biosync
 BiomarkerUploadRequest  { data: dict (non-empty) }
 BiomarkerStatusResponse { id: UUID, uploaded_at, expires_at, has_data: bool }
@@ -484,7 +489,7 @@ BiosyncAnalysis         { has_biomarkers, alerts: [], semaphore_override? }
 
 ## Suite de tests
 
-9 módulos, 90 tests passing:
+10 módulos, 100 tests passing:
 
 | Archivo | Qué prueba |
 |---|---|
@@ -496,6 +501,7 @@ BiosyncAnalysis         { has_biomarkers, alerts: [], semaphore_override? }
 | `test_rag.py` | ChromaDB upsert/query, hybrid_search, degradación BM25-only |
 | `test_scan.py` | `/scan/barcode`, `/scan/photo`, 404, 422, 413, persistencia en DB |
 | `test_services_external.py` | OFF client, Gemini Vision (mockeado con respx/httpx) |
+| `test_off_contribute.py` | `/scan/contribute`, validación, feature flag, OFF 5xx, creación de audit log |
 | `conftest.py` | DB SQLite en-memoria, fixtures de usuario autenticado, app override |
 
 `pytest.ini`:
@@ -504,6 +510,46 @@ BiosyncAnalysis         { has_biomarkers, alerts: [], semaphore_override? }
 testpaths = tests
 asyncio_mode = auto
 ```
+
+---
+
+## Fase 8 — OFF Contribution (Fase 2, implementado)
+
+Flujo contributivo asíncrono hacia Open Food Facts — opt-in explícito por escaneo, audit trail local para ODbL compliance.
+
+### 8.1 · Config + ORM
+
+`app/config.py` — 8 vars nuevas: `off_contrib_enabled` (false en dev), `off_write_base_url`, `off_app_name/version`, `off_contributor_user/password`, `off_contrib_timeout_seconds`, `off_contrib_sync_for_tests` (true en pytest). Todas en `.env.example`.
+
+`app/models/off_contribution.py` — tabla `off_contributions`: user_id (FK), scan_history_id (FK nullable), barcode, ingredients_text, status (PENDING/SUBMITTED/FAILED), off_response_url, off_error, consent_at, submitted_at. Índices: user_id, status. Migration: `91b0a38b0422_add_off_contributions`.
+
+### 8.2 · Services + Endpoint
+
+`app/services/off_client.py` — extender (no reescribir `fetch_product`):
+- `contribute_product()` — POST form-urlencoded a `/cgi/product_jqm2.pl`.
+- `upload_product_image()` — POST multipart a `/cgi/product_image_upload.pl`. Solo si contribute_product() exitoso e image_b64 presente.
+- Ambas respetan feature flag `off_contrib_enabled=False` → retorno inmediato. Manejan `httpx.HTTPError` → log + error field.
+
+`app/routers/scan.py` — `POST /scan/contribute` (202 Accepted, rate 10/min):
+- INSERT row `off_contributions` (status=PENDING, consent_at=now()).
+- Si `off_contrib_sync_for_tests=True`: ejecutar `_run_off_contribution_impl()` sincrónicamente (pytest, misma session).
+- Else: `BackgroundTasks.add_task(_run_off_contribution())` con nueva `SessionLocal()`.
+- Core logic (`_run_off_contribution_impl()`) — parametrizado: call APIs, UPDATE row (status, off_response_url, off_error, image_submitted, submitted_at).
+- Devuelve 202 con `OFFContributeResponse`.
+
+### 8.3 · Schemas + Tests
+
+`app/schemas/models.py`:
+- `OFFContributeRequest` — barcode (4-50), ingredients (list[str], min 1), image_base64 (opt), consent (Literal[True]), scan_history_id (opt UUID).
+- `OFFContributeResponse` — contribution_id, status, message.
+
+`tests/test_off_contribute.py` — 10 tests: 401, 422 (consent/ingredients), feature flag, happy path, image, OFF 5xx, persistence. Mock `httpx.AsyncClient.post()` con `_FakeAsyncClient`. `off_contrib_sync_for_tests=True` en `TEST_SETTINGS`.
+
+### 8.4 · Referencias
+
+- **Operacional:** `docs/off-contribution.md` (credenciales, ARCO, deployment).
+- **User-facing:** `PRD.md` § 9.6 (consentimiento, ODbL).
+- **Endpoints tabla:** `backend/CLAUDE.md` — agregar `POST /scan/contribute | JWT | 10/min | 202`.
 
 ---
 
@@ -535,6 +581,8 @@ asyncio_mode = auto
 | `compute_semaphore` prioridad fija | ML classifier | Determinismo auditable; explicable al usuario; suficiente para MVP |
 | SQLite en dev / PostgreSQL en prod | Solo PostgreSQL | Onboarding inmediato sin Docker obligatorio; psycopg2-binary ya en requirements |
 | BGE-M3 como fallback (no wired) | Siempre Gemini | Reserva offline/prod si free tier se agota; ~500MB extra de deps omitidos en MVP |
+| BackgroundTask + session inyectada en impl | Celery / event queue | MVP no requiere persistencia de tareas; session parametrizada permite tests síncronos sin flakiness |
+| Endpoint dedicado POST /scan/contribute | Param en /scan/photo | Separación clara: photo es idempotente, contribute es stateful opt-in; simplifica retry logic en FE |
 
 ---
 

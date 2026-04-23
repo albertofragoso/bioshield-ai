@@ -1,15 +1,17 @@
-"""Scan endpoints: barcode lookup + photo OCR fallback.
+"""Scan endpoints: barcode lookup + photo OCR fallback + OFF contribution.
 
-Both routes invoke the LangGraph pipeline (`agents.graph.build_scan_graph`)
+Both scan routes invoke the LangGraph pipeline (`agents.graph.build_scan_graph`)
 and persist a ScanHistory row. Product is upserted on barcode matches to
 avoid duplicating product metadata per scan.
+
+/scan/contribute delega el POST a OFF a BackgroundTasks con sesión DB separada.
 """
 
 import logging
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,15 +19,18 @@ from app.agents.graph import build_scan_graph
 from app.config import Settings, get_settings
 from app.middleware.auth import get_current_user
 from app.middleware.rate_limit import limiter
-from app.models import Ingredient, Product, ScanHistory, User
-from app.models.base import get_db
+from app.models import Ingredient, OFFContribution, Product, ScanHistory, User
+from app.models.base import SessionLocal, get_db
 from app.schemas.models import (
     BarcodeRequest,
     IngredientResult,
+    OFFContributeRequest,
+    OFFContributeResponse,
     PhotoScanRequest,
     ScanResponse,
     SemaphoreColor,
 )
+from app.services.off_client import contribute_product, upload_product_image
 
 logger = logging.getLogger(__name__)
 
@@ -189,3 +194,92 @@ def _build_response(state: dict, barcode: str, product_name: str | None) -> Scan
         source=state.get("source", "barcode"),
         scanned_at=datetime.now(UTC),
     )
+
+
+# ─────────────────────────────────────────────
+# POST /scan/contribute  (Fase 2 — flujo contributivo OFF)
+# ─────────────────────────────────────────────
+
+@router.post("/contribute", response_model=OFFContributeResponse, status_code=202)
+@limiter.limit("10/minute")
+async def scan_contribute(
+    request: Request,
+    body: OFFContributeRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> OFFContributeResponse:
+    ingredients_text = ", ".join(body.ingredients)
+
+    row = OFFContribution(
+        user_id=current_user.id,
+        scan_history_id=str(body.scan_history_id) if body.scan_history_id else None,
+        barcode=body.barcode,
+        ingredients_text=ingredients_text,
+        status="PENDING",
+        consent_at=datetime.now(UTC),
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+
+    if settings.off_contrib_sync_for_tests:
+        # En tests: reutiliza la sesión del request (misma transacción in-memory)
+        await _run_off_contribution_impl(row.id, body, settings, db)
+    else:
+        background_tasks.add_task(_run_off_contribution, row.id, body, settings)
+
+    return OFFContributeResponse(
+        contribution_id=row.id,
+        status="PENDING",
+        message="Contribución recibida. Se enviará a Open Food Facts en segundo plano.",
+    )
+
+
+async def _run_off_contribution_impl(
+    contribution_id: str,
+    body: OFFContributeRequest,
+    settings: Settings,
+    db: Session,
+) -> None:
+    """Lógica de contribución OFF — acepta sesión DB como parámetro."""
+    ingredients_text = ", ".join(body.ingredients)
+
+    row = db.get(OFFContribution, contribution_id)
+    if row is None:
+        logger.error("OFFContribution %s not found", contribution_id)
+        return
+
+    try:
+        result = await contribute_product(body.barcode, ingredients_text, settings)
+
+        image_submitted = False
+        if result["success"] and body.image_base64:
+            image_submitted = await upload_product_image(body.barcode, body.image_base64, settings)
+
+        row.status = "SUBMITTED" if result["success"] else "FAILED"
+        row.off_response_url = result["off_url"]
+        row.off_error = result["error"]
+        row.image_submitted = image_submitted
+        row.submitted_at = datetime.now(UTC)
+        db.commit()
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Unhandled error in OFF contribution %s: %s", contribution_id, exc)
+        row.status = "FAILED"
+        row.off_error = str(exc)
+        row.submitted_at = datetime.now(UTC)
+        db.commit()
+
+
+async def _run_off_contribution(
+    contribution_id: str,
+    body: OFFContributeRequest,
+    settings: Settings,
+) -> None:
+    """BackgroundTask wrapper — abre sesión DB propia (la del request ya se cerró)."""
+    db = SessionLocal()
+    try:
+        await _run_off_contribution_impl(contribution_id, body, settings, db)
+    finally:
+        db.close()

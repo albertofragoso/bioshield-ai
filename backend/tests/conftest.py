@@ -22,6 +22,8 @@ TEST_SETTINGS = Settings(
     gemini_api_key="test-key",
     chroma_persist_directory="",
     allowed_origins=["http://testserver"],
+    # OFF contribution — sincrónico en tests para evitar flakiness con BackgroundTask
+    off_contrib_sync_for_tests=True,
 )
 
 

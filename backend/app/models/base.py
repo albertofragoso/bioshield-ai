@@ -1,7 +1,7 @@
 from collections.abc import Generator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
 
@@ -11,6 +11,7 @@ class Base(DeclarativeBase):
 
 
 _engine = None
+_session_factory = None
 
 
 def get_engine():
@@ -24,6 +25,14 @@ def get_engine():
         )
         _engine = create_engine(settings.database_url, connect_args=connect_args)
     return _engine
+
+
+def SessionLocal() -> Session:
+    """Abre una sesión DB independiente — para uso en BackgroundTasks."""
+    global _session_factory
+    if _session_factory is None:
+        _session_factory = sessionmaker(bind=get_engine(), expire_on_commit=False)
+    return _session_factory()
 
 
 def get_db() -> Generator[Session, None, None]:

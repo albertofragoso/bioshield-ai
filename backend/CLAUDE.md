@@ -79,6 +79,7 @@ pytest --cov=app --cov-report=term-missing
 | GET    | /health           | No   | Health check                         |
 | POST   | /scan/barcode     | JWT  | Escaneo por código de barras         |
 | POST   | /scan/photo       | JWT  | Escaneo por foto de etiqueta (Gemini)|
+| POST   | /scan/contribute  | JWT  | Contribución a Open Food Facts (Fase 2) — 202 Accepted, BackgroundTask async |
 | POST   | /biosync/upload   | JWT  | Subir biomarcadores (AES-256)        |
 | GET    | /biosync/status   | JWT  | Estado y expiración de biomarcadores |
 | DELETE | /biosync/data     | JWT  | Eliminar datos médicos               |

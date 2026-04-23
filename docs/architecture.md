@@ -22,7 +22,9 @@
 erDiagram
     users ||--o{ biomarkers : "sube"
     users ||--o{ scan_history : "escanea"
+    users ||--o{ off_contributions : "consiente"
     products ||--o{ scan_history : "registra"
+    scan_history ||--o{ off_contributions : "origina"
     ingredients ||--o{ regulatory_status : "tiene estatus en"
     ingredients ||--o{ conflicts : "genera"
     data_sources ||--o{ regulatory_status : "provee"
@@ -275,6 +277,28 @@ Log de ejecuciones del pipeline de ingesta. Garantiza trazabilidad completa.
 
 ---
 
+#### `off_contributions` (Fase 2)
+
+Audit trail de contribuciones a Open Food Facts. Registra el consentimiento explícito del usuario (ODbL) y el resultado de cada envío al API write de OFF.
+
+> Ref: PRD §9.6 (Flujo de contribución), `docs/off-contribution.md`
+
+| Campo | Tipo | Restricción | Descripción |
+|---|---|---|---|
+| `id` | `UUID` | `PK` | Identificador único |
+| `user_id` | `UUID` | `FK → users.id, NOT NULL, ON DELETE CASCADE` | Usuario que consintió |
+| `scan_history_id` | `UUID` | `FK → scan_history.id, NULLABLE, ON DELETE SET NULL` | Scan origen (nullable) |
+| `barcode` | `VARCHAR(50)` | `NOT NULL` | Code enviado a OFF (puede ser `photo:<hex>`) |
+| `ingredients_text` | `TEXT` | `NOT NULL` | Texto exacto enviado en `ingredients_text` |
+| `image_submitted` | `BOOLEAN` | `DEFAULT FALSE` | Si se subió imagen al endpoint separado |
+| `status` | `VARCHAR(20)` | `NOT NULL, DEFAULT 'PENDING'` | Estado: `PENDING`, `SUBMITTED`, `FAILED` |
+| `off_response_url` | `VARCHAR(500)` | — | URL del producto en OFF post-submit |
+| `off_error` | `TEXT` | — | Mensaje de error si `status=FAILED` |
+| `consent_at` | `TIMESTAMP` | `NOT NULL` | Cuándo el usuario consintió |
+| `submitted_at` | `TIMESTAMP` | — | Cuándo el BackgroundTask terminó |
+
+---
+
 ### 1.4 Índices Recomendados
 
 ```sql
@@ -301,6 +325,10 @@ CREATE INDEX idx_conflicts_unresolved ON conflicts(resolved) WHERE resolved = FA
 
 -- Logs de ingesta por fuente
 CREATE INDEX idx_ingestion_source ON ingestion_log(source_id);
+
+-- OFF contributions (Fase 2)
+CREATE INDEX idx_off_contrib_user ON off_contributions(user_id);
+CREATE INDEX idx_off_contrib_status ON off_contributions(status);
 ```
 
 ---
@@ -311,4 +339,5 @@ CREATE INDEX idx_ingestion_source ON ingestion_log(source_id);
 - **Cifrado:** Los datos de `biomarkers.encrypted_data` se cifran con **AES-256-GCM** a nivel de aplicación antes de almacenarse; `encryption_iv` es obligatorio.
 - **Expiración:** Un job programado (cron) eliminará registros de `biomarkers` donde `expires_at < NOW()`.
 - **Vector Store:** Los embeddings se almacenan en **ChromaDB** (ver `data-sources.md` §9), **no** en PostgreSQL. La relación entre `ingredients.entity_id` y el vector store es por referencia lógica.
+- **OFF Audit Trail:** La tabla `off_contributions` registra cada contribución a Open Food Facts con consentimiento explícito (PRD §9.6, ODbL). Aunque el POST a OFF es fire-and-forget asíncrono, el audit log local permite cumplimiento de ODbL y debugging.
 - **Migración MVP → Producción:** El schema es compatible con SQLite (desarrollo) y PostgreSQL (producción). Los tipos `UUID` y `JSONB` se adaptan a `TEXT` y `JSON` respectivamente en SQLite; `render_as_batch=True` en Alembic maneja ALTER TABLE en SQLite.

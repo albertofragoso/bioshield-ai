@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -147,3 +148,23 @@ class BiosyncAnalysis(BaseModel):
         default=None,
         description="If set, overrides scan semaphore (e.g. ORANGE when biomarker conflict detected)"
     )
+
+
+# ─────────────────────────────────────────────
+# OFF contribution schemas (Fase 2)
+# ─────────────────────────────────────────────
+
+class OFFContributeRequest(BaseModel):
+    barcode: str = Field(..., min_length=4, max_length=50)
+    ingredients: list[str] = Field(..., min_length=1)
+    image_base64: str | None = None
+    consent: Literal[True] = Field(
+        description="Debe ser True — opt-in explícito por escaneo (PRD §9.6)"
+    )
+    scan_history_id: UUID | None = None
+
+
+class OFFContributeResponse(BaseModel):
+    contribution_id: UUID
+    status: Literal["PENDING", "SUBMITTED", "FAILED"]
+    message: str

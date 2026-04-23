@@ -566,6 +566,17 @@ DATA FLOW:
   - Convierte a base64.
   - POST /scan/photo { image_base64: string }
   - Response: ScanResponse.
+  - [FASE 2] Si el usuario activa el toggle "Contribuir a Open Food Facts" (off por defecto):
+    * Tras recibir ScanResponse exitoso (source="photo"), hacer:
+      POST /scan/contribute {
+        barcode: ScanResponse.product_barcode,
+        ingredients: ScanResponse.ingredients.map(i => i.name),
+        image_base64: <el mismo base64 del scan>,
+        consent: true,
+        scan_history_id: ScanResponse.id (si aplica)
+      }
+    * Response 202: toast success "Gracias por contribuir a Open Food Facts".
+    * Error 4xx/5xx: toast warning no bloqueante; el scan result sigue visible.
 
 ESTADOS:
 - Barcode tab:
@@ -580,12 +591,20 @@ ESTADOS:
   - Procesando: skeleton con mensaje "Analizando etiqueta con IA (5-8s)".
   - Error 413: alerta "Imagen muy grande (máx 10MB)".
   - Error 422: "No pudimos leer la etiqueta. Intenta con mejor luz."
+  - [FASE 2] Toggle "Contribuir a OFF" debajo del dropzone (off por defecto, mandato PRD §9.6):
+    * Label: "Contribuir esta foto a Open Food Facts (ODbL)".
+    * Sub-label (text-xs, #6B8A6A): "Ayuda a que otros usuarios encuentren este producto.
+      Solo enviamos ingredientes + imagen, sin datos personales."
+    * Link "¿Qué significa ODbL?" → tooltip con explicación corta + link a /privacy#off.
+    * Visible solo en Photo tab (no en Barcode tab si el barcode se encontró en OFF).
 
 COMPONENTES:
 - Header con botón back a Dashboard.
 - Tabs horizontales (shadcn Tabs).
 - Contenido tab 1: video preview 4:3 + overlay + input manual debajo "O ingresar código".
 - Contenido tab 2: dropzone drag-and-drop + botón "Tomar foto" (mobile).
+- [FASE 2] OFFContributeToggle: shadcn Switch + Label + sub-label + Tooltip (Info icon Lucide 12px).
+  Layout: borde rgba(74,222,128,.2) sutil, padding 12px, rounded-md. Solo visible en photo tab.
 - Loading global: overlay con spinner + texto explicativo.
 
 AVATAR SCANNER:
@@ -600,6 +619,7 @@ TOKENS (dark-only):
 - Flash de detección: fondo verde rgba(74,222,128,0.15) en el visor, 300ms.
 - Tabs: shadcn Tabs, borde activo #4ADE80, texto inactivo #6B8A6A.
 - Dropzone: border dashed rgba(74,222,128,0.3), hover border rgba(74,222,128,0.6).
+- [FASE 2] Toggle OFF: bg cuando off #1A2416, bg cuando on #4ADE80, thumb #E8F5E8.
 - Botones: bs-card + bs-glow-green.
 - Font mono: JetBrains Mono para textos de estado y labels.
 
@@ -973,13 +993,21 @@ El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe
 - `frontend/app/(app)/scan/page.tsx` — referencia visual: Prompt 4.
 - `frontend/components/scanner/BarcodeScanner.tsx` — wrapper de `@zxing/browser`.
 - `frontend/components/scanner/PhotoCapture.tsx` — input file + preview + base64 encoding.
-- `frontend/lib/api/scan.ts` — `scanBarcode(barcode)` + `scanPhoto(base64)`.
+- `frontend/components/scanner/OFFContributeToggle.tsx` — Switch + copy ODbL + tooltip (Fase 2).
+- `frontend/lib/api/scan.ts` — `scanBarcode(barcode)` + `scanPhoto(base64)` + `contributeToOff(body)`.
+
+**Dependencia extra (Fase 2):**
+- Ejecutar `pnpm dlx shadcn@latest add switch tooltip` (para el toggle OFF + info icon tooltip).
 
 **Checks de éxito:**
 - Barcode real (Nutella 3017620422003) → navega a `/scan/[id]` con semaphore="YELLOW".
 - Foto de etiqueta MX (usar `backend/test_images/*.jpeg` como fixtures) → pipeline completo.
 - 404 en barcode muestra modal que cambia a photo tab.
 - Permiso cámara denegado → fallback a input manual sin romper.
+- [FASE 2] Toggle "Contribuir a OFF" visible solo en photo tab, off por defecto.
+- [FASE 2] Con toggle on + scan photo exitoso → fetch `POST /scan/contribute` con `consent: true` → toast success "Gracias por contribuir".
+- [FASE 2] Con toggle off → no se dispara `/scan/contribute` bajo ninguna circunstancia.
+- [FASE 2] Si `/scan/contribute` retorna 5xx → toast warning no bloqueante; resultado sigue visible.
 
 ### 7.4 · Semáforo visual con detalles de conflict
 
@@ -1162,6 +1190,8 @@ Lo que el login estableció como base. Lo que sigue son las **adiciones específ
   - Fondo: `rgba(74,222,128,.03)`.
   - Icono: `Upload` o `ImagePlus` (Lucide), color `#6B8A6A`.
   - Mobile: botón adicional "Tomar foto" (input `capture="environment"`).
+- `OFFContributeToggle` — [FASE 2] shadcn Switch + Label con copy ODbL + Tooltip (icono `Info` Lucide 12px).
+  Borde `rgba(74,222,128,.2)`, padding 12px, rounded-md. Solo visible en photo tab.
 - `CameraPermissionCard` — bs-card compacto. Icono `Camera`, texto, CTA verde.
 - `NotFoundModal` — dialog shadcn: mensaje + CTA que cambia al tab 2.
 - `ManualBarcodeInput` — input regular de `AuthField` para fallback.

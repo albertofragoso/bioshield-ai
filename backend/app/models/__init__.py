@@ -24,6 +24,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+from app.models.off_contribution import OFFContribution
 
 
 def _now() -> datetime:
@@ -277,6 +278,7 @@ __all__ = [
     "DataSource",
     "Ingredient",
     "IngestionLog",
+    "OFFContribution",
     "Product",
     "RefreshToken",
     "RegulatoryStatus",

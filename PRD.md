@@ -21,7 +21,8 @@
 2. **Identificación Híbrida (Scanner Flow):**
    * El sistema intenta leer el **Barcode**. Si tiene éxito, consulta la API de Open Food Facts (OFF).
    * **Manejo de Errores (Scanner):** Si la cámara no logra leer el barcode tras 3 segundos de enfoque o el producto no existe en OFF, la UI muestra un botón de acción inmediata: **"Cambiar a modo Foto de Etiqueta"**.
-   * El usuario toma una foto de la lista de ingredientes; el sistema procesa la imagen vía VLM y activa el flujo contributivo hacia OFF de forma asíncrona.
+   * El usuario toma una foto de la lista de ingredientes; el sistema procesa la imagen vía VLM.
+   * **[Fase 2]** Si el usuario activa el toggle "Contribuir a Open Food Facts (ODbL)", el flujo contributivo envía los ingredientes + imagen a OFF (respuesta inmediata al usuario mientras se procesa en segundo plano). Ver §9.6 para detalles de consentimiento y audit.
 3. **Procesamiento Bio-Sync:** El agente accede a los biomarcadores del usuario. Para garantizar la privacidad, los datos desencriptados **existen únicamente en variables locales del proceso de evaluación** y no se persisten en logs ni en almacenamiento temporal tras finalizar la ejecución del grafo.
 4. **Análisis Semántico (Embeddings):** Los ingredientes se vectorizan y comparan contra los índices de la FDA, EFSA y EWG.
 
@@ -253,9 +254,16 @@ El frontend debe renderizar ambos documentos en rutas públicas (`/privacy`, `/t
 * **Footer global:** links persistentes a `/privacy`, `/terms`, contacto ARCO.
 * **Banner de cambios:** al actualizar documentos, banner bloqueante hasta re-aceptación.
 
-### 9.6 Flujo de contribución a Open Food Facts
+### 9.6 Flujo de contribución a Open Food Facts (Fase 2 — implementado)
 
-El flujo contributivo asíncrono mencionado en §2.2 **requiere consentimiento explícito por escaneo** (no consentimiento global). UI debe mostrar toggle "Contribuir esta foto a Open Food Facts (ODbL)" en el modo foto, desactivado por defecto.
+El flujo contributivo asíncrono mencionado en §2.2 **requiere consentimiento explícito por escaneo** (no consentimiento global). La UI implementa un toggle "Contribuir esta foto a Open Food Facts (ODbL)" en el modo foto, desactivado por defecto.
+
+Cuando el usuario activa el toggle, el sistema envía los ingredientes extraídos + la foto a Open Food Facts de forma asíncrona, con respuesta 202 Accepted inmediata al usuario. BioShield mantiene un audit trail local registrando consentimiento y estado de cada contribución (PENDING/SUBMITTED/FAILED), cumpliendo con los requisitos de la licencia ODbL.
+
+**Referencias técnicas:**
+- Backend: `.claude/plans/backend.md` § Fase 8 (endpoint `POST /scan/contribute`, session handling, BackgroundTasks, ORM model `off_contributions`).
+- Guía operacional: `docs/off-contribution.md` (configuración OFF, ARCO, testing, deployment).
+- Política de datos: Sección §9.2 "Terceros que procesan datos" — OFF recibe solo ingredientes + imagen sin datos personales.
 
 ### 9.7 Plan de ejecución
 

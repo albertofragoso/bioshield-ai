@@ -157,5 +157,6 @@ El servicio `backend/app/services/retrieval.py` debe implementar un circuit brea
 ## 10. Future Iterations
 
 * **EWG Integration:** Capa de percepción de riesgo público y "Food Scores" basada en datos propietarios (Fase 2).
+* **OFF Contribution Flow:** [IMPLEMENTADO] Flujo asíncrono para enviar ingredientes + fotos de etiquetas a Open Food Facts (Fase 2). Ver `docs/off-contribution.md`.
 * **FSCJ (Japan):** Incorporación de evaluaciones técnicas de la Food Safety Commission de Japón para ampliar el espectro científico.
 * **Live Monitoring:** Alertas de cambios regulatorios en tiempo real mediante monitoreo automatizado de boletines oficiales y webhooks gubernamentales.

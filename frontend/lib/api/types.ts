@@ -80,3 +80,18 @@ export interface ApiError {
   detail: string;
   status: number;
 }
+
+// OFF contribution (Fase 2 — flujo contributivo)
+export interface OFFContributeRequest {
+  barcode: string;
+  ingredients: string[];
+  image_base64?: string;
+  consent: true;
+  scan_history_id?: string;
+}
+
+export interface OFFContributeResponse {
+  contribution_id: string;
+  status: "PENDING" | "SUBMITTED" | "FAILED";
+  message: string;
+}
