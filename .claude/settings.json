@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "scripts/hooks/security-check.sh" },
+          { "type": "command", "command": "scripts/hooks/safety-gate.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "scripts/hooks/format.sh" },
+          { "type": "command", "command": "scripts/hooks/lint.sh" },
+          { "type": "command", "command": "scripts/hooks/related-test.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "scripts/hooks/type-check.sh" }
+        ]
+      }
+    ]
+  }
+}
