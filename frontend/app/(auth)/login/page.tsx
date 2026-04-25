@@ -77,13 +77,13 @@ export default function LoginPage() {
 
           {/* Avatar */}
           <div className="flex flex-col items-center gap-3 mb-6">
-            <div className="bs-mascot-glow animate-[wobble_5s_ease-in-out_infinite] [transform-origin:bottom_center]">
+            <div className="animate-wobble [transform-origin:bottom_center]">
               <Image
                 src="/avatars/main.png"
                 alt="BioShield mascota"
                 width={140}
                 height={140}
-                className="object-contain"
+                className="object-contain animate-pulse-glow"
                 priority
               />
             </div>
