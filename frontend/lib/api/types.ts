@@ -81,6 +81,16 @@ export interface ApiError {
   status: number;
 }
 
+export interface ScanHistoryEntry {
+  id: string;
+  product_barcode: string;
+  product_name: string | null;
+  semaphore: SemaphoreColor;
+  conflict_severity: ConflictSeverity | null;
+  source: ScanSource;
+  scanned_at: string;
+}
+
 // OFF contribution (Fase 2 — flujo contributivo)
 export interface OFFContributeRequest {
   barcode: string;
