@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/api/auth";
@@ -22,9 +21,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   function handleSessionExpiredConfirm() {
-    setSessionExpired(false);
     clearStore();
-    router.push("/login");
+    window.location.href = "/login";
   }
 
   async function handleLogout() {
@@ -47,7 +45,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         {/* Wordmark compacto */}
-        <Link href="/" className="flex items-baseline gap-[5px] hover:opacity-80 transition-opacity">
+        <Link
+          href="/"
+          className="flex items-baseline gap-[5px] hover:opacity-80 transition-opacity"
+        >
           <span
             className="font-display text-[20px] text-brand-green"
             style={{ textShadow: "0 0 20px rgba(74,222,128,.4)" }}
@@ -61,14 +62,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* User actions */}
         <div className="flex items-center gap-3">
-          <Image
-            src="/avatars/profile.png"
-            alt=""
-            aria-hidden
-            width={32}
-            height={32}
-            className="rounded-full object-contain"
-          />
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 font-mono text-[11px] text-subtext hover:text-foreground transition-colors uppercase tracking-[0.08em]"
@@ -80,14 +73,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 relative z-10">
-        {children}
-      </main>
+      <main className="flex-1 relative z-10">{children}</main>
 
-      <SessionExpiredDialog
-        open={sessionExpired}
-        onConfirm={handleSessionExpiredConfirm}
-      />
+      <SessionExpiredDialog open={sessionExpired} onConfirm={handleSessionExpiredConfirm} />
     </div>
   );
 }
