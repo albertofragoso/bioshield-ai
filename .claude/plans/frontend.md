@@ -1,14 +1,16 @@
-# Fase 7 — Frontend BioShield AI: Diseño en claude.ai/design + implementación Next.js
+# Fase 7 — Frontend BioShield AI: Implementación Next.js con design system propio
 
 ## Context
 
 El backend MVP está **cerrado y verde** (90 tests passing, 11 endpoints expuestos, pipeline LangGraph funcional con semáforo 5 colores, OCR Gemini Vision validado con 13 etiquetas MX reales). El bloqueante principal del proyecto — documentado en `docs/reviews/18-04.md §5` (red flag #5) — es la **ausencia de UI**: sin frontend no hay dogfood end-to-end, no se puede entrevistar usuarios, y el PRD Fase 2 (Retail Integration) y Fase 3 (Reality Engineering) quedan bloqueados por falta de signal de uso real.
 
+El design system (dark-only, 12 avatares mascota, Pacifico + Space Grotesk + JetBrains Mono) ya está materializado en `frontend/app/globals.css` y documentado en `docs/design/tokens.md`. Login y Register ya están implementados con ese system; el login además entregó un paquete handoff completo en `docs/design/login/` (README + `design-tokens.json` + HTML prototype) que queda como referencia histórica. Las 6 pantallas pendientes (Scanner, Resultado, Biosync, Dashboard real, Historial, Polish global) se implementan **directo en Next.js** a partir de las specs embebidas en este plan, sin pasar por una plataforma de diseño intermedia.
+
 Fase 7 cubre 6 items (7.1-7.6) del review. Este plan los descompone en:
-1. **Setup monorepo `/frontend`** (Next.js 15 + Tailwind + shadcn/ui + TanStack Query + Zustand).
-2. **Design system tokens** (semáforo, typography, look médico/confiable).
-3. **8 pantallas**, cada una con un prompt completo y autocontenido para pegar en **https://claude.ai/design** e iterar visualmente.
-4. **Handoff** — portar componentes generados a `/frontend` y cablearlos contra el backend real.
+1. **Setup monorepo `/frontend`** (Next.js 15 + Tailwind + shadcn/ui + TanStack Query + Zustand). ✅
+2. **Design system tokens** (semáforo, typography, look biotech confiable). ✅
+3. **6 pantallas pendientes con spec embebida** (data shape, estados, componentes, tokens, avatar, tono). Claude Code las implementa directamente; Alberto valida en `pnpm dev`.
+4. **Componentes compartidos on-demand** — semáforo / ingredients / scanner / biosync nacen inline en la primera pantalla y se extraen a `components/` cuando aparezca un segundo consumer.
 5. **Verificación end-to-end** — scan de barcode + photo + biosync upload, desde UI hasta pipeline.
 
 **Outcome esperado:** MVP demostrable a terceros, base para calibración HITL (§2.2 del review) y para entrevistas de usuarios (red flag #4).
@@ -168,7 +170,8 @@ frontend/
 
 - **Plan Fase 7 (este sprint):** `.claude/plans/unified-sniffing-feather.md`
 - **Arquitectura general:** `docs/architecture.md`
-- **Prompts de diseño (claude.ai/design):** `docs/design/README.md`
+- **Specs de implementación por pantalla:** `.claude/plans/frontend.md` → Fase C
+- **Handoff histórico del login (referencia visual):** `docs/design/login/README.md`
 - **Schemas del backend (source of truth de tipos):** `backend/app/schemas/models.py`
 - **Reglas de biomarcadores (hints del form Biosync):** `backend/app/services/analysis.py`
 - **Next.js 15 App Router:** https://nextjs.org/docs/app
@@ -352,135 +355,38 @@ Utilidades adicionales: `bs-card` (card + glow), `bs-corner-{tl,tr,bl,br}` (corn
 
 ---
 
-## Fase C — Prompts para claude.ai/design (1 por pantalla)
+## Fase C — Specs de implementación por pantalla
 
-**Instrucciones de uso:** copia cada prompt en claude.ai/design. Itera hasta que te convenza el look. Guarda screenshot en `docs/design/<pantalla>.png` + link a la sesión. Luego usa el componente generado como referencia visual al implementar en `/frontend/app/...`.
+Claude Code lee cada spec y la implementa directamente en Next.js, reusando `AuthField`, `AuthAlert`, los tokens de `globals.css`, los avatares PNG de `/public/avatars/` y los componentes shadcn/ui ya generados. Alberto valida visual en `pnpm dev` antes de cerrar cada pantalla. Orden: Scanner + Resultado → Biosync → Dashboard real → Historial → Polish global.
 
-Cada prompt sigue la misma estructura: **producto → pantalla → data → estados → tokens → responsive**.
-
----
-
-### Prompt 1 — Login (`/login`) ✅ DISEÑADO
-
-> Diseño completo en `docs/design/login/`. Tokens y referencia visual en
-> `docs/design/login/README.md` + `design-tokens.json`. Este prompt queda como
-> registro — los siguientes lo toman como base visual.
-
-```
-Diseña la pantalla de login de BioShield AI, una app que escanea etiquetas
-nutricionales y cruza aditivos con biomarcadores de sangre del usuario.
-
-PANTALLA: Login
-ROUTE: /login
-USUARIO TARGET: adultos 25-55 en México con preocupaciones de salud
-(colesterol, diabetes, hipertensión).
-
-DATA SHAPE (request a POST /auth/login):
-{ email: string, password: string (min 8 chars) }
-
-RESPONSE (éxito 200):
-{ access_token, refresh_token, token_type: "bearer", expires_in: 1800 }
-Nota: los tokens se guardan como HTTP-only cookies automáticamente;
-el frontend NO los maneja.
-
-ESTADOS A CUBRIR:
-- Idle: formulario limpio.
-- Loading: botón con spinner, campos deshabilitados.
-- Error 401: alerta roja "[ERROR_401] Credenciales inválidas. Verifica tus datos."
-- Error 429: alerta ámbar "[ERROR_429] Demasiados intentos. Espera 60 segundos."
-- Error red: toast "sin_conexion_al_servidor" con icono WifiOff.
-
-COMPONENTES:
-- Card centrada, max-width 420px, border-radius 18px.
-- Avatar mascota (piña con escudo ADN, PNG 140×140, animate-wobble, glow verde).
-- Wordmark: "BioShield" en Pacifico 28px verde #4ADE80 + "AI" en Space Grotesk
-  bold 26px amber #F59E0B.
-- Tagline en JetBrains Mono 9.5px: "hack your nutrition ✦ protect your biology".
-- Input email (icon Mail), input password (icon Lock + toggle Eye/EyeOff).
-  Labels en JetBrains Mono UPPERCASE 10px.
-- Botón primario "⟶ entrar" (idle) / spinner + "verificando…" (loading).
-  JetBrains Mono 13px, tracking 0.12em, background rgba(74,222,128,.15),
-  border #4ADE80, border-radius 10px.
-- Link "¿Olvidaste tu contraseña?" — JetBrains Mono 10.5px, color #2DD4BF.
-- Link "sin cuenta? regístrate →" — JetBrains Mono 11px, "regístrate" en #F59E0B.
-- Metadata footer: "v1.0.0 · /login · POST /auth/login" (JetBrains Mono 9px,
-  color rgba(74,222,128,.2)).
-
-TOKENS DE MARCA (dark-only, sin variante light):
-- Background global: #080C07 con hex-grid SVG + scanlines overlay + glow radial verde.
-- Card: background #0D1310, border rgba(74,222,128,.18), border-radius 18px,
-  box-shadow glow verde, backdrop-blur 20px.
-- Corner accents: 4 esquinas, 60×60px, borde rgba(74,222,128,.35).
-- Primary green: #4ADE80 — CTA, bordes focus, glows.
-- Amber: #F59E0B — wordmark "AI", links registro.
-- Teal: #2DD4BF — links secundarios.
-- Error: #F87171 (alert 401) / #FCD34D (alert 429).
-- Font display: Pacifico 400 (solo wordmark).
-- Font body: Space Grotesk 300–700.
-- Font mono: JetBrains Mono 400–700.
-
-RESPONSIVE:
-- Mobile 375px: card full-width, padding 28px 16px 24px.
-- Desktop: card centrada max-width 420px, padding 40px 36px 36px.
-
-TONO VISUAL: biotech hacker — oscuro, glows bioluminiscentes, scanner sci-fi.
-Limpio y profesional pero con identidad visual fuerte. El usuario confía
-porque parece que la tecnología es seria, no porque sea un formulario estéril.
-```
+Cada spec sigue la misma estructura: **data shape → estados → componentes → tokens → avatar → responsive → tono**.
 
 ---
 
-### Prompt 2 — Register (`/register`)
+### Pantalla 1 — Login (`/login`) ✅ IMPLEMENTADA
 
-```
-Diseña la pantalla de registro de BioShield AI. Misma estética que el login
-ya diseñado: dark-only, hex-grid + scanlines + glows verdes bioluminiscentes,
-card con corner accents, avatar mascota piña con escudo ADN -welcome.png-.
-
-PANTALLA: Registro
-ROUTE: /register
-
-DATA SHAPE (POST /auth/register):
-{ email: string (valid email), password: string (min 8 chars) }
-
-RESPONSE (éxito 201): UserResponse { id: uuid, email, created_at }
-Después del 201, el frontend hace automáticamente POST /auth/login.
-
-ESTADOS:
-- Idle, Loading, Error 409 "[ERROR_409] Email ya registrado",
-  Error validación (password < 8 chars → hint inline bajo el campo), Error red.
-
-COMPONENTES:
-- Misma estructura de card que Login: background #0D1310, border-radius 18px,
-  corner accents, glow superior, avatar mascota con animate-wobble.
-- Input email + input password con indicador de fuerza (barra bajo el campo:
-  #F87171 corta / #F59E0B media / #4ADE80 fuerte — según longitud y variedad).
-- Checkbox "acepto términos y política de datos médicos" (required).
-  Estilo: JetBrains Mono 11px, color #6B8A6A.
-- Párrafo de privacidad (2 líneas, LOAD-BEARING — no esconder):
-  "Tus biomarcadores se encriptan con AES-256 y se borran automáticamente
-   después de 180 días. Nunca los compartimos."
-  Font: JetBrains Mono 10px, color #6B8A6A, con ícono ShieldCheck verde.
-- Botón primario "⟶ crear cuenta" / spinner + "creando cuenta…".
-- Link "¿ya tienes cuenta? entra →" — "entra" en #F59E0B.
-
-TOKENS + RESPONSIVE + TONO: idénticos a Login (Prompt 1).
-Font: Pacifico (wordmark) + Space Grotesk (cuerpo) + JetBrains Mono (labels).
-Dark-only. Hex-grid + scanlines en el fondo heredados del body global.
-```
+Handoff completo preservado en `docs/design/login/` (README + `design-tokens.json` + `reference/BioShield Login.html`). Queda como **referencia histórica** del formato original — las pantallas nuevas NO replican ese paquete (plan + código son source of truth).
 
 ---
 
-### Prompt 3 — Dashboard / Home (`/`)
+### Pantalla 2 — Register (`/register`) ✅ IMPLEMENTADA
 
-```
-Diseña la pantalla principal (post-login) de BioShield AI.
+Código en `app/(auth)/register/page.tsx`. `PasswordStrengthBar` vive inline (verde/ámbar/rojo según longitud + variedad) — extraer a `components/auth/` solo si reusamos fuerza de password en otra pantalla.
 
-PANTALLA: Dashboard
-ROUTE: / (autenticado)
+Checkpoints de la spec original (preservados como referencia):
+- `POST /auth/register` → `{ email, password: min 8 chars }` → response 201 `UserResponse` → auto-login con `POST /auth/login`.
+- Errores: 409 "Email ya registrado", validación inline password < 8 chars, red.
+- Misma estética que Login: card + corner accents + avatar mascota con wobble (`main.png`).
+- Checkbox "acepto términos y política de datos médicos" obligatorio.
+- Párrafo de privacidad LOAD-BEARING con `ShieldCheck` verde: "Tus biomarcadores se encriptan con AES-256 y se borran automáticamente después de 180 días. Nunca los compartimos."
+- Post-register: `router.push('/')` (dashboard, no `/dashboard`).
 
-PROPÓSITO: landing post-login. Tres acciones visibles: escanear producto,
-subir biomarcadores, ver historial.
+---
+
+### Pantalla 3 — Dashboard / Home (`/`)
+
+ROUTE: `/` (autenticado — dentro del grupo `(app)/`)
+PROPÓSITO: landing post-login. Tres acciones visibles: escanear producto, subir biomarcadores, ver historial.
 
 DATA SHAPE consumida:
 - GET /biosync/status →
@@ -538,17 +444,12 @@ RESPONSIVE:
 TONO: biotech confiable. Acogedor al primer uso, denso en info para recurrentes.
 La estética oscura con glows verdes no debe sentirse intimidante — el tono
 de copy es claro y humano, la UI es lo que es sci-fi.
-```
 
 ---
 
-### Prompt 4 — Scanner (`/scan`)
+### Pantalla 4 — Scanner (`/scan`)
 
-```
-Diseña la pantalla de escaneo de BioShield AI.
-
-PANTALLA: Scanner
-ROUTE: /scan
+ROUTE: `/scan`
 
 DOS MODOS EN LA MISMA PANTALLA (con Tabs):
   TAB 1: "Código de barras" (cámara con overlay de guía rectangular).
@@ -558,7 +459,7 @@ DATA FLOW:
 - Barcode mode:
   - Librería: @zxing/browser lee código.
   - Al detectar: POST /scan/barcode { barcode: "8-14 dígitos" }
-  - Response: ScanResponse (ver Prompt 5 para shape) o 404 si no se encontró
+  - Response: ScanResponse (ver Pantalla 5 para shape) o 404 si no se encontró
     en Open Food Facts → fallback "Intenta con /scan/photo".
 - Photo mode:
   - Input file o captura de cámara.
@@ -629,21 +530,14 @@ RESPONSIVE:
 
 TONO: instructivo pero no paternalista. Mensajes cortos. Errores con
 opción de recuperación, nunca callejón sin salida.
-```
 
 ---
 
-### Prompt 5 — Resultado de Scan (`/scan/[id]`)
+### Pantalla 5 — Resultado de Scan (`/scan/[id]`)
 
-**Esta es LA pantalla crítica del producto.** Merece el prompt más denso.
+**Esta es LA pantalla crítica del producto.** Spec más densa del plan.
 
-```
-Diseña la pantalla de resultado de un escaneo en BioShield AI. Esta es la
-pantalla CENTRAL del producto — donde el usuario entiende si un alimento es
-seguro para su perfil de salud.
-
-PANTALLA: Resultado de Scan
-ROUTE: /scan/[id]
+ROUTE: `/scan/[id]`
 
 DATA SHAPE (ScanResponse del backend):
 {
@@ -757,17 +651,12 @@ ACCESIBILIDAD:
 - aria-live="polite" en el hero del semáforo (anuncia color al cambiar).
 - Colores nunca solos — siempre icono + label textual + avatar PNG aria-hidden.
 - Focus visible en accordions.
-```
 
 ---
 
-### Prompt 6 — Biosync Upload (`/biosync`)
+### Pantalla 6 — Biosync Upload (`/biosync`)
 
-```
-Diseña la pantalla de subida de biomarcadores (panel de sangre) en BioShield AI.
-
-PANTALLA: Biosync
-ROUTE: /biosync
+ROUTE: `/biosync`
 
 CONTEXTO: el usuario sube resultados de laboratorio para que el análisis
 de productos considere su perfil personal (ej: si tiene LDL alto, alerta
@@ -840,17 +729,12 @@ TONO: tranquilizador. El usuario está compartiendo datos médicos sensibles —
 la UI proyecta competencia y respeto sin ser agresivamente "corporativa".
 La estética biotech (glows verdes, JetBrains Mono) refuerza que los datos
 están en manos de tecnología seria.
-```
 
 ---
 
-### Prompt 7 — Historial de Scans (`/history`)
+### Pantalla 7 — Historial de Scans (`/history`)
 
-```
-Diseña la pantalla de historial de escaneos de BioShield AI.
-
-PANTALLA: Historial
-ROUTE: /history
+ROUTE: `/history`
 
 DATA SHAPE: array de ScanHistory entries (endpoint futuro GET /scan/history):
 [
@@ -902,14 +786,12 @@ RESPONSIVE:
 - Desktop: lista max-width 720px centrada.
 
 TONO: utilitario, rápido, legible. Densidad alta. Sin decoración innecesaria.
-```
 
 ---
 
-### Prompt 8 — Error / Empty / Loading globales
+### Pantalla 8 — Error / Empty / Loading globales
 
-```
-Diseña los 3 estados globales compartidos de BioShield AI:
+Los 3 estados globales compartidos de BioShield AI:
 
 1. Error 500 / red — página completa:
    - Icono grande ServerCrash.
@@ -927,7 +809,7 @@ Diseña los 3 estados globales compartidos de BioShield AI:
 
 AVATAR ESTADOS GLOBALES:
 - Error 500: support.png (120×120) encima del mensaje de error.
-- Sesión expirada: main.png (100×100, sin animate-wobble) en el dialog.
+- Sesión expirada: gray.png (100×100, sin animate-wobble) en el dialog. (**No main.png** — corregido en impl.)
 - Loading skeleton: no avatar — solo skeleton shimmer genérico.
 
 TOKENS (dark-only):
@@ -942,11 +824,50 @@ TOKENS (dark-only):
 
 TONO: humano, sin tecnicismos. "Algo salió mal" > "Error HTTP 500".
 El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe.
-```
 
 ---
 
-## Fase D — Implementación de cada item 7.1-7.6
+### Apéndice — Lecciones aprendidas del login (fusión desde E.1)
+
+Reglas que Claude Code debe respetar al implementar cualquier pantalla:
+
+1. **Avatares:** usar nombres reales del repo — `success.png`, `support.png`, `progress.png`, `welcome.png`, `profile.png`, `main.png` + semáforos `gray/blue/yellow/orange/red.png`. No inventar nombres tipo `mascot-happy.png` / `mascot-loading.png`.
+2. **JetBrains Mono** ya está cargada vía `next/font/google` en `app/layout.tsx` como `--font-jetbrains-mono`. No usar `@import` en CSS.
+3. **Tokens** viven en `frontend/app/globals.css` y se consumen con clases Tailwind (`bg-brand-green`, `bg-surface`, `text-foreground`, etc.). No duplicar en `tokens/design-tokens.json` ni en archivos paralelos.
+4. **Data fetching:** usar `useMutation` / `useQuery` de TanStack Query dentro del componente, llamando funciones de `lib/api/*`. Nada de hooks custom tipo `useLoginForm`.
+5. **Dashboard** está en `/` (grupo `(app)/page.tsx`). `router.push('/')`, NUNCA `'/dashboard'`.
+6. **Nombres de tokens** Tailwind: `--brand-green`, `--brand-amber`, `bg-surface`. No inventar `--green` / `--amber` sueltos.
+
+---
+
+## Fase D — Implementación de cada item 7.1-7.9
+
+### 7.0 · Componentes compartidos (on-demand)
+
+**Regla operativa:** el componente nace inline en la pantalla origen. Cuando una segunda pantalla lo necesite, se extrae a `components/<grupo>/<Componente>.tsx` con la API más chica posible. **No crear componentes preventivamente.**
+
+Plan de emergencia de componentes, en el orden en que las pantallas pendientes los exigen:
+
+| Componente | Pantalla origen | Extraer a `components/` cuando | Tokens / API clave |
+|---|---|---|---|
+| `BarcodeScanner` | `/scan` tab barcode | — (único consumer) | video + overlay recortado + laser `animate-scan-line` + `@zxing/browser` |
+| `PhotoCapture` | `/scan` tab foto | — (único consumer) | dropzone `rgba(74,222,128,.3)` + `capture="environment"` + base64 encoding <10MB |
+| `OFFContributeToggle` **[FASE 2]** | `/scan` tab foto | — | shadcn Switch + Tooltip + copy ODbL + `POST /scan/contribute` |
+| `SemaphoreHero` | `/scan/[id]` | Nunca por ahora — un solo consumer | círculo 120px color semáforo + icono Lucide + avatar PNG lateral + `animate-pulse-glow` |
+| `IngredientAccordion` | `/scan/[id]` | — | shadcn Accordion + badge status + barra confidence + badge "N conflictos" |
+| `ConflictRow` | `/scan/[id]` (dentro de IngredientAccordion) | — | severity badge HIGH/MEDIUM/LOW + summary + sources chips |
+| `BiomarkerAlert` | `/scan/[id]` (solo si `semaphore === "ORANGE"`) | — | card borde `#FB923C` con texto personalizado desde `BIOMARKER_RULES` |
+| `BiomarkerField` | `/biosync` tab manual | — | input number + unidad en mono + tooltip `Info` con rango normal + warning inline fuera de rango |
+| `BiomarkerCSVUpload` | `/biosync` tab CSV | — | dropzone + `CSVPreviewTable` (primeras 5 filas) |
+| `PrivacyCard` | `/biosync` sidebar | Si se reusa en `/register` se extrae con la API existente | `ShieldCheck` verde + 4 bullets en JetBrains Mono |
+| `SemaphoreBadge` | `/` Dashboard (recent scans) **o** `/history` (lo que llegue primero) | **Inmediatamente** al aparecer en el segundo consumer | círculo 40px bg `rgba(color,.2)` + icono Lucide 20px color sólido |
+| `MascotAvatar` | cualquier empty state que use PNG con `animate-wobble` / `bs-mascot-glow` | Si un segundo consumer pide tamaño distinto | props `src` + `size` + `animate` + `glow` (boolean) |
+| `HistoryRow` | `/history` | — | fila compacta + `SemaphoreBadge` + nombre + barcode mono + fecha relativa + chip source + chevron |
+| `DayGroupHeader` | `/history` | — | JetBrains Mono UPPERCASE 10px `#6B8A6A` tracking 0.1em |
+| `FilterTabs` (por semáforo) | `/history` | Si Dashboard añade filtros | shadcn Tabs + count badges `rgba(color,.2)` |
+| `PasswordStrengthBar` | `/register` ✅ inline | Solo si otra pantalla introduce fuerza de password | 3 tramos rojo `#F87171` / ámbar `#F59E0B` / verde `#4ADE80` |
+
+Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle. Resultado (7.4) → SemaphoreHero, IngredientAccordion, ConflictRow, BiomarkerAlert. Biosync (7.5) → BiomarkerField, BiomarkerCSVUpload, PrivacyCard. Dashboard (7.7) → SemaphoreBadge (extracción inmediata al llegar a History). Historial (7.8) → HistoryRow, DayGroupHeader, FilterTabs.
 
 ### 7.1 · App Router + Tailwind + TanStack Query + Zustand
 
@@ -967,17 +888,17 @@ El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe
 ### 7.2 · Auth UI consumiendo JWT HTTP-only ✅ IMPLEMENTADO
 
 **Archivos:**
-- `frontend/app/(auth)/login/page.tsx` ✅ — referencia visual: Prompt 1.
-- `frontend/app/(auth)/register/page.tsx` ✅ — referencia visual: Prompt 2 (spec E.3).
+- `frontend/app/(auth)/login/page.tsx` ✅ — spec: Fase C — Pantalla 1 (handoff en `docs/design/login/`).
+- `frontend/app/(auth)/register/page.tsx` ✅ — spec: Fase C — Pantalla 2.
 - `frontend/lib/api/auth.ts` ✅ — `login` (raw fetch, no interceptor 401), `register`, `logout`, `refresh`.
-- `frontend/app/(app)/layout.tsx` ✅ — navbar + SessionExpiredDialog (escucha evento `session-expired`).
+- `frontend/app/(app)/layout.tsx` ✅ — navbar + SessionExpiredDialog (escucha evento `session-expired`). Avatar `profile.png` eliminado del navbar (limpieza de header).
 - `frontend/proxy.ts` ✅ (renombrado de middleware.ts — Next.js 16) — chequea cookie `access_token`.
 
 ### 7.2b · Dashboard placeholder ✅ IMPLEMENTADO
-- `frontend/app/(app)/page.tsx` ✅ — placeholder hasta Prompt 3 (claude.ai/design)
+- `frontend/app/(app)/page.tsx` ✅ — placeholder hasta implementación real en 7.7 (spec: Fase C — Pantalla 3)
 
 ### 7.2c · Global UI states ✅ IMPLEMENTADO
-- `frontend/components/SessionExpiredDialog.tsx` ✅ — main.png + "entrar de nuevo"
+- `frontend/components/SessionExpiredDialog.tsx` ✅ — gray.png (no main.png) + "entrar de nuevo" → `window.location.href = "/login"` (hard redirect, no router.push). `onInteractOutside` + `onEscapeKeyDown` previenen cierre accidental del modal.
 - `frontend/components/ErrorPage.tsx` ✅ — support.png + retry + ir al inicio
 - `frontend/app/error.tsx` ✅ — Next.js error boundary global
 - `frontend/components/Skeletons.tsx` ✅ — SkeletonCard / SkeletonRow / SkeletonHero (shimmer verde)
@@ -987,14 +908,24 @@ El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe
 - 401 en cualquier request → reintento con `/auth/refresh` → si ok, sigue; si no, redirect login.
 - Logout limpia cookies backend-side + Zustand store.
 
-### 7.3 · Scanner UI
+### 7.3 · Scanner UI ✅ IMPLEMENTADO
 
 **Archivos:**
-- `frontend/app/(app)/scan/page.tsx` — referencia visual: Prompt 4.
-- `frontend/components/scanner/BarcodeScanner.tsx` — wrapper de `@zxing/browser`.
-- `frontend/components/scanner/PhotoCapture.tsx` — input file + preview + base64 encoding.
-- `frontend/components/scanner/OFFContributeToggle.tsx` — Switch + copy ODbL + tooltip (Fase 2).
-- `frontend/lib/api/scan.ts` — `scanBarcode(barcode)` + `scanPhoto(base64)` + `contributeToOff(body)`.
+- `frontend/app/(app)/scan/page.tsx` ✅ — spec: Fase C — Pantalla 4.
+- `frontend/components/scanner/BarcodeScanner.tsx` ✅ — @zxing/browser con controls.stop() cleanup, overlay recortado, laser scan-line, flash detección 300ms.
+- `frontend/components/scanner/PhotoCapture.tsx` ✅ — dropzone + capture="environment" (mobile) + base64 + validación 10MB.
+- `frontend/components/scanner/OFFContributeToggle.tsx` — marcador [FASE 2], pendiente. Comentado en scan/page.tsx.
+- `frontend/lib/api/scan.ts` ✅ — ya existía con `scanBarcode`, `scanPhoto`, `contributeToOff`.
+- `frontend/app/(app)/scan/[id]/page.tsx` ✅ — placeholder que lee del cache de TanStack Query; implementación completa en 7.4.
+
+**Decisiones de implementación:**
+- URL param = `product_barcode` (siempre presente en `ScanResponse`). Cache key: `["scan", barcode]`.
+- Cache check ANTES de llamar al backend (implementa 7.6 sin staleTime explícito — si está en cache navega directo).
+- `controls.stop()` para cleanup de @zxing (no `reader.reset()` — no existe en v0.1.5).
+- Avatar `progress.png` en loading de foto (`animate-pulse-glow bs-mascot-glow`), `support.png` en permiso denegado.
+- **pseudo_barcode de foto:** formato `photo-{uuid16}` con guión (no `photo:` — los dos puntos hacen que Next.js interprete `photo:` como URL scheme, corrompiendo el query string `?via=photo`).
+- **Navegación post-foto:** `router.push(\`/scan/${encodeURIComponent(data.product_barcode)}?via=photo\`)` — `encodeURIComponent` hace explícito el path segment.
+- **Error type `error_process`:** estado para 400/5xx del servidor (mensaje: "El servidor no pudo procesar la imagen. Intenta de nuevo."), diferenciado de `error_read` (422) y `error_net` (network).
 
 **Dependencia extra (Fase 2):**
 - Ejecutar `pnpm dlx shadcn@latest add switch tooltip` (para el toggle OFF + info icon tooltip).
@@ -1009,28 +940,35 @@ El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe
 - [FASE 2] Con toggle off → no se dispara `/scan/contribute` bajo ninguna circunstancia.
 - [FASE 2] Si `/scan/contribute` retorna 5xx → toast warning no bloqueante; resultado sigue visible.
 
-### 7.4 · Semáforo visual con detalles de conflict
+### 7.4 · Semáforo visual con detalles de conflict ✅ IMPLEMENTADO
 
 **Archivos:**
-- `frontend/app/(app)/scan/[id]/page.tsx` — referencia visual: Prompt 5.
-- `frontend/components/semaphore/SemaphoreHero.tsx` — círculo + icono + label.
-- `frontend/components/semaphore/SemaphoreBadge.tsx` — versión compacta para listas.
-- `frontend/components/ingredients/IngredientCard.tsx` — accordion con conflicts.
-- `frontend/components/ingredients/ConflictDetail.tsx` — severity + sources chips.
+- `frontend/app/(app)/scan/[id]/page.tsx` ✅ — spec: Fase C — Pantalla 5.
+- `SemaphoreHero` ✅ — inline en la pantalla. Diseño final: **sin círculo shrink-0** — solo avatar PNG centrado con `filter: drop-shadow(0 0 20px ${sem.color}70)` en wrapper `animate-pulse` (Tailwind, solo afecta opacidad — no sobreescribe el filter). Icono (`sem.Icon size={22}`) al inicio del h1 con el color del semáforo. Contenido de la card: `flex flex-col items-center`.
+- `IngredientAccordion` + `ConflictRow` ✅ — inline, un único consumer.
+- `BiomarkerAlert` ✅ — inline, solo visible si `semaphore === "ORANGE"`.
+- `SemaphoreBadge` ✅ — extraído a `components/semaphore/SemaphoreBadge.tsx` al aparecer en Dashboard (7.7).
+- `PhotoExpiredState` ✅ — inline: estado fallback cuando `viaPhoto=true` y el cache está vacío (los resultados de foto no persisten entre sesiones). Avatar `support.png` + copy explicativo + link "escanear de nuevo".
+
+**Decisiones de implementación:**
+- `decodeURIComponent(rawId)` en el hook `useParams` — normaliza el barcode para hacer match con la cache key (que usa el valor sin encodear del response del backend).
+- Glow color: `@keyframes pulse-glow` en globals.css tiene `drop-shadow` hardcodeado verde. Solución: `animate-pulse` en el wrapper (solo opacity) + `filter: drop-shadow` inline en el mismo wrapper. No usar `animate-pulse-glow` sobre el avatar — sobreescribiría el color dinámico.
+- `viaPhoto`: lee `useSearchParams().get("via") === "photo"`. Si `isError || !data`: `viaPhoto ? <PhotoExpiredState /> : <NoCacheState />`.
 
 **Checks de éxito:**
-- Los 5 colores se renderizan correctamente (forzar con fixtures en dev).
+- Los 5 colores se renderizan con glow del color correcto (amarillo para YELLOW, no verde).
 - Accordion expande y muestra CAS/E-number en mono + conflicts ordenados por severity.
 - Alertas de biomarcadores aparecen solo si `semaphore === "ORANGE"`.
 - Accesibilidad: navegar con teclado + screen reader (macOS VoiceOver) anuncia semáforo.
+- Foto scan: `progress.png` → loading → navega a `/scan/photo-abc123?via=photo` → resultado visible.
+- Foto scan en sesión nueva (cache vacío): muestra `PhotoExpiredState` (no `NoCacheState`).
 
-### 7.5 · Biosync UI
+### 7.5 · Biosync UI ✅ IMPLEMENTADO
 
 **Archivos:**
-- `frontend/app/(app)/biosync/page.tsx` — referencia visual: Prompt 6.
-- `frontend/components/biosync/BiomarkerForm.tsx` — form tipado con los 5 biomarcadores conocidos + "agregar otro".
-- `frontend/components/biosync/BiomarkerCSVUpload.tsx` — dropzone + preview.
-- `frontend/lib/api/biosync.ts` — `uploadBiomarkers(data)`, `getStatus()`, `deleteBiomarkers()`.
+- `frontend/app/(app)/biosync/page.tsx` ✅ — tabs Manual/CSV, 6 BiomarkerFields con validación de rango, CSVPreviewTable, delete confirm modal, PrivacyCard sidebar desktop / bottom mobile.
+- `BiomarkerField` + `CSVPreviewTable` + `PrivacyCard` ✅ — inline en biosync/page.tsx.
+- `frontend/lib/api/biosync.ts` ✅ — `uploadBiomarkers(data)`, `getBiomarkerStatus()`, `deleteBiomarkers()`.
 
 **Checks de éxito:**
 - Upload manual de `{ ldl: 150, glucose: 110 }` → 201 → redirect.
@@ -1048,285 +986,58 @@ El fondo con glows y hex-grid persiste incluso en error — la marca no se rompe
 - Escanear mismo barcode 2 veces en <5min → segunda llamada sirve de cache, sin request al backend (devtools lo confirma).
 - Forzar refetch con botón "Actualizar" en la pantalla de resultado.
 
----
+### 7.7 · Dashboard real ✅ IMPLEMENTADO
 
-## Fase E — Handoff claude.ai/design → `/frontend`
+**Archivos:**
+- `frontend/app/(app)/page.tsx` ✅ — hero CTA Escanear, BiosyncCard (has_data + nearExpiry badge ámbar), RecentScans (skeletons + empty state welcome.png + HistoryRow inline).
+- `components/semaphore/SemaphoreBadge.tsx` ✅ — extraído inmediatamente (reusado en History 7.8). Props: `color`, `size`, `showLabel`.
+- `frontend/lib/api/scan.ts` ✅ — `getScanHistory(limit)` añadido (GET /scan/history — **implementado en backend** en `backend/app/routers/scan.py`; `source` derivado stateless del prefijo `photo-`).
+- `frontend/lib/api/types.ts` ✅ — `ScanHistoryEntry` añadido.
 
-### E.0 · Formato de entrega establecido (basado en el login ✅)
+**Checks de éxito:**
+- Login → dashboard real con hero CTA + estado biosync + últimos 5 scans.
+- Sin scans → empty state con `welcome.png` + CTA "escanear primer producto".
+- `has_data=true` y `expires_at < 30 días` → badge ámbar en card biosync.
+- Skeletons durante loading de scan history.
 
-El login entregó el paquete completo. Este es el estándar para las 7 pantallas restantes:
+### 7.8 · Historial de Scans ✅ IMPLEMENTADO
 
-```
-docs/design/<pantalla>/
-├── README.md              ← spec completo con CSS exacto por componente
-├── design-tokens.json     ← tokens tipados ($schema community-group)
-└── reference/
-    └── BioShield <Pantalla>.html  ← prototipo interactivo React+Babel
-```
+**Archivos:**
+- `frontend/app/(app)/history/page.tsx` ✅ — búsqueda por nombre/barcode, FilterTabs con count badges por semáforo, agrupación por día (Hoy/Ayer/Hace N días/Mes YYYY), HistoryItemRow + SemaphoreBadge, 10 skeletons loading, EmptyState welcome.png.
+- `SemaphoreBadge` ✅ — reusado de components/semaphore/.
+- `HistoryItemRow` + `DayGroupHeader` + filtros ✅ — inline en history/page.tsx.
 
-Estructura del README.md esperado por pantalla:
+**Checks de éxito:**
+- Lista agrupada por día ("Hoy", "Ayer", "Hace 3 días", "Abril 2026").
+- FilterTabs con count por semáforo funcionando.
+- Search filtra por `product_name`.
+- Empty con filtro activo → "sin resultados para este filtro".
+- Chevron → navegar a `/scan/[id]`.
 
-```
-# Handoff: BioShield AI — `/<ruta>`
-Versión · Fecha · Diseñado en · Implementar en
-─────────────────────────────────────
-⚠️  Sobre los archivos de diseño
-📁  Dónde colocar cada archivo en Next.js  ← rutas de componentes específicas
-🎨  Tokens de marca (tabla resumen)
-🖥️  Pantalla — Layout + fondo decorativo + card
-    → specs de cada sección en CSS exacto
-🍍  Avatar mascota (si aplica)
-    → src, tamaño, animación, glow
-    → nombre de archivo EXACTO del /public/avatars/
-🔤  Wordmark (solo si aparece en la pantalla)
-📋  Componentes — uno por sección, con props, CSS por estado
-⚡  Estados de la UI — tabla trigger → comportamiento
-🔌  Integración API — snippet con endpoint, método, body
-📦  Assets incluidos (tabla)
-✅  Checklist de implementación
-```
+### 7.9 · Polish global (Error / Loading) ✅ IMPLEMENTADO
 
----
+Pulido de estados globales — el scaffolding (`app/error.tsx`, `ErrorPage.tsx`, `SessionExpiredDialog.tsx`, `Skeletons.tsx`) ya está en 7.2c. Aquí refinamos.
 
-### E.1 · Correcciones globales — divergencias login vs nuestro codebase
+**Archivos:**
+- `frontend/app/globals.css` — añadir keyframe `shimmer` para skeleton verde:
+  ```css
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+  ```
+- `frontend/components/Skeletons.tsx` — verificar que `SkeletonCard/Row/Hero` usen base `rgba(74,222,128,.06)` + gradiente `linear-gradient(90deg, transparent, rgba(74,222,128,.1), transparent)` + `animation: shimmer 1.5s infinite`. Sin grises.
+- `frontend/components/ErrorPage.tsx` — verificar `support.png` 120×120 estático (sin wobble ni glow).
+- `frontend/components/SessionExpiredDialog.tsx` — verificar `gray.png` 80×80 estático (no main.png — corregido).
 
-El handoff del login tuvo 6 puntos que difieren de nuestra implementación real.
-Aplicar estas correcciones al pegar cada handoff en código:
-
-| # | Lo que dijo el handoff | Lo correcto en este proyecto |
-|---|---|---|
-| 1 | Avatar names: `mascot-happy.png`, `mascot-error.png`, `mascot-loading.png` | Nuestros PNGs: `success.png`, `support.png`, `progress.png`, `welcome.png`, `profile.png` + semáforos `gray/blue/yellow/orange/red.png` |
-| 2 | "JetBrains Mono no está en next/font" | Sí está. Ya cargada en `layout.tsx` como `--font-jetbrains-mono`. No usar `@import`. |
-| 3 | `tokens/design-tokens.json` como destino de los tokens | Tokens ya están en `globals.css` + documentados en `docs/design/tokens.md`. Ignorar la sección "Tokens de diseño" de archivo y absorber solo los valores nuevos o diferenciales. |
-| 4 | `hooks/useLoginForm.ts` — lógica en hook custom | Lógica va en `lib/api/auth.ts` (o `scan.ts`, `biosync.ts`). En componentes, usar TanStack Query mutations (`useMutation`), no hooks custom. |
-| 5 | `router.push('/dashboard')` | Dashboard está en `/` (group `(app)/page.tsx`). Usar `router.push('/')`. |
-| 6 | Nombres de tokens: `--green`, `--amber`, `--surface` | Nuestros tokens son `--brand-green`, `--brand-amber`, `bg-surface`. Mapear al usar. |
+**Checks de éxito:**
+- Shimmer verde visible en skeletons, no gris.
+- Error boundary (`app/error.tsx`) dispara `ErrorPage` con retry + ir al inicio.
+- Session expired dialog se muestra al escuchar `session-expired` event (ya emitido desde `lib/api/client.ts` en 7.1).
 
 ---
 
-### E.2 · Proceso de handoff por pantalla
-
-**Orden de implementación** (por valor entregado):
-1. Register — desbloquea auth completo.
-2. Scanner + Resultado — core del producto.
-3. Biosync — activa diferenciación ORANGE.
-4. Dashboard — tie-together.
-5. Historial — pulido.
-6. Error/Loading — estados globales.
-
-**Proceso por cada pantalla:**
-1. Diseñar en claude.ai/design con el prompt de Fase C (ya actualizado con tokens correctos).
-2. Iterar (3-5 rondas típicamente). Si los tokens divergen de los del login, forzar corrección antes de cerrar.
-3. Solicitar entrega del paquete completo: README + design-tokens.json + .html.
-4. Guardar en `frontend/temp/<pantalla>/`.
-5. Aplicar correcciones de E.1.
-6. Implementar en `/frontend` con shadcn/ui + tipos de `lib/api/types.ts` + TanStack Query.
-7. Smoke test manual de la pantalla antes de pasar a la siguiente.
-
----
-
-### E.3 · Especificaciones por pantalla — qué debe cubrir cada handoff README
-
-Lo que el login estableció como base. Lo que sigue son las **adiciones específicas** que cada pantalla necesita sobre ese template.
-
----
-
-#### Pantalla 2 — Register (`/register`)
-
-**Componentes que deben quedar especificados:**
-- `PasswordStrengthBar` — barra bajo el campo de password con 3 estados:
-  - corta (< 6 chars): `#F87171`, ancho 33%
-  - media (6-9 chars): `#F59E0B`, ancho 66%
-  - fuerte (≥ 10 chars + variedad): `#4ADE80`, ancho 100%
-  - height 3px, border-radius 2px, transition width 0.3s
-- `AuthField` — debe reutilizar el de login sin cambios.
-- `PrivacyNote` — párrafo de privacidad (ShieldCheck + texto 2 líneas).
-  CSS: JetBrains Mono 10px, `#6B8A6A`, borde-left 2px `rgba(74,222,128,.3)`, padding-left 10px.
-- Checkbox: custom, no el del navegador. Border `rgba(74,222,128,.3)`, checked: `#4ADE80`.
-
-**Estados adicionales al login:**
-- `validating` — campo password con barra de fuerza actualizando en tiempo real.
-- `409` — alerta `[ERROR_409] Email ya registrado.` (mismo estilo que 401).
-
-**Avatar:** mismo `main.png` + wobble que login.
-
-**Ruta de destino post-register:** `router.push('/')` (no `/dashboard`).
-
----
-
-#### Pantalla 3 — Dashboard (`/`)
-
-**Componentes que deben quedar especificados:**
-- `Navbar` — altura 56px, fondo `#0D1310`, borde-bottom `rgba(74,222,128,.1)`.
-  - Izquierda: wordmark compacto (sin tagline).
-  - Derecha: `profile.png` (32×32, rounded-full) + nombre usuario + `<ChevronDown/>` → dropdown (Logout).
-- `HeroCard` — bs-card + corner accents. CTA "⟶ escanear producto".
-  - Icono: `Camera` o `Barcode` (alternar con Tabs?).
-- `BiosyncStatusCard` — secondary card, sin corner accents.
-  - Estado `has_data=true`: badge "biomarcadores activos", fecha expira en `#F59E0B` si < 30 días.
-  - Estado `404`: CTA "subir panel de sangre".
-- `RecentScanRow` — fila compacta: SemaphoreBadge (40×40) + nombre + fecha relativa + chevron.
-- `SemaphoreBadge` (40px) — círculo con fondo `rgba(semaphore-color, 0.2)` + icono Lucide color sólido.
-
-**Estados adicionales:**
-- `empty` (sin historial): `welcome.png` (120×120) centrado + "Escanea tu primer producto".
-- Skeletons: 3 variantes — card hero, card secondary, lista de filas.
-
-**Avatar:** `welcome.png` en empty state. `profile.png` en navbar.
-
----
-
-#### Pantalla 4 — Scanner (`/scan`)
-
-**Componentes que deben quedar especificados:**
-- `BarcodeScanner` — video element:
-  - Contenedor: max-width 480px, aspect-ratio 4/3.
-  - Overlay: `rgba(0,0,0,.5)` con recorte centrado transparent (la "ventana" del scanner).
-  - Borde de la ventana: 2px `#4ADE80`, border-radius 8px.
-  - Laser line: `div` absoluto, altura 2px, `background: linear-gradient(90deg, transparent, #4ADE80, transparent)`, `animation: scan-line 2s linear infinite` (ya en globals.css).
-  - Flash en detección: background de la ventana cambia a `rgba(74,222,128,.2)`, 300ms, una vez.
-- `PhotoCapture` — dropzone:
-  - Borde: `2px dashed rgba(74,222,128,.3)`. Hover: `rgba(74,222,128,.6)`.
-  - Fondo: `rgba(74,222,128,.03)`.
-  - Icono: `Upload` o `ImagePlus` (Lucide), color `#6B8A6A`.
-  - Mobile: botón adicional "Tomar foto" (input `capture="environment"`).
-- `OFFContributeToggle` — [FASE 2] shadcn Switch + Label con copy ODbL + Tooltip (icono `Info` Lucide 12px).
-  Borde `rgba(74,222,128,.2)`, padding 12px, rounded-md. Solo visible en photo tab.
-- `CameraPermissionCard` — bs-card compacto. Icono `Camera`, texto, CTA verde.
-- `NotFoundModal` — dialog shadcn: mensaje + CTA que cambia al tab 2.
-- `ManualBarcodeInput` — input regular de `AuthField` para fallback.
-
-**Estados adicionales:**
-- Loading foto: `progress.png` (100×100, animate-pulse-glow) centrado con texto "Analizando etiqueta con IA...".
-- Permiso denegado: `support.png` (80×80) + fallback input manual.
-
----
-
-#### Pantalla 5 — Resultado de Scan (`/scan/[id]`)
-
-**Componentes que deben quedar especificados:**
-- `SemaphoreHero` — la sección crítica:
-  - Layout: flex row (gap-6) en desktop, columna en mobile.
-  - Círculo: 120×120px, fondo `rgba(semaphore-color, 0.15)`, borde 2px `rgba(semaphore-color, 0.6)`, borde-radius 50%, `animate-pulse` sutil.
-  - Icono Lucide en el centro: 40×40, color sólido del semáforo.
-  - Avatar PNG lateral: 120×120, `animate-pulse-glow`, `alt=""` + `aria-hidden`.
-  - El borde del card contenedor cambia según semáforo: `border-color: rgba(semaphore-color, 0.4)`.
-- `IngredientAccordion` — cada ítem:
-  - Header (collapsed): nombre + badge status (Approved/Banned/Restricted/Under Review) + barra confidence + badge "N conflictos" si aplica.
-  - Expanded: CAS number y E-number en `font-mono`, lista de conflictos.
-  - Borde-bottom entre ítems: `rgba(74,222,128,.08)`. Hover fondo: `rgba(74,222,128,.04)`.
-- `ConflictRow` — severity badge + summary + sources chips.
-  - HIGH: `rgba(248,113,113,.15)` bg, border `#F87171`.
-  - MEDIUM: `rgba(251,146,60,.15)` bg, border `#FB923C`.
-  - LOW: `rgba(250,204,21,.15)` bg, border `#FACC15`.
-- `BiomarkerAlert` — card con borde `#FB923C`, solo visible si `semaphore === "ORANGE"`.
-
-**Estados adicionales:**
-- Skeleton hero + 3 skeleton acordeones (con shimmer verde, no gris).
-
-**Avatar:** PNG del semáforo correspondiente al lado del `SemaphoreHero`.
-Mapeo: `gray.png` / `blue.png` / `yellow.png` / `orange.png` / `red.png`.
-
----
-
-#### Pantalla 6 — Biosync (`/biosync`)
-
-**Componentes que deben quedar especificados:**
-- `BiomarkerField` — campo numérico + unidad + tooltip:
-  - Layout: input (flex-1) + unidad text (`#6B8A6A`, JetBrains Mono, padding 0 8px) en fila.
-  - Tooltip icono `Info` (Lucide, 12px) con popup: rango normal del marcador.
-  - Validación inline: si valor fuera de rango, warning ámbar NO bloqueante.
-- `AddBiomarkerRow` — par key-value genérico. Botón `+` con borde `rgba(74,222,128,.3)`.
-- `CSVDropzone` — mismo estilo que `PhotoCapture` de scanner.
-- `CSVPreviewTable` — primeras 5 filas del CSV. Fondo `#0D1310`, headers JetBrains Mono.
-- `BiomarkerBanner` — dos variantes:
-  - `has_data`: `rgba(245,158,11,.08)` bg, border ámbar, botón "Eliminar" secundario.
-  - `empty`: `rgba(74,222,128,.05)` bg, border verde, texto neutro.
-- `PrivacyCard` — bs-card sin corner accents. ShieldCheck verde. 4 bullets JetBrains Mono.
-- `DeleteConfirmModal` — dialog shadcn con confirmación destructiva (botón rojo).
-
-**Avatar:** `success.png` (80×80) en toast de confirmación post-upload.
-
----
-
-#### Pantalla 7 — Historial (`/history`)
-
-**Componentes que deben quedar especificados:**
-- `HistoryRow` — fila compacta:
-  - `SemaphoreBadge` (40×40) a la izquierda.
-  - Centro: nombre producto (Space Grotesk, 14px) + barcode (JetBrains Mono, 11px, `#6B8A6A`).
-  - Derecha: fecha relativa (Space Grotesk 12px) + chip source + `ChevronRight`.
-  - Borde-bottom: `rgba(74,222,128,.08)`. Hover: `rgba(74,222,128,.04)`.
-- `DayGroupHeader` — separador de sección:
-  - Texto: "Hoy" / "Ayer" / fecha. JetBrains Mono UPPERCASE 10px, `#6B8A6A`, tracking 0.1em.
-  - Sin línea decorativa extra — el contraste del fondo es suficiente.
-- `FilterTabs` — shadcn Tabs, cada label con badge count:
-  - Badge: `rgba(semaphore-color, 0.2)` bg, color sólido, font-mono 10px.
-  - Tab "Todos": badge `rgba(74,222,128,.2)`.
-- `SearchInput` — mismo estilo que `AuthField` pero sin label UPPERCASE ni icono izquierdo.
-  Icono: `Search` (Lucide, `#6B8A6A`).
-
-**NO usar avatar PNG en las filas** — solo `SemaphoreBadge` (círculo + icono). Los PNGs son para heroes, no para listas densas.
-
-**Avatar:** `welcome.png` (120×120) en empty state sin scans.
-
----
-
-#### Pantalla 8 — Error / Empty / Loading
-
-**Componentes que deben quedar especificados:**
-- `ErrorPage` (500 / red) — full-page, centrado:
-  - `support.png` (120×120) arriba, sin wobble ni glow (estático).
-  - Título "algo salió mal." — Space Grotesk 2xl, `#DCF0DC`.
-  - Subtítulo — JetBrains Mono 13px, `#6B8A6A`.
-  - Dos botones: primario "reintentar" (bs-glow-green) + secundario "ir al inicio" (borde `rgba(74,222,128,.3)`).
-- `SessionExpiredDialog` — dialog shadcn:
-  - `main.png` (80×80, estático, sin wobble) centrado en el header del dialog.
-  - Título, texto, botón "entrar de nuevo".
-  - Fondo: bs-card. Borde: `rgba(74,222,128,.18)`.
-- `SkeletonCard` / `SkeletonRow` / `SkeletonHero` — 3 variantes:
-  - Color base: `rgba(74,222,128,.06)`.
-  - Shimmer: `background: linear-gradient(90deg, transparent, rgba(74,222,128,.1), transparent)` con `animation: shimmer 1.5s infinite`.
-  - NO grises — el shimmer mantiene el mood verde del sistema.
-
-**Keyframe shimmer** (agregar a globals.css en Fase D):
-```css
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
-}
-```
-
----
-
-## Archivos críticos — resumen
-
-**Backend (ya existen, solo lectura para mirror de tipos):**
-- `backend/app/schemas/models.py` — source of truth para `frontend/lib/api/types.ts`.
-- `backend/app/routers/{auth,scan,biosync}.py` — contracts.
-- `backend/app/services/analysis.py` — BIOMARKER_RULES que alimentan los hints del form de biosync.
-- `backend/app/main.py` línea 24-30 — CORS (verificar `ALLOWED_ORIGINS`).
-
-**Frontend (nuevos):**
-- `frontend/package.json`, `frontend/next.config.ts`, `frontend/tailwind.config.ts`.
-- `frontend/app/layout.tsx`, `frontend/app/globals.css`.
-- `frontend/lib/api/{client,auth,scan,biosync,types}.ts`.
-- `frontend/lib/stores/auth.ts`.
-- 8 archivos de página en `frontend/app/(auth)/**` y `frontend/app/(app)/**`.
-- 15-20 componentes en `frontend/components/**`.
-
-**Docs nuevos:**
-- `docs/design/README.md` — índice de pantallas con links a sesiones de Claude Design + screenshots.
-- `docs/design/<pantalla>.png` × 8.
-- `docs/reviews/18-04.md` — actualizar §13 con cierre de Fase 7.
-
-**DevOps:**
-- `docker-compose.yml` — agregar servicio `frontend` (Fase A.4).
-- `.github/workflows/ci.yml` — agregar job `frontend-build` (pnpm install + build + lint + typecheck).
-
----
-
-## Verificación end-to-end
+## Fase E — Verificación end-to-end
 
 Después de implementar, validar con estos casos en navegador real (Chrome + Safari mobile) apuntando a `docker compose up`:
 
@@ -1337,7 +1048,7 @@ Después de implementar, validar con estos casos en navegador real (Chrome + Saf
 3. **Orange biomarker match:**
    - `/biosync` → manual → `{ ldl: 150 }` → upload OK.
    - `/scan/barcode` de un producto con grasas trans → semaphore ORANGE con alerta "Tu LDL está en 150 y este producto contiene grasas trans".
-4. **Cache SWR/TanStack:**
+4. **Cache TanStack Query:**
    - Escanear mismo barcode 2 veces en <5min → network devtools confirma cache hit.
 5. **Refresh 401:**
    - En dev tools: borrar cookie `access_token` (dejar `refresh_token`) → hacer scan → frontend llama `/auth/refresh` automáticamente → scan procede sin redirect.
@@ -1351,19 +1062,52 @@ Después de implementar, validar con estos casos en navegador real (Chrome + Saf
 
 ---
 
+## Archivos críticos — resumen
+
+**Backend (ya existen, solo lectura para mirror de tipos):**
+- `backend/app/schemas/models.py` — source of truth para `frontend/lib/api/types.ts`.
+- `backend/app/routers/{auth,scan,biosync}.py` — contracts.
+- `backend/app/services/analysis.py` — BIOMARKER_RULES que alimentan los hints del form de biosync.
+- `backend/app/main.py` línea 24-30 — CORS (verificar `ALLOWED_ORIGINS`).
+
+**Frontend:**
+- `frontend/package.json`, `frontend/next.config.ts`, `frontend/tailwind.config.ts`.
+- `frontend/app/layout.tsx`, `frontend/app/globals.css`. ✅
+- `frontend/lib/api/{client,auth,scan,biosync,types}.ts`. ✅ (salvo `getScanHistory` pendiente en 7.7)
+- `frontend/lib/stores/auth.ts`. ✅
+- 8 archivos de página en `frontend/app/(auth)/**` y `frontend/app/(app)/**` (2 de 8 ✅ login+register).
+- 15-20 componentes en `frontend/components/**` (core auth + globals ✅; scanner/semaphore/ingredients/biosync pendientes — regla on-demand 7.0).
+
+**Docs:**
+- `docs/design/tokens.md` — canónico de tokens. ✅
+- `docs/design/login/**` — handoff histórico del login. ✅ (no tocar)
+- `docs/design/README.md` — opcional, índice con links a `docs/design/login/` y `tokens.md`. **NO se crea doc por pantalla** (decisión: sin handoff para pantallas nuevas).
+- `docs/reviews/18-04.md` — actualizar §13 con cierre de Fase 7 al terminar.
+
+**DevOps:**
+- `docker-compose.yml` — agregar servicio `frontend` (Fase A.4).
+- `.github/workflows/ci.yml` — agregar job `frontend-build` (pnpm install + build + lint + typecheck).
+
+---
+
 ## Estimación de esfuerzo
 
 | Fase | Esfuerzo | Dependencias |
 |---|---|---|
-| A — Setup monorepo | 3-4h | — |
-| B — Design tokens | 1h | Acuerdo sobre paleta |
-| C — Diseñar 8 pantallas en claude.ai/design | 6-10h | Tokens de B listos |
-| D — Implementar 7.1-7.6 | 3-4 días | Fase C completa; backend levantado |
-| E — Handoff + integración | Embebido en D | — |
-| Verification E2E | 4-6h | Todo anterior |
-| **Total** | **~5-7 días** | Backend ya listo |
-
-Alberto puede paralelizar Fase C (mientras diseña en Claude Design) con Fase A-B (setup del repo) para comprimir a ~4 días.
+| A — Setup monorepo | ✅ done | — |
+| B — Design tokens | ✅ done | — |
+| C — Specs por pantalla | ✅ redactadas en este plan | — |
+| D.7.0 — Componentes compartidos | on-demand con cada pantalla | — |
+| D.7.1 / 7.2 / 7.2b / 7.2c — Infra + Auth + Globals | ✅ done | — |
+| D.7.3 — Scanner UI + OFF toggle [Fase 2] | ✅ done | — |
+| D.7.4 — Resultado scan + semáforo + ingredients | ✅ done | — |
+| D.7.5 — Biosync UI | ✅ done | — |
+| D.7.6 — Cache TanStack Query | ✅ done (embebido en 7.3) | — |
+| D.7.7 — Dashboard real | ✅ done | — |
+| D.7.8 — Historial | ✅ done | — |
+| D.7.9 — Polish global (shimmer + ErrorPage pulido) | ✅ done | — |
+| E — Verificación E2E | pendiente | Todo lo anterior |
+| **Total pendiente** | **~0.5-1 día (solo E2E)** | Backend listo |
 
 ---
 
@@ -1378,8 +1122,11 @@ Alberto puede paralelizar Fase C (mientras diseña en Claude Design) con Fase A-
 3. **Free tier de Gemini agotado en dev** (§9.3 del review).
    Mitigación: mockear `POST /scan/photo` con fixture de ScanResponse en desarrollo FE; scan real contra staging con tier pagado.
 
-4. **Claude.ai/design no exporta React con shadcn directamente.**
-   Mitigación: el código generado es referencia visual; la implementación en `/frontend` usa shadcn explícitamente. No intentar `npm install` del output de Claude Design crudo.
-
-5. **Cookies cross-origin en producción.**
+4. **Cookies cross-origin en producción.**
    Mitigación: mismo dominio FE+BE con subdominio (`app.bioshield.ai` + `api.bioshield.ai`) y `SameSite=Lax` (ya configurado en backend). Si despliegue inicial es Vercel (FE) + Render (BE) en dominios distintos, requiere `SameSite=None; Secure`. Verificar en staging antes de prod.
+
+5. **Convergencia visual más lenta sin intermediario de diseño.**
+   Mitigación: `docs/design/login/README.md` sigue siendo plantilla visual viva; tokens inmutables (no inventar colores ni glows); iteración incremental con revisión de Alberto en `pnpm dev` antes de cerrar cada pantalla; "Lecciones aprendidas del login" al final de Fase C previenen desviaciones conocidas (avatares, fuentes, rutas, tokens).
+
+6. **Pantallas nuevas divergen del look&feel del login sin querer.**
+   Mitigación: cada pantalla consume utilidades existentes (`bs-card`, `bs-glow-green`, `bs-glow-green-strong`, `bs-corner-{tl,tr,bl,br}`, `bs-input-focus`, `bs-mascot-glow`). Corner accents + glow verde son firma visual no negociable para `/login` y `/register`; en pantallas app (Scanner, Resultado, Biosync, Dashboard, History) aplicar corner accents solo al CTA principal o hero card, no a todo.
