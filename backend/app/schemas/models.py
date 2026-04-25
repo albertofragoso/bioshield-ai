@@ -109,6 +109,16 @@ class ScanResponse(BaseModel):
     scanned_at: datetime
 
 
+class ScanHistoryEntry(BaseModel):
+    id: str
+    product_barcode: str
+    product_name: str | None = None
+    semaphore: SemaphoreColor
+    conflict_severity: ConflictSeverity | None = None
+    source: Literal["barcode", "photo"]
+    scanned_at: datetime
+
+
 # ─────────────────────────────────────────────
 # Biosync schemas
 # ─────────────────────────────────────────────

@@ -77,6 +77,7 @@ pytest --cov=app --cov-report=term-missing
 | POST   | /auth/refresh     | No   | Refresca access token                |
 | DELETE | /auth/logout      | JWT  | Logout (invalida refresh token)      |
 | GET    | /health           | No   | Health check                         |
+| GET    | /scan/history     | JWT  | Historial de scans del usuario (limit param, default 20) |
 | POST   | /scan/barcode     | JWT  | Escaneo por código de barras         |
 | POST   | /scan/photo       | JWT  | Escaneo por foto de etiqueta (Gemini)|
 | POST   | /scan/contribute  | JWT  | Contribución a Open Food Facts (Fase 2) — 202 Accepted, BackgroundTask async |

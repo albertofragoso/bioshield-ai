@@ -27,6 +27,7 @@ from app.schemas.models import (
     OFFContributeRequest,
     OFFContributeResponse,
     PhotoScanRequest,
+    ScanHistoryEntry,
     ScanResponse,
     SemaphoreColor,
 )
@@ -41,6 +42,40 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 def ping(current_user: User = Depends(get_current_user)):
     """Smoke-test endpoint — verifies auth dependency is wired correctly."""
     return {"user_id": current_user.id}
+
+
+# ─────────────────────────────────────────────
+# GET /scan/history
+# ─────────────────────────────────────────────
+
+@router.get("/history", response_model=list[ScanHistoryEntry])
+def get_scan_history(
+    limit: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.execute(
+            select(ScanHistory, Product.name)
+            .join(Product, ScanHistory.product_barcode == Product.barcode)
+            .where(ScanHistory.user_id == current_user.id)
+            .order_by(ScanHistory.scanned_at.desc())
+            .limit(limit)
+        )
+        .all()
+    )
+    return [
+        ScanHistoryEntry(
+            id=row.ScanHistory.id,
+            product_barcode=row.ScanHistory.product_barcode,
+            product_name=row.name,
+            semaphore=SemaphoreColor(row.ScanHistory.semaphore_result),
+            conflict_severity=row.ScanHistory.conflict_severity,
+            source="photo" if row.ScanHistory.product_barcode.startswith("photo-") else "barcode",
+            scanned_at=row.ScanHistory.scanned_at,
+        )
+        for row in rows
+    ]
 
 
 # ─────────────────────────────────────────────
@@ -110,7 +145,8 @@ async def scan_photo(
         )
 
     # Photo scans have no real barcode — synthesize a marker so the FK holds.
-    pseudo_barcode = f"photo:{uuid4().hex[:16]}"
+    # Use hyphen (not colon) so the value is safe in URL path segments.
+    pseudo_barcode = f"photo-{uuid4().hex[:16]}"
     product = _upsert_product(db, barcode=pseudo_barcode, name=None, brand=None, image_url=None)
     _persist_scan_history(db, current_user, product.barcode, final_state)
     db.commit()

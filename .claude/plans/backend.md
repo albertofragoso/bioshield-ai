@@ -438,6 +438,7 @@ Runbook completo que cubre:
 | POST | `/auth/logout` | JWT | — | 204 |
 | GET | `/health` | No | — | 200 |
 | GET | `/scan/ping` | JWT | — | 200 |
+| GET | `/scan/history` | JWT | — | 200 |
 | POST | `/scan/barcode` | JWT | 20/min | 200, 404, 429 |
 | POST | `/scan/photo` | JWT | 20/min | 200, 400, 413, 422, 429, 503 |
 | POST | `/scan/contribute` | JWT | 10/min | 202, 422, 429 |
@@ -473,6 +474,10 @@ IngredientResult      { name, canonical_name?, cas_number?, e_number?,
                         regulatory_status?, confidence_score, conflicts: [] }
 ScanResponse          { product_barcode, product_name?, semaphore, ingredients,
                         conflict_severity?, source, scanned_at }
+
+# Scan — Historial
+ScanHistoryEntry      { id, product_barcode, product_name?, semaphore, conflict_severity?,
+                        source: barcode|photo, scanned_at }
 
 # Scan — OFF Contribution (Fase 2)
 OFFContributeRequest  { barcode, ingredients: list[str], image_base64?, consent: true }
@@ -510,6 +515,37 @@ BiosyncAnalysis         { has_biomarkers, alerts: [], semaphore_override? }
 testpaths = tests
 asyncio_mode = auto
 ```
+
+---
+
+## Fase 9 — Historial de scans (implementado)
+
+Endpoint de lectura que expone el historial de escaneos del usuario autenticado, ordenado por fecha descendente, con JOIN a `products` para el nombre del producto.
+
+### 9.1 · Endpoint
+
+`app/routers/scan.py` — `GET /scan/history` (sin rate limit, JWT):
+
+- Query `ScanHistory` filtrada por `user_id`, JOIN con `Product` para `product_name`, ORDER BY `scanned_at DESC`, LIMIT por query param (default 20).
+- `source` se deriva del `product_barcode`: empieza con `photo-` → `"photo"`, cualquier otro → `"barcode"`. No se almacena en DB — se mantiene stateless.
+- Devuelve `list[ScanHistoryEntry]` (vacío si no hay scans, nunca 404).
+
+### 9.2 · Schema
+
+`app/schemas/models.py` — `ScanHistoryEntry` añadido:
+
+```python
+ScanHistoryEntry { id, product_barcode, product_name?, semaphore: SemaphoreColor,
+                   conflict_severity?: ConflictSeverity, source: Literal["barcode","photo"],
+                   scanned_at: datetime }
+```
+
+Espejado en el frontend como `ScanHistoryEntry` en `lib/api/types.ts` (ya existía).
+
+### 9.3 · Referencias
+
+- **Endpoints tabla:** `backend/CLAUDE.md` — `GET /scan/history | JWT | — | 200`.
+- **Frontend consumers:** `app/(app)/page.tsx` (últimos 5) y `app/(app)/history/page.tsx` (últimos 100).
 
 ---
 
