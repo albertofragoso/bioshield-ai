@@ -229,8 +229,19 @@ async def test_barcode_restricted_returns_yellow(client, db_session, monkeypatch
 
 async def test_barcode_with_biomarkers_detects_orange(client, db_session, monkeypatch):
     await _register(client)
-    # Upload biomarker with elevated LDL
-    await client.post(UPLOAD_URL, json={"data": {"ldl": 180}})
+    # Upload structured biomarker: LDL high (180 mg/dL > canonical 100)
+    ldl_biomarker = {
+        "name": "ldl",
+        "raw_name": "Colesterol LDL",
+        "value": 180.0,
+        "unit": "mg/dL",
+        "unit_normalized": True,
+        "reference_range_low": 0.0,
+        "reference_range_high": 100.0,
+        "reference_source": "canonical",
+        "classification": "high",
+    }
+    await client.post(UPLOAD_URL, json={"biomarkers": [ldl_biomarker], "lab_name": None, "test_date": None})
 
     # Seed an ingredient whose name triggers the LDL rule
     source = _seed_source(db_session, name="FDA")
@@ -314,7 +325,7 @@ async def test_photo_success(client, monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["source"] == "photo"
-    assert body["product_barcode"].startswith("photo:")
+    assert body["product_barcode"].startswith("photo-")
     assert len(body["ingredients"]) == 2
 
 
@@ -344,4 +355,4 @@ async def test_photo_creates_pseudo_barcode_product(client, db_session, monkeypa
 
     product = db_session.scalar(select(Product))
     assert product is not None
-    assert product.barcode.startswith("photo:")
+    assert product.barcode.startswith("photo-")

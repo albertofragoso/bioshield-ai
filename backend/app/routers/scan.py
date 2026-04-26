@@ -229,6 +229,7 @@ def _build_response(state: dict, barcode: str, product_name: str | None) -> Scan
         conflict_severity=state.get("conflict_severity"),
         source=state.get("source", "barcode"),
         scanned_at=datetime.now(UTC),
+        personalized_insights=state.get("personalized_insights") or [],
     )
 
 

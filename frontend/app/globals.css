@@ -319,3 +319,20 @@
     background-position: 200% 0;
   }
 }
+
+/* AvatarGlow — driven by CSS custom props set inline per variant */
+@keyframes avatar-glow-pulse-kf {
+  0%, 100% { box-shadow: 0 0 var(--glow-spread) var(--glow-idle); }
+  50%       { box-shadow: 0 0 calc(var(--glow-spread) * 2) var(--glow-peak); }
+}
+
+.avatar-glow-pulse {
+  animation: avatar-glow-pulse-kf 2.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-glow-pulse {
+    animation: none;
+    box-shadow: 0 0 var(--glow-spread) var(--glow-idle);
+  }
+}

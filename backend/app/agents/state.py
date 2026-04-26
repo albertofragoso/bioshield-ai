@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 from app.schemas.models import (
     IngredientConflict,
     IngredientResult,
+    PersonalizedInsight,
     SemaphoreColor,
 )
 
@@ -26,8 +27,9 @@ class ScanState(TypedDict, total=False):
     extracted_ingredients: list[str]
     resolved: list[IngredientResult]
     rag_context_by_ingredient: dict[str, str]
-    biomarkers: dict[str, Any] | None
+    biomarkers: list | None  # list[Biomarker schema], structured (post-decrypt)
     conflicts_by_ingredient: dict[str, list[IngredientConflict]]
+    personalized_insights: list[PersonalizedInsight]
 
     # ─── Output ───
     semaphore: SemaphoreColor

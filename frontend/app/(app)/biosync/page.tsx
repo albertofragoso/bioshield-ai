@@ -3,73 +3,57 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   ShieldCheck,
-  Info,
   AlertTriangle,
-  Plus,
-  X,
   Upload,
   Trash2,
+  X,
+  CheckCircle,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
-import { uploadBiomarkers, getBiomarkerStatus, deleteBiomarkers } from "@/lib/api/biosync";
+import { AvatarGlow } from "@/components/AvatarGlow";
+import { extractBiomarkers, uploadBiomarkers, getBiomarkerStatus, deleteBiomarkers } from "@/lib/api/biosync";
 import { HttpError } from "@/lib/api/client";
+import type { Biomarker, BiomarkerExtractionResult, AvatarVariant } from "@/lib/api/types";
 
-/* ── Biomarker fields config ──────────────────────────────── */
+/* ── Canonical biomarker display names ────────────────────── */
 
-const KNOWN_FIELDS: Array<{ key: string; label: string; unit: string; hint: string }> = [
-  { key: "ldl",           label: "LDL",           unit: "mg/dL",  hint: "Normal: < 100 mg/dL" },
-  { key: "hdl",           label: "HDL",           unit: "mg/dL",  hint: "Normal: > 40 mg/dL" },
-  { key: "glucose",       label: "Glucosa",       unit: "mg/dL",  hint: "Normal: 70–99 mg/dL" },
-  { key: "triglycerides", label: "Triglicéridos", unit: "mg/dL",  hint: "Normal: < 150 mg/dL" },
-  { key: "sodium",        label: "Sodio",         unit: "mg/día", hint: "Referencial: < 2300 mg/día" },
-  { key: "uric_acid",     label: "Ácido úrico",   unit: "mg/dL",  hint: "Normal: < 7 mg/dL" },
-];
+const BIOMARKER_LABELS: Record<string, string> = {
+  ldl: "LDL Colesterol", hdl: "HDL Colesterol", total_cholesterol: "Colesterol Total",
+  triglycerides: "Triglicéridos", glucose: "Glucosa en ayuno", hba1c: "HbA1c",
+  sodium: "Sodio", potassium: "Potasio", uric_acid: "Ácido úrico", creatinine: "Creatinina",
+  alt: "ALT (TGP)", ast: "AST (TGO)", tsh: "TSH", vitamin_d: "Vitamina D",
+  iron: "Hierro sérico", ferritin: "Ferritina", hemoglobin: "Hemoglobina",
+  hematocrit: "Hematocrito", platelets: "Plaquetas", wbc: "Leucocitos (WBC)", other: "Otro",
+};
 
-/* ── Range warning ────────────────────────────────────────── */
-
-function isOutOfRange(key: string, val: number): boolean {
-  if (key === "ldl"           && val >= 100)  return true;
-  if (key === "hdl"           && val <= 40)   return true;
-  if (key === "glucose"       && (val < 70 || val > 99)) return true;
-  if (key === "triglycerides" && val >= 150)  return true;
-  if (key === "sodium"        && val >= 2300) return true;
-  if (key === "uric_acid"     && val >= 7)    return true;
-  return false;
+function classLabel(c: string) {
+  if (c === "high") return { text: "Alto", color: "#FB923C", bg: "rgba(251,146,60,.12)", border: "rgba(251,146,60,.3)" };
+  if (c === "low")  return { text: "Bajo", color: "#60A5FA", bg: "rgba(96,165,250,.12)",  border: "rgba(96,165,250,.3)" };
+  if (c === "normal") return { text: "Normal", color: "#4ADE80", bg: "rgba(74,222,128,.12)", border: "rgba(74,222,128,.3)" };
+  return { text: "—", color: "#6B8A6A", bg: "transparent", border: "rgba(74,222,128,.12)" };
 }
 
-/* ── CSV parsing ──────────────────────────────────────────── */
-
-interface ParsedCSV {
-  headers: string[];
-  rows: string[][];
+function aggregateAvatar(biomarkers: Biomarker[]): AvatarVariant {
+  const outOfRange = biomarkers.filter((b) => b.classification === "high" || b.classification === "low");
+  if (outOfRange.length === 0) return "blue";
+  if (outOfRange.length === 1) return "yellow";
+  return "orange";
 }
 
-function parseCSV(text: string): ParsedCSV {
-  const lines = text.trim().split(/\r?\n/).filter(Boolean);
-  if (lines.length === 0) return { headers: [], rows: [] };
-  const headers = lines[0].split(",").map((h) => h.trim());
-  const rows = lines.slice(1).map((line) => line.split(",").map((c) => c.trim()));
-  return { headers, rows };
+function aggregateHeaderCopy(avatar: AvatarVariant): string {
+  if (avatar === "blue")   return "Todo se ve bien por ahora.";
+  if (avatar === "yellow") return "Encontramos un valor fuera de rango — lo usaremos para personalizar tus scans.";
+  return "Encontramos algunos valores fuera de rango — los usaremos para personalizar tus scans.";
 }
 
-function csvToData(parsed: ParsedCSV): Record<string, number> {
-  const result: Record<string, number> = {};
-  parsed.rows.forEach((row) => {
-    parsed.headers.forEach((header, i) => {
-      const val = parseFloat(row[i] ?? "");
-      if (!isNaN(val)) result[header] = val;
-    });
-  });
-  return result;
-}
+/* ── Types ─────────────────────────────────────────────────── */
+
+type FlowState = "upload" | "loading" | "review";
 
 /* ── Page ─────────────────────────────────────────────────── */
 
@@ -77,27 +61,12 @@ export default function BiosyncPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Estado del tab activo
-  const [activeTab, setActiveTab] = useState<"manual" | "csv">("manual");
-
-  // Campos manuales conocidos
-  const [manualValues, setManualValues] = useState<Record<string, string>>({});
-  // Campos extra (key-value genérico)
-  const [extraFields, setExtraFields] = useState<Array<{ key: string; value: string }>>([]);
-
-  // CSV
-  const [csvParsed, setCsvParsed] = useState<ParsedCSV | null>(null);
-  const [csvFileName, setCsvFileName] = useState("");
-  const [csvDragging, setCsvDragging] = useState(false);
-  const csvInputRef = useRef<HTMLInputElement>(null);
-
-  // Modal de confirmación de borrado
+  const [flow, setFlow] = useState<FlowState>("upload");
+  const [isDragging, setIsDragging] = useState(false);
+  const [extraction, setExtraction] = useState<BiomarkerExtractionResult | null>(null);
+  const [editedBiomarkers, setEditedBiomarkers] = useState<Biomarker[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  // Estado del submit
-  const [uploadProgress, setUploadProgress] = useState(0);
-
-  /* ── Queries ── */
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const statusQuery = useQuery({
     queryKey: ["biosync-status"],
@@ -110,131 +79,91 @@ export default function BiosyncPage() {
   const expiresAt = statusQuery.data?.expires_at;
   const statusIs404 = statusQuery.isError && statusQuery.error instanceof HttpError && statusQuery.error.status === 404;
 
-  /* ── Mutations ── */
+  const extractMutation = useMutation({
+    mutationFn: extractBiomarkers,
+    onMutate: () => setFlow("loading"),
+    onSuccess: (data) => {
+      setExtraction(data);
+      setEditedBiomarkers(data.biomarkers);
+      setFlow("review");
+    },
+    onError: (err) => {
+      setFlow("upload");
+      if (err instanceof HttpError && err.status === 413) {
+        toast.error("PDF demasiado grande", { description: "El límite es 10 MB." });
+      } else if (err instanceof HttpError && err.status === 422) {
+        toast.error("Archivo inválido", { description: "Solo se aceptan PDFs de resultados de laboratorio." });
+      } else {
+        toast.error("Error al procesar el PDF", { description: "Intenta de nuevo." });
+      }
+    },
+  });
 
   const uploadMutation = useMutation({
     mutationFn: uploadBiomarkers,
-    onMutate: () => { setUploadProgress(30); },
     onSuccess: () => {
-      setUploadProgress(100);
       queryClient.invalidateQueries({ queryKey: ["biosync-status"] });
       toast.success("Biomarcadores guardados", {
         description: "Tus datos se encriptaron y guardarán por 180 días.",
-        icon: (
-          <Image
-            src="/avatars/success.png"
-            alt=""
-            width={28}
-            height={28}
-            className="object-contain"
-          />
-        ),
       });
       setTimeout(() => router.push("/"), 1200);
     },
-    onError: (err) => {
-      setUploadProgress(0);
-      if (err instanceof HttpError && err.status === 422) {
-        toast.error("Datos inválidos", { description: "Verifica que los valores sean números correctos." });
-      } else {
-        toast.error("Error de conexión", { description: "Verifica tu red e intenta de nuevo." });
-      }
+    onError: () => {
+      toast.error("Error al guardar", { description: "Verifica tu red e intenta de nuevo." });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteBiomarkers,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["biosync-status"] });
+      queryClient.resetQueries({ queryKey: ["biosync-status"] });
       setDeleteOpen(false);
       toast.success("Biomarcadores eliminados");
     },
-    onError: () => {
-      toast.error("No se pudo eliminar. Intenta de nuevo.");
-    },
+    onError: () => toast.error("No se pudo eliminar. Intenta de nuevo."),
   });
 
-  /* ── Submit manual ── */
-
-  function handleManualSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const data: Record<string, number> = {};
-    KNOWN_FIELDS.forEach(({ key }) => {
-      const v = parseFloat(manualValues[key] ?? "");
-      if (!isNaN(v)) data[key] = v;
-    });
-    extraFields.forEach(({ key, value }) => {
-      const k = key.trim().toLowerCase().replace(/\s+/g, "_");
-      const v = parseFloat(value);
-      if (k && !isNaN(v)) data[k] = v;
-    });
-    if (Object.keys(data).length === 0) return;
-    uploadMutation.mutate({ data });
-  }
-
-  /* ── Submit CSV ── */
-
-  function handleCSVSubmit() {
-    if (!csvParsed) return;
-    const data = csvToData(csvParsed);
-    if (Object.keys(data).length === 0) return;
-    uploadMutation.mutate({ data });
-  }
-
-  /* ── CSV drop/select ── */
-
-  const handleCSVFile = useCallback((file: File) => {
-    if (!file.name.endsWith(".csv")) {
-      toast.error("Solo se aceptan archivos .csv");
+  const handleFile = useCallback((file: File) => {
+    const isPdf = file.type === "application/pdf" || file.type === "application/octet-stream";
+    const hasPdfExtension = file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf && !hasPdfExtension) {
+      toast.error("Solo se aceptan archivos PDF");
       return;
     }
-    setCsvFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      setCsvParsed(parseCSV(text));
-    };
-    reader.readAsText(file);
-  }, []);
+    extractMutation.mutate(file);
+  }, [extractMutation]);
 
-  function handleCSVDrop(e: React.DragEvent) {
+  function handleDrop(e: React.DragEvent) {
     e.preventDefault();
-    setCsvDragging(false);
+    setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleCSVFile(file);
+    if (file) handleFile(file);
   }
 
-  /* ── Extra fields ── */
-
-  function addExtraField() {
-    setExtraFields((prev) => [...prev, { key: "", value: "" }]);
+  function updateValue(idx: number, val: string) {
+    const num = parseFloat(val);
+    if (isNaN(num)) return;
+    setEditedBiomarkers((prev) => prev.map((b, i) => i === idx ? { ...b, value: num } : b));
   }
 
-  function updateExtra(i: number, field: "key" | "value", val: string) {
-    setExtraFields((prev) => prev.map((f, idx) => idx === i ? { ...f, [field]: val } : f));
+  function removeRow(idx: number) {
+    setEditedBiomarkers((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function removeExtra(i: number) {
-    setExtraFields((prev) => prev.filter((_, idx) => idx !== i));
-  }
-
-  /* ── Format date ── */
-
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("es-MX", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
+  function handleConfirm() {
+    if (!extraction) return;
+    uploadMutation.mutate({
+      biomarkers: editedBiomarkers,
+      lab_name: extraction.lab_name,
+      test_date: extraction.test_date,
     });
   }
 
-  /* ── Empty state ── */
-
-  if (!statusQuery.isLoading && statusIs404 && Object.keys(manualValues).length === 0 && !csvParsed) {
-    // Show empty state only once, before user starts entering data
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
   }
 
-  const isUploading = uploadMutation.isPending;
+  const avatar = extraction ? aggregateAvatar(editedBiomarkers) : "gray";
 
   return (
     <div className="relative z-10 min-h-screen px-4 py-6 max-w-[640px] mx-auto">
@@ -251,15 +180,11 @@ export default function BiosyncPage() {
         BIOSYNC · PERSONAL HEALTH DATA · AES-256
       </p>
 
-      {/* ── Status banner ── */}
-      {statusQuery.isLoading ? null : hasData && expiresAt ? (
+      {/* Status banner */}
+      {!statusQuery.isLoading && hasData && expiresAt && (
         <div
           className="flex items-start gap-3 px-4 py-3 rounded-input mb-5 font-mono text-[11.5px]"
-          style={{
-            background: "rgba(245,158,11,.08)",
-            border: "1px solid rgba(245,158,11,.3)",
-            color: "#F59E0B",
-          }}
+          style={{ background: "rgba(245,158,11,.08)", border: "1px solid rgba(245,158,11,.3)", color: "#F59E0B" }}
         >
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -276,239 +201,222 @@ export default function BiosyncPage() {
             Eliminar
           </button>
         </div>
-      ) : statusIs404 ? (
+      )}
+      {!statusQuery.isLoading && statusIs404 && flow === "upload" && (
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-input mb-5 font-mono text-[11.5px] text-subtext"
-          style={{
-            background: "rgba(74,222,128,.04)",
-            border: "1px solid rgba(74,222,128,.08)",
-          }}
+          style={{ background: "rgba(74,222,128,.04)", border: "1px solid rgba(74,222,128,.08)" }}
         >
-          <Info size={14} className="shrink-0 text-brand-green" />
-          No tienes biomarcadores aún. Agrégalos para recibir alertas personalizadas.
+          <CheckCircle size={14} className="shrink-0 text-brand-green" />
+          No tienes biomarcadores aún. Sube tu PDF para alertas personalizadas.
         </div>
-      ) : null}
+      )}
 
-      {/* ── Main layout ── */}
-      <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8 lg:items-start">
-        {/* ── Left: form ── */}
+      <div className="flex flex-col gap-6">
         <div>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "manual" | "csv")}>
-            <TabsList
-              className="w-full mb-6"
-              style={{
-                background: "rgba(74,222,128,.06)",
-                border: "1px solid rgba(74,222,128,.1)",
-              }}
-            >
-              <TabsTrigger
-                value="manual"
-                className="flex-1 font-mono text-[12px] uppercase tracking-[0.06em] data-[state=active]:text-brand-green"
-              >
-                Manual
-              </TabsTrigger>
-              <TabsTrigger
-                value="csv"
-                className="flex-1 font-mono text-[12px] uppercase tracking-[0.06em] data-[state=active]:text-brand-green"
-              >
-                CSV
-              </TabsTrigger>
-            </TabsList>
-
-            {/* ── Tab: Manual ── */}
-            <TabsContent value="manual">
-              <form onSubmit={handleManualSubmit} className="flex flex-col gap-6">
-                <div className="flex flex-col gap-4">
-                  {KNOWN_FIELDS.map(({ key, label, unit, hint }) => (
-                    <BiomarkerField
-                      key={key}
-                      fieldKey={key}
-                      label={label}
-                      unit={unit}
-                      hint={hint}
-                      value={manualValues[key] ?? ""}
-                      onChange={(v) => setManualValues((prev) => ({ ...prev, [key]: v }))}
-                      disabled={isUploading}
-                    />
-                  ))}
-
-                  {/* Extra key-value fields */}
-                  {extraFields.map((field, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          placeholder="nombre biomarcador"
-                          value={field.key}
-                          onChange={(e) => updateExtra(i, "key", e.target.value)}
-                          disabled={isUploading}
-                          className="w-full px-3 py-2.5 rounded-input font-mono text-[12px] text-foreground placeholder:text-subtext bg-transparent outline-none"
-                          style={{ border: "1px solid rgba(74,222,128,.15)" }}
-                        />
-                      </div>
-                      <div className="w-24">
-                        <input
-                          type="number"
-                          placeholder="valor"
-                          value={field.value}
-                          onChange={(e) => updateExtra(i, "value", e.target.value)}
-                          disabled={isUploading}
-                          className="w-full px-3 py-2.5 rounded-input font-mono text-[12px] text-foreground placeholder:text-subtext bg-transparent outline-none"
-                          style={{ border: "1px solid rgba(74,222,128,.15)" }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeExtra(i)}
-                        className="mt-2.5 text-subtext hover:text-foreground transition-colors"
-                        aria-label="Eliminar campo"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={addExtraField}
-                    disabled={isUploading}
-                    className="self-start flex items-center gap-1.5 font-mono text-[11px] text-brand-green hover:opacity-70 transition-opacity uppercase tracking-[0.08em]"
-                  >
-                    <Plus size={13} />
-                    Agregar otro biomarcador
-                  </button>
+          {/* ── Estado A: Upload ── */}
+          {flow === "upload" && (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col items-center justify-center gap-4">
+                <AvatarGlow variant="gray" size={140} intensity="soft" />
+                <div className="text-center">
+                  <p className="font-sans text-sm text-foreground font-medium">Sube tu PDF de laboratorio</p>
+                  <p className="font-mono text-[11px] text-subtext mt-0.5">
+                    Aceptamos PDFs de cualquier laboratorio.
+                  </p>
                 </div>
+              </div>
 
-                {isUploading && (
-                  <div className="flex flex-col gap-2">
-                    <Progress value={uploadProgress} className="h-1" />
-                    <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
-                      Encriptando y subiendo…
-                    </p>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center justify-center gap-4 py-12 rounded-card cursor-pointer transition-all"
+                style={{
+                  border: `2px dashed rgba(74,222,128,${isDragging ? ".5" : ".25"})`,
+                  background: isDragging ? "rgba(74,222,128,.05)" : "transparent",
+                }}
+              >
+                <Upload size={28} className="text-brand-green opacity-50" />
+                <div className="text-center">
+                  <p className="font-sans text-sm text-foreground">Arrastra tu PDF aquí o haz clic</p>
+                  <p className="font-mono text-[11px] text-subtext mt-1 uppercase tracking-[0.06em]">
+                    Máx. 10 MB · Solo PDF
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Estado B: Loading ── */}
+          {flow === "loading" && (
+            <div className="flex flex-col items-center gap-6 py-10">
+              <AvatarGlow variant="blue" size={140} intensity="strong" />
+              <div className="text-center">
+                <p className="font-sans text-sm text-foreground">Analizando tu PDF con IA…</p>
+                <p className="font-mono text-[11px] text-subtext mt-1">
+                  Esto toma ~10 segundos. No estamos guardando nada todavía.
+                </p>
+              </div>
+              <div className="w-full max-w-xs h-1 rounded-full overflow-hidden" style={{ background: "rgba(74,222,128,.1)" }}>
+                <div className="h-full rounded-full animate-pulse" style={{ background: "#4ADE80", width: "60%" }} />
+              </div>
+            </div>
+          )}
+
+          {/* ── Estado C: Review ── */}
+          {flow === "review" && extraction && (
+            <div className="flex flex-col gap-5">
+              {/* Header con avatar dinámico */}
+              <div className="flex flex-col items-center gap-3">
+                <AvatarGlow variant={avatar} size={140} intensity="medium" />
+                <div className="text-center">
+                  <h2 className="font-sans font-semibold text-base text-foreground">
+                    Revisa los valores extraídos
+                  </h2>
+                  <p className="font-mono text-[11px] text-subtext mt-0.5">
+                    {aggregateHeaderCopy(avatar)}
+                  </p>
+                  <div className="flex gap-2 mt-1.5 flex-wrap justify-center">
+                    {extraction.lab_name && (
+                      <span className="font-mono text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,.1)", color: "#4ADE80" }}>
+                        {extraction.lab_name}
+                      </span>
+                    )}
+                    {extraction.test_date && (
+                      <span className="font-mono text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(74,222,128,.08)", color: "#6B8A6A" }}>
+                        {formatDate(extraction.test_date)}
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
+              </div>
 
+              {/* Tabla editable */}
+              <div className="rounded-card overflow-hidden" style={{ border: "1px solid rgba(74,222,128,.12)" }}>
+                <table className="w-full text-left">
+                  <thead>
+                    <tr style={{ background: "rgba(74,222,128,.06)" }}>
+                      {["Biomarcador", "Valor", "Rango ref.", "Estado", ""].map((h) => (
+                        <th key={h} className="px-3 py-2 font-mono text-[10px] uppercase tracking-[0.08em]" style={{ color: "#6B8A6A" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editedBiomarkers.map((bm, i) => {
+                      const cls = classLabel(bm.classification);
+                      const rangeStr = (bm.reference_range_low != null && bm.reference_range_high != null)
+                        ? `${bm.reference_range_low}–${bm.reference_range_high}`
+                        : "—";
+                      return (
+                        <tr key={i} style={{ borderTop: "1px solid rgba(74,222,128,.06)" }}>
+                          <td className="px-3 py-2.5">
+                            <p className="font-sans text-[12px] text-foreground">{BIOMARKER_LABELS[bm.name] ?? bm.name}</p>
+                            <p className="font-mono text-[10px] text-subtext">{bm.raw_name}</p>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                step="any"
+                                defaultValue={bm.value}
+                                onBlur={(e) => updateValue(i, e.target.value)}
+                                className="w-16 px-2 py-1 rounded font-mono text-[12px] text-foreground bg-transparent outline-none"
+                                style={{ border: "1px solid rgba(74,222,128,.2)" }}
+                              />
+                              <span className="font-mono text-[10px] text-subtext">{bm.unit}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className="font-mono text-[10px] text-subtext">{rangeStr}</span>
+                            {bm.reference_source !== "none" && (
+                              <span
+                                className="ml-1 px-1 py-0.5 rounded font-mono text-[9px]"
+                                style={{ background: "rgba(74,222,128,.08)", color: "#6B8A6A" }}
+                              >
+                                {bm.reference_source === "lab" ? "lab" : "canónico"}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span
+                              className="px-2 py-0.5 rounded-full font-mono text-[10px]"
+                              style={{ background: cls.bg, border: `1px solid ${cls.border}`, color: cls.color }}
+                            >
+                              {cls.text}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2.5">
+                            <button onClick={() => removeRow(i)} className="text-subtext hover:text-foreground transition-colors" aria-label="Eliminar fila">
+                              <X size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {editedBiomarkers.length === 0 && (
+                <p className="font-mono text-[11px] text-subtext text-center py-2">
+                  No quedan biomarcadores. Sube otro PDF.
+                </p>
+              )}
+
+              {/* Acciones */}
+              <div className="flex flex-col gap-2">
                 <button
-                  type="submit"
-                  disabled={isUploading}
+                  onClick={handleConfirm}
+                  disabled={uploadMutation.isPending || editedBiomarkers.length === 0}
                   className="w-full py-3 rounded-button font-mono text-[13px] uppercase tracking-[0.1em] text-brand-green transition-all bs-glow-green hover:bs-glow-green-strong disabled:opacity-40"
-                  style={{
-                    background: "rgba(74,222,128,.12)",
-                    border: "1px solid rgba(74,222,128,.3)",
-                  }}
+                  style={{ background: "rgba(74,222,128,.12)", border: "1px solid rgba(74,222,128,.3)" }}
                 >
-                  {isUploading ? "Guardando…" : "Guardar biomarcadores"}
+                  {uploadMutation.isPending ? "Guardando…" : "Confirmar y guardar"}
                 </button>
-              </form>
-            </TabsContent>
-
-            {/* ── Tab: CSV ── */}
-            <TabsContent value="csv">
-              <div className="flex flex-col gap-5">
-                {/* Dropzone */}
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setCsvDragging(true); }}
-                  onDragLeave={() => setCsvDragging(false)}
-                  onDrop={handleCSVDrop}
-                  onClick={() => csvInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-3 py-10 rounded-card cursor-pointer transition-all"
-                  style={{
-                    border: `2px dashed rgba(74,222,128,${csvDragging ? ".5" : ".3"})`,
-                    background: csvDragging ? "rgba(74,222,128,.05)" : "transparent",
-                  }}
-                >
-                  <Upload size={24} className="text-brand-green opacity-60" />
-                  <div className="text-center">
-                    <p className="font-sans text-sm text-foreground">
-                      {csvFileName ? csvFileName : "Arrastra tu .csv o haz clic"}
-                    </p>
-                    <p className="font-mono text-[11px] text-subtext mt-1 uppercase tracking-[0.08em]">
-                      headers en fila 1 · valores numéricos
-                    </p>
-                  </div>
-                  <input
-                    ref={csvInputRef}
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleCSVFile(file);
-                    }}
-                  />
-                </div>
-
-                {/* CSV preview */}
-                {csvParsed && csvParsed.headers.length > 0 && (
-                  <CSVPreviewTable parsed={csvParsed} />
-                )}
-
-                {isUploading && (
-                  <div className="flex flex-col gap-2">
-                    <Progress value={uploadProgress} className="h-1" />
-                    <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
-                      Encriptando y subiendo…
-                    </p>
-                  </div>
-                )}
-
                 <button
-                  type="button"
-                  onClick={handleCSVSubmit}
-                  disabled={!csvParsed || isUploading}
-                  className="w-full py-3 rounded-button font-mono text-[13px] uppercase tracking-[0.1em] text-brand-green transition-all bs-glow-green hover:bs-glow-green-strong disabled:opacity-40"
-                  style={{
-                    background: "rgba(74,222,128,.12)",
-                    border: "1px solid rgba(74,222,128,.3)",
-                  }}
+                  onClick={() => { setFlow("upload"); setExtraction(null); setEditedBiomarkers([]); }}
+                  className="w-full py-2 rounded-button font-mono text-[12px] uppercase tracking-[0.08em] text-subtext hover:text-foreground transition-colors"
+                  style={{ border: "1px solid rgba(74,222,128,.1)" }}
                 >
-                  {isUploading ? "Procesando…" : "Procesar y subir"}
+                  Subir otro PDF
                 </button>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          )}
         </div>
 
-        {/* ── Right: Privacy card ── */}
-        <div className="mt-6 lg:mt-0 lg:sticky lg:top-[78px]">
-          <PrivacyCard />
-        </div>
+        {/* Privacy card */}
+        <PrivacyCard />
       </div>
 
-      {/* ── Delete confirm modal ── */}
+      {/* Delete modal */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent
-          className="max-w-sm font-sans"
-          style={{
-            background: "#0A110A",
-            border: "1px solid rgba(248,113,113,.25)",
-          }}
-        >
+        <DialogContent className="max-w-sm font-sans" style={{ background: "#0A110A", border: "1px solid rgba(248,113,113,.25)" }}>
           <DialogHeader>
-            <DialogTitle className="font-sans text-base text-foreground">
-              Eliminar biomarcadores
-            </DialogTitle>
+            <DialogTitle className="font-sans text-base text-foreground">Eliminar biomarcadores</DialogTitle>
           </DialogHeader>
           <p className="font-mono text-[12px] text-subtext leading-[1.6]">
             Se eliminarán permanentemente todos tus biomarcadores actuales.
             Los análisis futuros no podrán personalizarse hasta que los subas de nuevo.
           </p>
           <DialogFooter className="gap-2 flex-row justify-end">
-            <button
-              onClick={() => setDeleteOpen(false)}
-              className="px-4 py-2 rounded-button font-mono text-[12px] text-subtext hover:text-foreground transition-colors"
-            >
+            <button onClick={() => setDeleteOpen(false)} className="px-4 py-2 rounded-button font-mono text-[12px] text-subtext hover:text-foreground transition-colors">
               Cancelar
             </button>
             <button
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}
               className="px-4 py-2 rounded-button font-mono text-[12px] uppercase tracking-[0.08em] disabled:opacity-40 transition-all"
-              style={{
-                background: "rgba(248,113,113,.12)",
-                border: "1px solid rgba(248,113,113,.3)",
-                color: "#F87171",
-              }}
+              style={{ background: "rgba(248,113,113,.12)", border: "1px solid rgba(248,113,113,.3)", color: "#F87171" }}
             >
               {deleteMutation.isPending ? "Eliminando…" : "Eliminar"}
             </button>
@@ -519,103 +427,12 @@ export default function BiosyncPage() {
   );
 }
 
-/* ── Sub-components ───────────────────────────────────────── */
-
-function BiomarkerField({
-  fieldKey,
-  label,
-  unit,
-  hint,
-  value,
-  onChange,
-  disabled,
-}: {
-  fieldKey: string;
-  label: string;
-  unit: string;
-  hint: string;
-  value: string;
-  onChange: (v: string) => void;
-  disabled: boolean;
-}) {
-  const numVal = parseFloat(value);
-  const outOfRange = !isNaN(numVal) && isOutOfRange(fieldKey, numVal);
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <label className="font-mono text-[10px] uppercase tracking-[0.1em]" style={{ color: "#6B8A6A" }}>
-          {label}
-        </label>
-        <span className="font-mono text-[10px] text-subtext/60">{hint}</span>
-      </div>
-      <div className="flex gap-2 items-center">
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="—"
-          disabled={disabled}
-          className="flex-1 px-3 py-2.5 rounded-input font-mono text-[13px] text-foreground placeholder:text-subtext bg-transparent outline-none transition-all bs-input-focus"
-          style={{
-            border: `1px solid ${outOfRange ? "rgba(251,146,60,.4)" : "rgba(74,222,128,.15)"}`,
-          }}
-        />
-        <span className="font-mono text-[11px] text-subtext w-16 text-right shrink-0">{unit}</span>
-      </div>
-      {outOfRange && (
-        <p className="font-mono text-[10.5px]" style={{ color: "#FB923C" }}>
-          Valor fuera del rango de referencia — se guardará igualmente.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function CSVPreviewTable({ parsed }: { parsed: ParsedCSV }) {
-  const preview = parsed.rows.slice(0, 5);
-  return (
-    <div className="overflow-x-auto rounded-input" style={{ border: "1px solid rgba(74,222,128,.12)" }}>
-      <table className="w-full text-left font-mono text-[11px]">
-        <thead>
-          <tr style={{ background: "rgba(74,222,128,.06)" }}>
-            {parsed.headers.map((h) => (
-              <th key={h} className="px-3 py-2 uppercase tracking-[0.06em]" style={{ color: "#6B8A6A" }}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {preview.map((row, i) => (
-            <tr key={i} style={{ borderTop: "1px solid rgba(74,222,128,.06)" }}>
-              {parsed.headers.map((_, j) => (
-                <td key={j} className="px-3 py-2 text-foreground">
-                  {row[j] ?? "—"}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function PrivacyCard() {
   return (
-    <div
-      className="rounded-card px-5 py-5 flex flex-col gap-4"
-      style={{
-        background: "rgba(74,222,128,.05)",
-        border: "1px solid rgba(74,222,128,.15)",
-      }}
-    >
+    <div className="rounded-card px-5 py-5 flex flex-col gap-4" style={{ background: "rgba(74,222,128,.05)", border: "1px solid rgba(74,222,128,.15)" }}>
       <div className="flex items-center gap-2">
         <ShieldCheck size={16} className="text-brand-green shrink-0" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand-green">
-          Privacidad y seguridad
-        </span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand-green">Privacidad y seguridad</span>
       </div>
       <ul className="flex flex-col gap-2">
         {[
@@ -624,11 +441,7 @@ function PrivacyCard() {
           "Nunca se comparten ni se usan para entrenar modelos.",
           "Puedes eliminarlos en cualquier momento.",
         ].map((bullet) => (
-          <li
-            key={bullet}
-            className="font-mono text-[11px] leading-[1.5] flex gap-2"
-            style={{ color: "#6B8A6A" }}
-          >
+          <li key={bullet} className="font-mono text-[11px] leading-[1.5] flex gap-2" style={{ color: "#6B8A6A" }}>
             <span className="text-brand-green shrink-0">·</span>
             {bullet}
           </li>

@@ -37,16 +37,23 @@ def seeded_db(db_session):
 
     titanium = upsert_ingredient(
         db_session,
-        IngestionRecord(canonical_name="Titanium Dioxide", cas_number="13463-67-7", synonyms=["E171"]),
+        IngestionRecord(
+            canonical_name="Titanium Dioxide", cas_number="13463-67-7", synonyms=["E171"]
+        ),
     )
     upsert_regulatory_status(
-        db_session, titanium, fda,
+        db_session,
+        titanium,
+        fda,
         IngestionRecord(canonical_name="Titanium Dioxide", status="APPROVED"),
     )
     upsert_regulatory_status(
-        db_session, titanium, efsa,
+        db_session,
+        titanium,
+        efsa,
         IngestionRecord(
-            canonical_name="Titanium Dioxide", status="BANNED",
+            canonical_name="Titanium Dioxide",
+            status="BANNED",
             hazard_note="Genotoxicity cannot be ruled out",
             evaluated_at=datetime.now(UTC),
         ),
@@ -57,7 +64,9 @@ def seeded_db(db_session):
         IngestionRecord(canonical_name="Butylated Hydroxyanisole", cas_number="25013-16-5"),
     )
     upsert_regulatory_status(
-        db_session, bha, fda,
+        db_session,
+        bha,
+        fda,
         IngestionRecord(
             canonical_name="Butylated Hydroxyanisole",
             status="APPROVED",
@@ -70,19 +79,22 @@ def seeded_db(db_session):
         db_session, IngestionRecord(canonical_name="Salt", cas_number="7647-14-5")
     )
     upsert_regulatory_status(
-        db_session, salt, fda,
+        db_session,
+        salt,
+        fda,
         IngestionRecord(
-            canonical_name="Salt", status="APPROVED",
+            canonical_name="Salt",
+            status="APPROVED",
             evaluated_at=datetime.now(UTC),
         ),
     )
 
     # HFCS for biomarker-driven conflict test
-    hfcs = upsert_ingredient(
-        db_session, IngestionRecord(canonical_name="High-Fructose Corn Syrup")
-    )
+    hfcs = upsert_ingredient(db_session, IngestionRecord(canonical_name="High-Fructose Corn Syrup"))
     upsert_regulatory_status(
-        db_session, hfcs, fda,
+        db_session,
+        hfcs,
+        fda,
         IngestionRecord(
             canonical_name="High-Fructose Corn Syrup",
             status="APPROVED",
@@ -96,6 +108,7 @@ def seeded_db(db_session):
 @pytest.fixture(autouse=True)
 def _mock_external(monkeypatch):
     """Neutralize network-bound dependencies for graph tests."""
+
     async def _fake_hybrid(*args, **kwargs):
         return []
 
@@ -111,6 +124,7 @@ async def _run_graph(db, state: dict) -> dict:
 # GRAY: no ingredients found
 # ─────────────────────────────────────────────
 
+
 async def test_semaphore_gray_on_missing_product(seeded_db, monkeypatch):
     async def _off_miss(*a, **kw):
         return None
@@ -125,6 +139,7 @@ async def test_semaphore_gray_on_missing_product(seeded_db, monkeypatch):
 # ─────────────────────────────────────────────
 # BLUE: clean ingredients (no conflict anywhere)
 # ─────────────────────────────────────────────
+
 
 async def test_semaphore_blue_clean(seeded_db, monkeypatch):
     async def _off_hit(*a, **kw):
@@ -146,6 +161,7 @@ async def test_semaphore_blue_clean(seeded_db, monkeypatch):
 # YELLOW: SCIENTIFIC conflict but no REGULATORY HIGH
 # ─────────────────────────────────────────────
 
+
 async def test_semaphore_yellow_scientific_only(seeded_db, monkeypatch):
     async def _off_hit(*a, **kw):
         return {
@@ -165,6 +181,7 @@ async def test_semaphore_yellow_scientific_only(seeded_db, monkeypatch):
 # ─────────────────────────────────────────────
 # RED: REGULATORY HIGH (FDA approved, EFSA banned)
 # ─────────────────────────────────────────────
+
 
 async def test_semaphore_red_regulatory_high(seeded_db, monkeypatch):
     async def _off_hit(*a, **kw):
@@ -186,6 +203,7 @@ async def test_semaphore_red_regulatory_high(seeded_db, monkeypatch):
 # ORANGE: biomarker conflict (user glucose high + product has HFCS)
 # ─────────────────────────────────────────────
 
+
 async def test_semaphore_orange_biomarker_conflict(seeded_db, monkeypatch):
     async def _off_hit(*a, **kw):
         return {
@@ -198,12 +216,38 @@ async def test_semaphore_orange_biomarker_conflict(seeded_db, monkeypatch):
 
     monkeypatch.setattr(off_client, "fetch_product", _off_hit)
 
-    # Seed a biomarker for the user
+    # Seed a biomarker for the user (new structured format)
     user_id = "user-bio-123"
-    ciphertext, iv = encrypt_biomarker({"glucose": 180, "hba1c": 7.2}, TEST_SETTINGS.aes_key)
-    seeded_db.add(
-        Biomarker(user_id=user_id, encrypted_data=ciphertext, encryption_iv=iv)
-    )
+    payload = {
+        "biomarkers": [
+            {
+                "name": "glucose",
+                "raw_name": "Glucosa en ayuno",
+                "value": 180.0,
+                "unit": "mg/dL",
+                "unit_normalized": True,
+                "reference_range_low": 70.0,
+                "reference_range_high": 99.0,
+                "reference_source": "canonical",
+                "classification": "high",
+            },
+            {
+                "name": "hba1c",
+                "raw_name": "HbA1c",
+                "value": 7.2,
+                "unit": "%",
+                "unit_normalized": True,
+                "reference_range_low": 4.0,
+                "reference_range_high": 5.6,
+                "reference_source": "canonical",
+                "classification": "high",
+            },
+        ],
+        "lab_name": None,
+        "test_date": None,
+    }
+    ciphertext, iv = encrypt_biomarker(payload, TEST_SETTINGS.aes_key)
+    seeded_db.add(Biomarker(user_id=user_id, encrypted_data=ciphertext, encryption_iv=iv))
     seeded_db.commit()
 
     result = await _run_graph(seeded_db, {"barcode": "4444", "user_id": user_id})
@@ -214,8 +258,10 @@ async def test_semaphore_orange_biomarker_conflict(seeded_db, monkeypatch):
 # Graph wiring sanity
 # ─────────────────────────────────────────────
 
+
 async def test_graph_photo_path_invokes_gemini(seeded_db, monkeypatch):
     """When there's no barcode, the extract_ingredients node runs Gemini."""
+
     async def _off_miss(*a, **kw):
         return None
 
@@ -224,6 +270,7 @@ async def test_graph_photo_path_invokes_gemini(seeded_db, monkeypatch):
     async def _fake_extract(image_b64, settings):
         called["count"] += 1
         from app.schemas.models import ProductExtraction
+
         return ProductExtraction(ingredients=["Salt"], has_additives=False)
 
     monkeypatch.setattr(off_client, "fetch_product", _off_miss)
@@ -253,6 +300,7 @@ async def test_graph_skips_gemini_when_off_has_ingredients(seeded_db, monkeypatc
     async def _fake_extract(*a, **kw):
         called["count"] += 1
         from app.schemas.models import ProductExtraction
+
         return ProductExtraction(ingredients=[], has_additives=False)
 
     monkeypatch.setattr(off_client, "fetch_product", _off_hit)

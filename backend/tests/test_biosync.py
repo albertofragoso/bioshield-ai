@@ -18,6 +18,34 @@ _EMAIL = "biosync@bioshield.ai"
 _PASSWORD = "securepassword123"
 
 
+def _biomarker(
+    name: str = "glucose",
+    raw_name: str = "Glucosa en ayuno",
+    value: float = 95.0,
+    unit: str = "mg/dL",
+    classification: str = "normal",
+) -> dict:
+    return {
+        "name": name,
+        "raw_name": raw_name,
+        "value": value,
+        "unit": unit,
+        "unit_normalized": True,
+        "reference_range_low": 70.0,
+        "reference_range_high": 99.0,
+        "reference_source": "canonical",
+        "classification": classification,
+    }
+
+
+def _upload_body(biomarkers: list[dict] | None = None) -> dict:
+    return {
+        "biomarkers": biomarkers if biomarkers is not None else [_biomarker()],
+        "lab_name": None,
+        "test_date": None,
+    }
+
+
 async def _register(client, email: str = _EMAIL) -> None:
     await client.post(REGISTER_URL, json={"email": email, "password": _PASSWORD})
 
@@ -27,17 +55,18 @@ async def _register(client, email: str = _EMAIL) -> None:
 # ─────────────────────────────────────────────
 
 async def test_upload_requires_auth(client):
-    response = await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
+    response = await client.post(UPLOAD_URL, json=_upload_body())
     assert response.status_code == 401
 
 
 async def test_upload_success(client, db_session):
     await _register(client)
-    response = await client.post(UPLOAD_URL, json={"data": {"glucose": 95, "ldl": 120}})
+    body = _upload_body([_biomarker("glucose", value=95), _biomarker("ldl", "Colesterol LDL", 120, classification="high")])
+    response = await client.post(UPLOAD_URL, json=body)
     assert response.status_code == 201
-    body = response.json()
-    assert body["has_data"] is True
-    assert "uploaded_at" in body and "expires_at" in body
+    resp_body = response.json()
+    assert resp_body["has_data"] is True
+    assert "uploaded_at" in resp_body and "expires_at" in resp_body
 
     # Verify ciphertext persisted (not raw JSON)
     biomarker = db_session.scalar(select(Biomarker))
@@ -49,20 +78,26 @@ async def test_upload_success(client, db_session):
 
 async def test_upload_roundtrip_decrypts(client, db_session):
     await _register(client)
-    payload = {"glucose": 95, "hba1c": 5.4, "notes": "fasting"}
-    await client.post(UPLOAD_URL, json={"data": payload})
+    bm_glucose = _biomarker("glucose", "Glucosa en ayuno", 95.0)
+    bm_ldl = _biomarker("ldl", "Colesterol LDL", 110.0, classification="high")
+    body = _upload_body([bm_glucose, bm_ldl])
+    await client.post(UPLOAD_URL, json=body)
 
     biomarker = db_session.scalar(select(Biomarker))
     decrypted = decrypt_biomarker(
         biomarker.encrypted_data, biomarker.encryption_iv, TEST_SETTINGS.aes_key
     )
-    assert decrypted == payload
+    # The decrypted payload mirrors the BiomarkerUploadRequest dict
+    assert "biomarkers" in decrypted
+    assert len(decrypted["biomarkers"]) == 2
+    names = {b["name"] for b in decrypted["biomarkers"]}
+    assert names == {"glucose", "ldl"}
 
 
 async def test_upload_replaces_existing(client, db_session):
     await _register(client)
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 110}})
+    await client.post(UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=95)]))
+    await client.post(UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=110, classification="high")]))
 
     biomarkers = db_session.scalars(select(Biomarker)).all()
     assert len(biomarkers) == 1
@@ -71,19 +106,19 @@ async def test_upload_replaces_existing(client, db_session):
         biomarkers[0].encryption_iv,
         TEST_SETTINGS.aes_key,
     )
-    assert decrypted == {"glucose": 110}
+    assert decrypted["biomarkers"][0]["value"] == 110.0
 
 
-async def test_upload_empty_data_rejected(client):
+async def test_upload_empty_biomarkers_rejected(client):
     await _register(client)
-    response = await client.post(UPLOAD_URL, json={"data": {}})
+    response = await client.post(UPLOAD_URL, json=_upload_body([]))
     assert response.status_code == 422
 
 
 async def test_upload_sets_180d_expiry(client, db_session):
     await _register(client)
     before = datetime.now(UTC)
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
+    await client.post(UPLOAD_URL, json=_upload_body())
     after = datetime.now(UTC)
 
     biomarker = db_session.scalar(select(Biomarker))
@@ -112,7 +147,7 @@ async def test_status_404_when_no_data(client):
 
 async def test_status_after_upload(client):
     await _register(client)
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
+    await client.post(UPLOAD_URL, json=_upload_body())
     response = await client.get(STATUS_URL)
     assert response.status_code == 200
     body = response.json()
@@ -122,11 +157,12 @@ async def test_status_after_upload(client):
 async def test_status_does_not_leak_decrypted_data(client):
     """GET /biosync/status must not echo back raw biomarker values."""
     await _register(client)
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 95, "secret_note": "xyz"}})
+    await client.post(UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=95)]))
     response = await client.get(STATUS_URL)
+    body = response.json()
+    assert set(body.keys()) == {"id", "uploaded_at", "expires_at", "has_data"}
     assert "glucose" not in response.text
-    assert "secret_note" not in response.text
-    assert "xyz" not in response.text
+    assert "value" not in response.text
 
 
 # ─────────────────────────────────────────────
@@ -146,7 +182,7 @@ async def test_delete_404_when_no_data(client):
 
 async def test_delete_removes_data(client, db_session):
     await _register(client)
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
+    await client.post(UPLOAD_URL, json=_upload_body())
     response = await client.delete(DELETE_URL)
     assert response.status_code == 204
 
@@ -161,7 +197,7 @@ async def test_delete_removes_data(client, db_session):
 
 async def test_expire_biomarkers_removes_past_due(client, db_session):
     await _register(client)
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
+    await client.post(UPLOAD_URL, json=_upload_body())
 
     biomarker = db_session.scalar(select(Biomarker))
     assert biomarker is not None
@@ -177,7 +213,7 @@ async def test_expire_biomarkers_removes_past_due(client, db_session):
 
 async def test_expire_biomarkers_keeps_active(client, db_session):
     await _register(client)
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 95}})
+    await client.post(UPLOAD_URL, json=_upload_body())
 
     removed = expire_biomarkers(db_session)
     assert removed == 0
@@ -190,7 +226,7 @@ async def test_expire_biomarkers_keeps_active(client, db_session):
 
 async def test_user_isolation(client, db_session):
     await _register(client, email="alice@bioshield.ai")
-    await client.post(UPLOAD_URL, json={"data": {"glucose": 150}})
+    await client.post(UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=150, classification="high")]))
 
     # Log out (delete client cookies) and register bob
     client.cookies.clear()

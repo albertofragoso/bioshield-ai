@@ -6,6 +6,7 @@ is constructed per-request so nodes can access the live DB + external services.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from sqlalchemy import select
@@ -15,13 +16,16 @@ from app.agents.state import ScanState
 from app.config import Settings
 from app.models import Biomarker
 from app.schemas.models import (
+    ConflictSeverity,
     IngredientConflict,
     IngredientResult,
+    PersonalizedInsight,
     RegulatoryStatus,
+    SemaphoreColor,
 )
 from app.services import gemini as gemini_service
 from app.services import off_client
-from app.services.analysis import aggregate_regulatory_status, compute_semaphore
+from app.services.analysis import aggregate_regulatory_status, compute_semaphore, find_ingredient_matches
 from app.services.conflicts import detect_conflicts
 from app.services.crypto import decrypt_biomarker
 from app.services.entity_resolution import resolve
@@ -156,7 +160,12 @@ def make_biosync_node(db: Session, settings: Settings):
             logger.error("Biomarker decryption failed for user %s: %s", user_id, exc)
             return {"biomarkers": None}
 
-        return {"biomarkers": data}
+        # New structured format: {"biomarkers": [...], "lab_name": ..., "test_date": ...}
+        # Legacy flat-dict format: {"ldl": 130, ...} — treat as no biomarkers for safety
+        if isinstance(data, dict) and "biomarkers" in data:
+            return {"biomarkers": data["biomarkers"]}
+
+        return {"biomarkers": None}
 
     return node
 
@@ -220,16 +229,86 @@ def make_detect_conflicts_node(db: Session):
     return node
 
 
+_SEVERITY_TO_AVATAR: dict[str, str] = {
+    ConflictSeverity.HIGH.value: "red",
+    ConflictSeverity.MEDIUM.value: "orange",
+    ConflictSeverity.LOW.value: "yellow",
+}
+
+
 # ─────────────────────────────────────────────
-# 7. Calculate semaphore risk
+# 7. Personalize — generate friendly insights per biomarker × ingredient
+# ─────────────────────────────────────────────
+
+def make_personalize_node(settings: Settings):
+    async def node(state: ScanState) -> ScanState:
+        resolved = state.get("resolved") or []
+        biomarkers = state.get("biomarkers")
+
+        matches = find_ingredient_matches(biomarkers, resolved)
+        if not matches:
+            return {"personalized_insights": []}
+
+        async def _build_insight(bm, ingr_names: list[str], severity: ConflictSeverity) -> PersonalizedInsight:
+            name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", "")
+            value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", 0.0)
+            unit = bm.get("unit") if isinstance(bm, dict) else getattr(bm, "unit", "")
+            classification = bm.get("classification") if isinstance(bm, dict) else getattr(bm, "classification", "high")
+            name_val = name.value if hasattr(name, "value") else str(name)
+            class_val = classification.value if hasattr(classification, "value") else str(classification)
+
+            copy = await gemini_service.generate_personalized_insight(
+                biomarker_name=name_val,
+                biomarker_value=float(value),
+                biomarker_unit=str(unit),
+                classification=class_val,
+                severity=severity.value,
+                affecting_ingredients=ingr_names,
+                settings=settings,
+            )
+            return PersonalizedInsight(
+                biomarker_name=name_val,
+                biomarker_value=float(value),
+                biomarker_unit=str(unit),
+                classification=class_val,
+                affecting_ingredients=ingr_names,
+                severity=severity,
+                friendly_title=copy.friendly_title,
+                friendly_biomarker_label=copy.friendly_biomarker_label,
+                friendly_explanation=copy.friendly_explanation,
+                friendly_recommendation=copy.friendly_recommendation,
+                avatar_variant=_SEVERITY_TO_AVATAR.get(severity.value, "yellow"),
+            )
+
+        insights = await asyncio.gather(*[_build_insight(*m) for m in matches])
+        return {"personalized_insights": list(insights)}
+
+    return node
+
+
+# ─────────────────────────────────────────────
+# 8. Calculate semaphore risk
 # ─────────────────────────────────────────────
 
 def make_calculate_risk_node():
     async def node(state: ScanState) -> ScanState:
         resolved = state.get("resolved") or []
-        biomarkers = state.get("biomarkers")
+        insights = state.get("personalized_insights") or []
 
+        # Pass biomarkers to compute_semaphore for ORANGE detection
+        biomarkers = state.get("biomarkers")
         semaphore, severity, _alerts = compute_semaphore(resolved, biomarkers)
+
+        # If personalized insights exist but semaphore wasn't elevated to ORANGE, elevate it
+        _rank = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
+        if insights and semaphore not in (SemaphoreColor.RED, SemaphoreColor.ORANGE):
+            worst = max(
+                insights,
+                key=lambda i: _rank.get(i.severity.value if hasattr(i.severity, "value") else str(i.severity), 1),
+            )
+            semaphore = SemaphoreColor.ORANGE
+            sev_val = worst.severity.value if hasattr(worst.severity, "value") else str(worst.severity)
+            severity = ConflictSeverity(sev_val)
 
         return {
             "semaphore": semaphore,

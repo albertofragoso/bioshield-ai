@@ -55,7 +55,8 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      // Skip Content-Type for FormData — browser sets it with the correct multipart boundary
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(options.headers ?? {}),
     },
   });

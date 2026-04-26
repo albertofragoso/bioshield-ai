@@ -223,8 +223,9 @@ class ScanState(TypedDict, total=False):
     extracted_ingredients: list[str]
     resolved: list[IngredientResult]
     rag_context_by_ingredient: dict[str, str]
-    biomarkers: dict[str, Any] | None
+    biomarkers: list | None                            # list[Biomarker] estructurado (no dict libre)
     conflicts_by_ingredient: dict[str, list[IngredientConflict]]
+    personalized_insights: list[PersonalizedInsight]   # generado por el node personalize
 
     # Output
     semaphore: SemaphoreColor
@@ -240,11 +241,12 @@ START
   └─► identify_product
         ├─[tiene ingredientes]─► resolve_entities
         └─[sin ingredientes]──► extract_ingredients ─► resolve_entities
-  resolve_entities → search_regulatory → biosync → detect_conflicts → calculate_risk → END
+  resolve_entities → search_regulatory → biosync → detect_conflicts → personalize → calculate_risk → END
 ```
 
 - Grafo construido **por request** (`build_scan_graph(db, settings)`): permite que los nodos accedan a la sesión DB viva.
 - Condicional `needs_image_extraction`: si `extracted_ingredients` no está vacío, salta extracción Gemini.
+- Nuevo nodo `personalize` entre `detect_conflicts` y `calculate_risk`: genera insights personalizados en paralelo vía `asyncio.gather`.
 
 ### 3.3 · Nodos (nodes.py)
 
@@ -256,17 +258,20 @@ Los builders devuelven `async callable` cerrado sobre `(db, settings)`:
 | `extract_ingredients` | OCR con Gemini Vision (base64); usa `EXTRACTOR_PROMPT` + Structured Outputs |
 | `resolve_entities` | Para cada ingrediente: CAS → E-number → fuzzy; agrega `regulatory_status` worst-case |
 | `search_regulatory` | Búsqueda híbrida (vector + BM25) en ChromaDB/SQL por ingrediente; llena `rag_context_by_ingredient` |
-| `biosync` | Carga y desencripta biomarkers del usuario desde DB; `None` si no tiene |
+| `biosync` | Carga y desencripta biomarkers del usuario desde DB; parsea formato estructurado `{biomarkers: [...]}` |
 | `detect_conflicts` | Cruza ingredientes resueltos contra DB de conflictos (regulatory/scientific/temporal) |
-| `calculate_risk` | Llama `compute_semaphore(resolved, biomarkers)`; asigna `semaphore` y `conflict_severity` |
+| `personalize` | Para cada biomarcador `high`/`low`: busca ingredientes del producto que coincidan con `BIOMARKER_RULES`; llama `generate_personalized_insight()` en paralelo; compone `PersonalizedInsight` con `avatar_variant` |
+| `calculate_risk` | Llama `compute_semaphore(resolved, biomarkers)`; eleva a ORANGE si hay insights HIGH/MEDIUM; asigna `semaphore` y `conflict_severity` |
 
 ### 3.4 · Prompts (prompts.py)
 
 Los prompts viven como constantes en `app/agents/prompts.py` — mirror de `docs/prompts.md`. El test `test_prompts_sync.py` falla si divergen.
 
 - `EXTRACTOR_PROMPT`: instrucciones para extracción de ingredientes desde imagen; normalización, separación de sustancias compuestas, idioma.
-- `RECONCILER_PROMPT`: clasifica conflictos regulatorios (REGULATORY/SCIENTIFIC/TEMPORAL) y severidad (HIGH/MEDIUM/LOW) a partir de contexto RAG + biomarcadores.
+- `RECONCILER_PROMPT`: clasifica conflictos regulatorios (REGULATORY/SCIENTIFIC/TEMPORAL) y severidad (HIGH/MEDIUM/LOW) a partir de contexto RAG + biomarcadores. Recibe la lista de biomarcadores serializada como JSON.
 - `OCR_CORRECTION_PROMPT`: corrige errores de OCR usando contexto químico (disponible para uso futuro).
+- `BIOMARKER_EXTRACTION_PROMPT`: extrae biomarcadores de páginas de PDF de laboratorio (Chopo, Salud Digna, Olab). Normaliza nombres a taxonomía canónica de 20 tipos, convierte unidades a mg/dL, extrae rangos de referencia del PDF cuando están disponibles.
+- `PERSONALIZED_INSIGHT_PROMPT`: genera copy friendly (sin jerga médica) para un insight personalizado dado un biomarcador alterado + ingredientes del producto que lo afectan. Output estructurado: `friendly_title`, `friendly_biomarker_label`, `friendly_explanation`, `friendly_recommendation`.
 
 ---
 
@@ -283,6 +288,18 @@ Los prompts viven como constantes en `app/agents/prompts.py` — mirror de `docs
 `reconcile_ingredient(ingredient, rag_context, biomarkers, settings)`:
 - Genera un `IngredientConflict | None` a partir del contexto RAG.
 - Retorna `None` si no hay evidencia suficiente (degradación silenciosa).
+
+`extract_biomarkers_from_pdf(pdf_b64: str, settings) -> GeminiBiomarkerExtraction`:
+- Envía el PDF directamente a Gemini Vision como base64 (sin conversión a imágenes).
+- Usa `BIOMARKER_EXTRACTION_PROMPT` + Structured Outputs con `GeminiBiomarkerExtraction` schema.
+- Gemini procesa el PDF multipage internamente; no requiere `pdf2image` ni `poppler-utils`.
+- Retorna lista de `ExtractedBiomarker` (sin `classification` — la calcula el endpoint con `classify()`).
+- En 429/503: propaga el error al endpoint; el cliente ve 503.
+
+`generate_personalized_insight(biomarker_name, biomarker_value, biomarker_unit, classification, severity, affecting_ingredients, settings) -> PersonalizedInsightCopy`:
+- Invoca `PERSONALIZED_INSIGHT_PROMPT` con Structured Outputs.
+- Fallback si 429/503: devuelve copy genérico no-prescriptivo usando `_INSIGHT_FALLBACK_LABEL` dict (no falla el scan completo).
+- El `personalize` node llama esta función en `asyncio.gather` para todos los insights en paralelo.
 
 ### 4.2 · Open Food Facts (off_client.py)
 
@@ -342,17 +359,50 @@ Tres parsers, todos comparten helpers de `common.py`:
 
 ### 5.1 · BIOMARKER_RULES
 
-`app/services/analysis.py` — `BIOMARKER_RULES: tuple[BiomarkerRule, ...]`:
+`app/services/analysis.py` — `BIOMARKER_RULES: tuple[BiomarkerRule, ...]`.
 
-| Biomarcador | Umbral | Keywords | Severidad | Mensaje |
-|---|---|---|---|---|
-| `ldl` | > 130 mg/dL | trans fat, grasas trans, aceite hidrogenado, hydrogenated, saturated fat | HIGH | LDL elevado con grasa trans/saturada |
-| `glucose` | > 100 mg/dL | jarabe de maíz, high fructose, corn syrup, dextrosa, azúcar añadida, fructose | HIGH | Glucosa en ayuno alta con azúcares añadidos |
-| `triglycerides` | > 150 mg/dL | fructose, fructosa, jarabe, syrup | MEDIUM | Triglicéridos altos con fructosa/jarabes |
-| `sodium` | > 3000 mg/día | sodio, sodium, msg, glutamato monosódico | MEDIUM | Sodio alto con ingredientes salinos añadidos |
-| `uric_acid` | > 7 mg/dL | jarabe de maíz, high fructose, corn syrup | MEDIUM | Ácido úrico alto con fructosa |
+`BiomarkerRule` es un dataclass frozen:
+```python
+@dataclass(frozen=True)
+class BiomarkerRule:
+    biomarker: CanonicalBiomarker
+    when_classification: Literal["low", "high"]  # dispara si classify() devuelve este valor
+    keywords: tuple[str, ...]                    # busca en nombres de ingredientes resueltos
+    severity: ConflictSeverity
+    message: str
+```
+
+Reglas actuales (clasificación-based, no threshold inline):
+
+| Biomarcador | Clasificación | Keywords | Severidad |
+|---|---|---|---|
+| `ldl` | `high` | trans fat, grasas trans, aceite hidrogenado, hydrogenated, saturated fat, palm oil | HIGH |
+| `total_cholesterol` | `high` | trans fat, hydrogenated, saturated fat | HIGH |
+| `hdl` | `low` | trans fat, hydrogenated | MEDIUM |
+| `glucose` | `high` | high fructose corn syrup, jarabe de maíz, dextrosa, azúcar añadida, fructose, added sugar | HIGH |
+| `hba1c` | `high` | high fructose corn syrup, added sugar, azúcar añadida | HIGH |
+| `triglycerides` | `high` | fructose, fructosa, jarabe, syrup, added sugar | MEDIUM |
+| `sodium` | `high` | sodio, sodium, msg, glutamato monosódico, salt | MEDIUM |
+| `uric_acid` | `high` | high fructose corn syrup, jarabe de maíz, fructose | MEDIUM |
+| `potassium` | `high` | potassium chloride, potassium, cloruro de potasio | LOW |
 
 Las reglas se extienden **añadiendo entradas al tuple**, no modificando código.
+
+`find_ingredient_matches(biomarkers, ingredients) -> list[tuple[biomarker, list[str], ConflictSeverity]]`:
+- Función nueva que reemplaza `detect_biomarker_conflicts()` internamente.
+- Para cada `BiomarkerRule` cuya `when_classification` coincida con `biomarker.classification`, busca `keywords` en nombres de ingredientes resueltos.
+- Retorna la lista de matches con los ingredientes afectados y la severidad máxima.
+- Consumida por el `personalize` node para componer `PersonalizedInsight`s.
+
+### 5.1b · Tabla canónica de rangos (biomarker_ranges.py)
+
+`app/services/biomarker_ranges.py` — módulo nuevo:
+- `CANONICAL_RANGES: dict[str, RangeSpec]` — rangos por biomarcador con fuente (AHA 2023, ADA 2024, etc.).
+- `classify(name, value, unit, lab_low, lab_high) -> Literal["low","normal","high","unknown"]`:
+  - Prioriza `lab_low/lab_high` si los dos están presentes (extraídos del PDF).
+  - Fallback a `CANONICAL_RANGES` si no hay rango del lab.
+  - Retorna `"unknown"` si no hay rango disponible de ninguna fuente.
+- Consumido por `POST /biosync/extract` para enriquecer cada `ExtractedBiomarker` y por `analysis.py` en lugar de thresholds hardcodeados.
 
 ### 5.2 · compute_semaphore
 
@@ -385,11 +435,27 @@ Prioridad (primer match gana):
 
 | Endpoint | Rate limit | Auth | Descripción |
 |---|---|---|---|
-| `POST /biosync/upload` | 20/min | JWT | Encripta + persiste biomarcadores; upsert (1 row por usuario); TTL 180 días |
+| `POST /biosync/extract` | 10/min | JWT | PDF → OCR Gemini Vision → `BiomarkerExtractionResult`; **no persiste** (pendiente revisión usuario) |
+| `POST /biosync/upload` | 20/min | JWT | Recibe `BiomarkerUploadRequest` estructurado; encripta + persiste; upsert (1 row); TTL 180 días |
 | `GET /biosync/status` | — | JWT | Devuelve `BiomarkerStatusResponse` o 404 |
 | `DELETE /biosync/data` | — | JWT | Elimina el row; 404 si no existe |
 
 TTL hardcodeado: `_BIOMARKER_TTL_DAYS = 180`.
+
+**`POST /biosync/extract` — flujo interno:**
+1. Valida `content_type = application/pdf` y `size ≤ 10 MB` (422 si falla).
+2. Lee el PDF como bytes y lo codifica en base64.
+3. `extract_biomarkers_from_pdf(pdf_b64, settings)` → envía PDF directamente a Gemini Vision (sin conversión a imágenes).
+4. Gemini devuelve `GeminiBiomarkerExtraction` con biomarcadores extraídos.
+5. Para cada `ExtractedBiomarker`: enriquecer con `classify()` y `reference_source` ("lab" si el PDF tenía rango, "canonical" si se usó la tabla, "none" si no hay datos).
+6. Devolver `BiomarkerExtractionResult` **sin persistir**.
+
+**`POST /biosync/upload` — contrato actual:**
+- Body: `BiomarkerUploadRequest { biomarkers: list[Biomarker] (min 1), lab_name: str | None, test_date: date | None }`.
+- Serializa con `model_dump(mode="json")` antes de encriptar (incluye todos los campos tipados del `Biomarker`).
+- Reemplaza cualquier row existente del usuario (upsert).
+
+**Sin dependencias del sistema:** Gemini Vision procesa PDFs directamente; no requiere `poppler-utils` ni `pdf2image`.
 
 ### 6.3 · CI/CD (GitHub Actions)
 
@@ -442,6 +508,7 @@ Runbook completo que cubre:
 | POST | `/scan/barcode` | JWT | 20/min | 200, 404, 429 |
 | POST | `/scan/photo` | JWT | 20/min | 200, 400, 413, 422, 429, 503 |
 | POST | `/scan/contribute` | JWT | 10/min | 202, 422, 429 |
+| POST | `/biosync/extract` | JWT | 10/min | 200, 413, 422, 503 |
 | POST | `/biosync/upload` | JWT | 20/min | 201, 422 |
 | GET | `/biosync/status` | JWT | — | 200, 404 |
 | DELETE | `/biosync/data` | JWT | — | 204, 404 |
@@ -483,9 +550,54 @@ ScanHistoryEntry      { id, product_barcode, product_name?, semaphore, conflict_
 OFFContributeRequest  { barcode, ingredients: list[str], image_base64?, consent: true }
 OFFContributeResponse { contribution_id: UUID, status: PENDING|SUBMITTED|FAILED, message }
 
-# Biosync
-BiomarkerUploadRequest  { data: dict (non-empty) }
+# Biosync — tipos canónicos de biomarcadores
+CanonicalBiomarker: ldl | hdl | total_cholesterol | triglycerides | glucose | hba1c |
+                    sodium | potassium | uric_acid | creatinine | alt | ast | tsh |
+                    vitamin_d | iron | ferritin | hemoglobin | hematocrit | platelets |
+                    wbc | other
+BiomarkerClassification: low | normal | high | unknown
+ReferenceSource: lab | canonical | none
+AvatarVariant: gray | blue | yellow | orange | red
+
+# Biosync — schemas estructurados
+ExtractedBiomarker      { name: CanonicalBiomarker, raw_name: str, value: float, unit: str,
+                          unit_normalized: bool, reference_range_low: float | None,
+                          reference_range_high: float | None }
+                          # Output de Gemini (sin classification — la calcula el endpoint)
+GeminiBiomarkerExtraction { biomarkers: list[ExtractedBiomarker], lab_name: str | None,
+                            test_date: date | None, language: str }
+                          # Structured Output de extract_biomarkers_from_images()
+Biomarker               { name, raw_name, value, unit, unit_normalized,
+                          reference_range_low, reference_range_high,
+                          reference_source: ReferenceSource,
+                          classification: BiomarkerClassification }
+                          # Biomarker enriquecido con classify()
+BiomarkerExtractionResult { biomarkers: list[Biomarker], lab_name, test_date, language }
+                          # Response de POST /biosync/extract (no persiste)
+BiomarkerUploadRequest  { biomarkers: list[Biomarker] (min_length=1), lab_name: str | None,
+                          test_date: date | None }
+                          # Body de POST /biosync/upload
 BiomarkerStatusResponse { id: UUID, uploaded_at, expires_at, has_data: bool }
+
+# Insights personalizados
+PersonalizedInsightCopy { friendly_title: str, friendly_biomarker_label: str,
+                          friendly_explanation: str, friendly_recommendation: str }
+                          # Output de generate_personalized_insight() / PERSONALIZED_INSIGHT_PROMPT
+PersonalizedInsight     { biomarker_name: str, biomarker_value: float, biomarker_unit: str,
+                          classification: low | high, affecting_ingredients: list[str],
+                          severity: HIGH | MEDIUM | LOW,
+                          friendly_title, friendly_biomarker_label,
+                          friendly_explanation, friendly_recommendation,
+                          avatar_variant: AvatarVariant }
+                          # En ScanResponse.personalized_insights ([] si sin biomarcadores)
+
+# ScanResponse actualizado
+ScanResponse          { product_barcode, product_name?, semaphore, ingredients,
+                        conflict_severity?, source, scanned_at,
+                        personalized_insights: list[PersonalizedInsight] }
+                        # personalized_insights = [] si usuario sin biomarcadores activos
+
+# Legado — mantenidos internamente en analysis.py, no expuestos en API
 PersonalizedAlert       { ingredient, biomarker_conflict, severity }
 BiosyncAnalysis         { has_biomarkers, alerts: [], semaphore_override? }
 ```

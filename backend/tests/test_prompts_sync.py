@@ -7,8 +7,10 @@ import re
 from pathlib import Path
 
 from app.agents.prompts import (
+    BIOMARKER_EXTRACTION_PROMPT,
     EXTRACTOR_PROMPT,
     OCR_CORRECTION_PROMPT,
+    PERSONALIZED_INSIGHT_PROMPT,
     RECONCILER_PROMPT,
 )
 
@@ -43,3 +45,13 @@ def test_reconciler_prompt_matches_docs():
 def test_ocr_correction_prompt_matches_docs():
     md = _DOCS_PROMPTS.read_text(encoding="utf-8")
     assert _extract_fenced_block(md, "OCR_CORRECTION_PROMPT") == OCR_CORRECTION_PROMPT
+
+
+def test_biomarker_extraction_prompt_matches_docs():
+    md = _DOCS_PROMPTS.read_text(encoding="utf-8")
+    assert _extract_fenced_block(md, "BIOMARKER_EXTRACTION_PROMPT") == BIOMARKER_EXTRACTION_PROMPT
+
+
+def test_personalized_insight_prompt_matches_docs():
+    md = _DOCS_PROMPTS.read_text(encoding="utf-8")
+    assert _extract_fenced_block(md, "PERSONALIZED_INSIGHT_PROMPT") == PERSONALIZED_INSIGHT_PROMPT

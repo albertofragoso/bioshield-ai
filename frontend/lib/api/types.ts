@@ -63,10 +63,58 @@ export interface ScanResponse {
   conflict_severity: ConflictSeverity | null;
   source: ScanSource;
   scanned_at: string;
+  personalized_insights: PersonalizedInsight[];
+}
+
+// ── Biomarker types (mirror of backend Biosync schemas) ──────────────────────
+
+export type CanonicalBiomarker =
+  | "ldl" | "hdl" | "total_cholesterol" | "triglycerides" | "glucose" | "hba1c"
+  | "sodium" | "potassium" | "uric_acid" | "creatinine" | "alt" | "ast" | "tsh"
+  | "vitamin_d" | "iron" | "ferritin" | "hemoglobin" | "hematocrit" | "platelets"
+  | "wbc" | "other";
+
+export type BiomarkerClassification = "low" | "normal" | "high" | "unknown";
+export type ReferenceSource = "lab" | "canonical" | "none";
+export type AvatarVariant = "gray" | "blue" | "yellow" | "orange" | "red";
+
+export interface Biomarker {
+  name: CanonicalBiomarker;
+  raw_name: string;
+  value: number;
+  unit: string;
+  unit_normalized: boolean;
+  reference_range_low: number | null;
+  reference_range_high: number | null;
+  reference_source: ReferenceSource;
+  classification: BiomarkerClassification;
+}
+
+export interface BiomarkerExtractionResult {
+  biomarkers: Biomarker[];
+  lab_name: string | null;
+  test_date: string | null;
+  language: string;
 }
 
 export interface BiomarkerUploadRequest {
-  data: Record<string, number>;
+  biomarkers: Biomarker[];
+  lab_name: string | null;
+  test_date: string | null;
+}
+
+export interface PersonalizedInsight {
+  biomarker_name: CanonicalBiomarker;
+  biomarker_value: number;
+  biomarker_unit: string;
+  classification: "low" | "high";
+  affecting_ingredients: string[];
+  severity: ConflictSeverity;
+  friendly_title: string;
+  friendly_biomarker_label: string;
+  friendly_explanation: string;
+  friendly_recommendation: string;
+  avatar_variant: "yellow" | "orange" | "red";
 }
 
 export interface BiomarkerStatusResponse {

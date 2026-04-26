@@ -585,11 +585,19 @@ LAYOUT (top-to-bottom):
    - RED: "Contiene X ingredientes prohibidos en al menos una jurisdicción."
    - GRAY: "No pudimos resolver suficientes ingredientes con confianza."
 
-3. ALERTAS PERSONALIZADAS (solo si ORANGE):
-   - Card destacada con borde naranja.
-   - "Tu LDL está en 150 mg/dL y este producto contiene grasas trans."
-   - Data source: el backend las computa en analysis.py con BIOMARKER_RULES.
-   - En la v1 puede ser un array de strings; diseña para expansion futura.
+3. SECCIÓN "PARA TI" (entre el hero y la lista de ingredientes):
+   - Renderizar solo si `data.personalized_insights.length > 0`.
+   - Header H2 "Para ti" + subtítulo "Basado en tus biomarcadores recientes".
+   - Una `InsightCard` por cada `PersonalizedInsight`:
+     - Izquierda: `<AvatarGlow variant={insight.avatar_variant} size={72} intensity="medium" />`.
+     - Top: `friendly_title` en bold + valor con unidad en mono pequeño ("150 mg/dL · alto").
+     - Mid: `friendly_explanation` como párrafo principal (lenguaje cotidiano, sin jerga médica).
+     - Bottom-mid: `friendly_recommendation` en tono secundario más suave.
+     - Footer: chips de `affecting_ingredients` (click → scroll + expand del acordeón correspondiente).
+     - Border-left 3px del color de severity; bg sutil por severity.
+   - **Sin badges técnicos** ("LDL", "HIGH") — el usuario ve `friendly_biomarker_label`.
+   - Empty state (sin biomarcadores activos): `<AvatarGlow variant="gray" size={56} intensity="soft" />` + texto + link a /biosync.
+   - El anterior componente `BiomarkerAlert` (borde naranja con string genérico) fue eliminado.
 
 4. LISTA DE INGREDIENTES:
    - Cada ingrediente es una Card expandible (shadcn Accordion):
@@ -654,81 +662,70 @@ ACCESIBILIDAD:
 
 ---
 
-### Pantalla 6 — Biosync Upload (`/biosync`)
+### Pantalla 6 — Biosync Upload (`/biosync`) ✅ REESCRITA (flujo PDF)
 
 ROUTE: `/biosync`
 
-CONTEXTO: el usuario sube resultados de laboratorio para que el análisis
-de productos considere su perfil personal (ej: si tiene LDL alto, alerta
-de grasas trans en productos escaneados).
+CONTEXTO: el usuario sube su PDF de laboratorio (Chopo, Salud Digna, Olab, etc.)
+para que el análisis de productos considere su perfil personal. El OCR de Gemini
+extrae los biomarcadores automáticamente; el usuario revisa antes de persistir.
 
-DATA SHAPE (POST /biosync/upload):
-{ data: { <key>: <value>, ... } }
-Ejemplo: { data: { "ldl": 150, "hdl": 45, "glucose": 110, "triglycerides": 180,
-                    "sodium": 3500, "uric_acid": 7.2 } }
-El backend encripta con AES-256 y guarda con TTL de 180 días.
+DATA FLOWS:
+- `POST /biosync/extract` → `BiomarkerExtractionResult` (no persiste, pendiente revisión).
+- `POST /biosync/upload` → `BiomarkerUploadRequest { biomarkers: list[Biomarker], lab_name, test_date }`.
+- Encripta con AES-256 y guarda con TTL 180 días.
 
-RESPONSE: BiomarkerStatusResponse
-{ id, uploaded_at, expires_at, has_data: true }
+TRES ESTADOS (no tabs — flujo lineal):
 
-DOS MODOS DE INGRESO (Tabs):
-  TAB 1: "Manual" — formulario con campos tipados para los 5 biomarcadores
-         con reglas conocidas del backend (analysis.py):
-           - LDL (mg/dL)          rango normal: <100
-           - HDL (mg/dL)          rango normal: >40
-           - Glucose (mg/dL)      rango normal: 70-99
-           - Triglycerides (mg/dL) rango normal: <150
-           - Sodium (mg/día)      rango referencial: <2300
-           - Uric acid (mg/dL)    rango normal: <7
-         Cada campo con input number + unidad + tooltip con rango normal.
-         Opción "Agregar otro biomarcador" (key-value genérico).
-  TAB 2: "CSV" — dropzone que acepta .csv con headers estándar.
-         Preview de primeras 5 filas después del upload.
-         Botón "Procesar y subir".
+**Estado A: Upload**
+- Banner de status (has_data=true → ámbar; 404 → info "Sin biomarcadores activos").
+- `<AvatarGlow variant="gray" size={96} intensity="soft" />` al lado del dropzone.
+- Dropzone: acepta `application/pdf`, máx 10 MB. Copy: "Sube tu PDF de laboratorio".
+  Subcopy: "Aceptamos Chopo, Salud Digna, Olab y otros."
+- Card de privacidad (ShieldCheck verde + 4 bullets AES/180d/no-share/delete).
+- Click/drop → POST `/biosync/extract` → pasa a Estado B.
 
-ESTADOS GLOBALES (arriba de los tabs):
-- Si GET /biosync/status devuelve has_data=true:
-  - Banner ámbar: "Ya tienes biomarcadores activos. Expiran el DD/MM/YYYY.
-    Subir nuevos los reemplaza."
-  - Botón "Eliminar actuales" (DELETE /biosync/data, con confirmación modal).
-- Si 404: banner info: "No tienes biomarcadores aún."
+**Estado B: Loading (analizando)**
+- Progress bar indeterminada + copy "Analizando tu PDF con IA…" (mono).
+- Subtexto: "~10 segundos. No estamos guardando nada todavía."
+- `<AvatarGlow variant="blue" size={80} intensity="strong" />` animado.
 
-ESTADOS DE SUBIDA:
-- Idle, Validating (rangos raros → warning inline no bloqueante),
-  Uploading (progress bar), Success (toast + redirect a Dashboard),
-  Error 401/422/red.
+**Estado C: Review (post-OCR)**
+- Header: "Revisa los valores extraídos" + chip `lab_name` y `test_date`.
+- Avatar dinámico según clasificación agregada de los biomarcadores extraídos:
+  - Todos normal → `variant="blue"` + "Todo se ve bien por ahora."
+  - 1 fuera de rango → `variant="yellow"` + "Encontramos algunos valores fuera de rango."
+  - 2+ fuera de rango → `variant="orange"` + misma frase.
+  - Animación `pulse-glow` continua, suave.
+- Tabla editable: Biomarcador · Valor (input numérico) · Unidad · Rango referencia (badge "lab"/"canónico") · Clasificación (badge color).
+- Botón "Eliminar fila" por biomarcador.
+- Botón "Agregar biomarcador" (dropdown con taxonomía canónica).
+- Botón primario "Confirmar y guardar" → POST `/biosync/upload` → toast + redirect `/`.
+- Botón outline "Subir otro PDF" → vuelve al Estado A.
 
-SECCIÓN DE PRIVACIDAD (sticky abajo en mobile, sidebar en desktop):
-- Card con icono ShieldCheck y bullets:
-  - "Encriptados con AES-256 antes de guardarse."
-  - "Se borran automáticamente después de 180 días."
-  - "Nunca se comparten ni se usan para entrenar modelos."
-  - "Puedes eliminarlos en cualquier momento."
+**Eliminado**: tabs Manual/CSV, BiomarkerField, CSVPreviewTable, handleAddCustomField.
 
 AVATAR BIOSYNC:
-- Upload exitoso: success.png (80×80) en el toast/confirmación.
-- Sin biomarcadores (empty state): welcome.png (100×100) con CTA de subir.
+- Estado A (espera): `gray.png` con glow azul suave (`AvatarGlow`).
+- Estado B (procesando): `blue.png` con glow intenso.
+- Estado C (review): avatar dinámico `blue`/`yellow`/`orange` según resultado.
 
 TOKENS (dark-only):
 - Background: #080C07 con hex-grid + scanlines heredados.
-- Tabs: shadcn, borde activo #4ADE80.
-- Campos numéricos: mismo estilo que login (border rgba(74,222,128,.15),
-  focus #4ADE80, label JetBrains Mono UPPERCASE 10px, color #6B8A6A).
-- Banner has_data=true: border #F59E0B, bg rgba(245,158,11,.08), text #F59E0B.
-- Dropzone CSV: border dashed rgba(74,222,128,0.3).
-- Privacy card: bg rgba(74,222,128,.05), border rgba(74,222,128,.15),
-  icono ShieldCheck #4ADE80, texto #6B8A6A.
+- Avatar glow: animación `avatar-glow-pulse-kf` en `globals.css` (custom props CSS por color).
+- Dropzone: border dashed rgba(74,222,128,0.3), hover rgba(74,222,128,0.6).
+- Banner has_data: border #F59E0B, bg rgba(245,158,11,.08), text #F59E0B.
+- Privacy card: bg rgba(74,222,128,.05), border rgba(74,222,128,.15), ShieldCheck verde.
+- Tabla review: border-bottom rgba(74,222,128,.1), hover bg rgba(74,222,128,.04).
+- Badge "lab": bg rgba(96,165,250,.15) text #60A5FA. Badge "canónico": bg rgba(107,138,106,.15) text #6B8A6A.
 - Botón primario: bs-glow-green, JetBrains Mono.
-- Font sans: Space Grotesk. Font mono: JetBrains Mono.
 
 RESPONSIVE:
-- Mobile: tabs full-width, privacy card colapsada al fondo.
-- Desktop ≥1024px: layout 2 columnas — formulario 2/3, privacy card 1/3 sticky.
+- Mobile: flujo vertical completo.
+- Desktop ≥1024px: layout 2 columnas — área principal 2/3, privacy card 1/3 sticky.
 
-TONO: tranquilizador. El usuario está compartiendo datos médicos sensibles —
-la UI proyecta competencia y respeto sin ser agresivamente "corporativa".
-La estética biotech (glows verdes, JetBrains Mono) refuerza que los datos
-están en manos de tecnología seria.
+TONO: tranquilizador en Estado A, activo en B, confirmatorio en C.
+El usuario está compartiendo datos médicos — la UI proyecta competencia y respeto.
 
 ---
 
@@ -856,9 +853,11 @@ Plan de emergencia de componentes, en el orden en que las pantallas pendientes l
 | `SemaphoreHero` | `/scan/[id]` | Nunca por ahora — un solo consumer | círculo 120px color semáforo + icono Lucide + avatar PNG lateral + `animate-pulse-glow` |
 | `IngredientAccordion` | `/scan/[id]` | — | shadcn Accordion + badge status + barra confidence + badge "N conflictos" |
 | `ConflictRow` | `/scan/[id]` (dentro de IngredientAccordion) | — | severity badge HIGH/MEDIUM/LOW + summary + sources chips |
-| `BiomarkerAlert` | `/scan/[id]` (solo si `semaphore === "ORANGE"`) | — | card borde `#FB923C` con texto personalizado desde `BIOMARKER_RULES` |
-| `BiomarkerField` | `/biosync` tab manual | — | input number + unidad en mono + tooltip `Info` con rango normal + warning inline fuera de rango |
-| `BiomarkerCSVUpload` | `/biosync` tab CSV | — | dropzone + `CSVPreviewTable` (primeras 5 filas) |
+| `AvatarGlow` | `/biosync` (Estado A/B/C) + `/scan/[id]` (InsightCards) | **Inmediatamente** — nació como componente compartido | `variant: gray\|blue\|yellow\|orange\|red`, `size?: number`, `intensity?: soft\|medium\|strong`; animación CSS `avatar-glow-pulse-kf` con custom props |
+| `InsightCard` | `/scan/[id]` — sección "Para ti" | — | `<AvatarGlow>` 72px + friendly_title + friendly_explanation + friendly_recommendation + chips de ingredientes |
+| `BiomarkerEmptyState` | `/scan/[id]` — sin biomarcadores | — | `<AvatarGlow variant="gray" size={56} intensity="soft">` + link a /biosync; reemplaza el antiguo `BiomarkerAlert` |
+| `BiomarkerField` | eliminado de `/biosync` — flujo manual removido | — | — |
+| `BiomarkerCSVUpload` | eliminado de `/biosync` — flujo CSV removido | — | — |
 | `PrivacyCard` | `/biosync` sidebar | Si se reusa en `/register` se extrae con la API existente | `ShieldCheck` verde + 4 bullets en JetBrains Mono |
 | `SemaphoreBadge` | `/` Dashboard (recent scans) **o** `/history` (lo que llegue primero) | **Inmediatamente** al aparecer en el segundo consumer | círculo 40px bg `rgba(color,.2)` + icono Lucide 20px color sólido |
 | `MascotAvatar` | cualquier empty state que use PNG con `animate-wobble` / `bs-mascot-glow` | Si un segundo consumer pide tamaño distinto | props `src` + `size` + `animate` + `glow` (boolean) |
@@ -943,12 +942,14 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 ### 7.4 · Semáforo visual con detalles de conflict ✅ IMPLEMENTADO
 
 **Archivos:**
-- `frontend/app/(app)/scan/[id]/page.tsx` ✅ — spec: Fase C — Pantalla 5.
-- `SemaphoreHero` ✅ — inline en la pantalla. Diseño final: **sin círculo shrink-0** — solo avatar PNG centrado con `filter: drop-shadow(0 0 20px ${sem.color}70)` en wrapper `animate-pulse` (Tailwind, solo afecta opacidad — no sobreescribe el filter). Icono (`sem.Icon size={22}`) al inicio del h1 con el color del semáforo. Contenido de la card: `flex flex-col items-center`.
+- `frontend/app/(app)/scan/[id]/page.tsx` ✅ — spec: Fase C — Pantalla 5. Actualizado con sección "Para ti".
+- `SemaphoreHero` ✅ — inline en la pantalla.
 - `IngredientAccordion` + `ConflictRow` ✅ — inline, un único consumer.
-- `BiomarkerAlert` ✅ — inline, solo visible si `semaphore === "ORANGE"`.
+- `ParaTiSection` + `InsightCard` ✅ — inline; sección entre hero y accordion con `<AvatarGlow>` por insight.
+- `BiomarkerEmptyState` ✅ — inline; reemplaza el antiguo `BiomarkerAlert`; muestra `gray.png` con glow + link a /biosync.
+- `AvatarGlow` ✅ — extraído a `components/AvatarGlow.tsx` (compartido con /biosync). Props: `variant`, `size`, `intensity`.
 - `SemaphoreBadge` ✅ — extraído a `components/semaphore/SemaphoreBadge.tsx` al aparecer en Dashboard (7.7).
-- `PhotoExpiredState` ✅ — inline: estado fallback cuando `viaPhoto=true` y el cache está vacío (los resultados de foto no persisten entre sesiones). Avatar `support.png` + copy explicativo + link "escanear de nuevo".
+- `PhotoExpiredState` ✅ — inline: estado fallback cuando `viaPhoto=true` y el cache está vacío.
 
 **Decisiones de implementación:**
 - `decodeURIComponent(rawId)` en el hook `useParams` — normaliza el barcode para hacer match con la cache key (que usa el valor sin encodear del response del backend).
@@ -963,18 +964,21 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - Foto scan: `progress.png` → loading → navega a `/scan/photo-abc123?via=photo` → resultado visible.
 - Foto scan en sesión nueva (cache vacío): muestra `PhotoExpiredState` (no `NoCacheState`).
 
-### 7.5 · Biosync UI ✅ IMPLEMENTADO
+### 7.5 · Biosync UI ✅ REESCRITA (flujo PDF)
 
 **Archivos:**
-- `frontend/app/(app)/biosync/page.tsx` ✅ — tabs Manual/CSV, 6 BiomarkerFields con validación de rango, CSVPreviewTable, delete confirm modal, PrivacyCard sidebar desktop / bottom mobile.
-- `BiomarkerField` + `CSVPreviewTable` + `PrivacyCard` ✅ — inline en biosync/page.tsx.
-- `frontend/lib/api/biosync.ts` ✅ — `uploadBiomarkers(data)`, `getBiomarkerStatus()`, `deleteBiomarkers()`.
+- `frontend/app/(app)/biosync/page.tsx` ✅ — reescrita con flujo PDF: tres estados (upload / loading / review). Eliminados: Tabs, BiomarkerField, CSVPreviewTable, lógica CSV, formulario manual.
+- `frontend/components/AvatarGlow.tsx` ✅ — componente compartido nuevo. Variant gray/blue/yellow/orange/red, intensity soft/medium/strong, animación CSS `avatar-glow-pulse-kf`.
+- `frontend/app/globals.css` ✅ — añadidos `@keyframes avatar-glow-pulse-kf` y clase `.avatar-glow-pulse` con `prefers-reduced-motion` support.
+- `frontend/lib/api/biosync.ts` ✅ — `extractBiomarkers(file: File)` nuevo; `uploadBiomarkers` actualizado a `BiomarkerUploadRequest` estructurado.
+- `frontend/lib/api/types.ts` ✅ — tipos nuevos: `Biomarker`, `BiomarkerExtractionResult`, `BiomarkerUploadRequest`, `PersonalizedInsight`, `AvatarVariant`, `CanonicalBiomarker`.
+- `frontend/lib/api/client.ts` ✅ — FormData detection para omitir `Content-Type: application/json` en uploads de PDF.
 
 **Checks de éxito:**
-- Upload manual de `{ ldl: 150, glucose: 110 }` → 201 → redirect.
-- Status endpoint muestra expires_at correcto.
-- Delete con modal de confirmación.
-- Scan de producto con grasas trans post-upload → semaphore ORANGE.
+- Subir PDF → Estado loading (AvatarGlow blue intenso) → Estado review (tabla editable, avatar dinámico).
+- Editar un valor en review → Confirmar → 201 → toast + redirect a `/`.
+- PDF >10MB o no-PDF → error 422 con mensaje claro.
+- Scan con biomarcadores activos (LDL alto) → producto con grasas trans → semaphore ORANGE + sección "Para ti".
 
 ### 7.6 · TanStack Query cache por barcode
 
@@ -1101,7 +1105,7 @@ Después de implementar, validar con estos casos en navegador real (Chrome + Saf
 | D.7.1 / 7.2 / 7.2b / 7.2c — Infra + Auth + Globals | ✅ done | — |
 | D.7.3 — Scanner UI + OFF toggle [Fase 2] | ✅ done | — |
 | D.7.4 — Resultado scan + semáforo + ingredients | ✅ done | — |
-| D.7.5 — Biosync UI | ✅ done | — |
+| D.7.5 — Biosync UI (reescrita: flujo PDF + AvatarGlow) | ✅ done | — |
 | D.7.6 — Cache TanStack Query | ✅ done (embebido en 7.3) | — |
 | D.7.7 — Dashboard real | ✅ done | — |
 | D.7.8 — Historial | ✅ done | — |

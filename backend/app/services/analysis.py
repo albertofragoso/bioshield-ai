@@ -1,23 +1,25 @@
-"""Semaphore computation: maps ingredient results + biomarkers to a risk color.
+"""Semaphore computation: maps ingredient results + biomarker insights to a risk color.
 
 Priority (first match wins):
     RED    — any ingredient banned by any regulator
-    ORANGE — biomarker conflict detected for the current user
-    YELLOW — restricted/under review status, or an unresolved conflict exists
+    ORANGE — personalized insight detected (biomarker × ingredient conflict)
+    YELLOW — restricted/under review status, or an unresolved regulatory conflict
     GRAY   — <50% of ingredients resolved, or retrieval degraded
     BLUE   — all ingredients approved, no conflicts
 
-Biomarker conflict detection uses a small hand-curated map (`BIOMARKER_RULES`).
-This is intentionally simple for MVP — expanding it is a data-curation task,
-not a code change, beyond adding new rules here.
+Biomarker conflict detection uses `BIOMARKER_RULES` — a declarative map of
+(canonical biomarker + classification) → (ingredient keywords + severity).
+Extending it is a data-curation task, not a code change.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Literal
 
 from app.schemas.models import (
+    CanonicalBiomarker,
     ConflictSeverity,
     IngredientResult,
     PersonalizedAlert,
@@ -43,49 +45,77 @@ _STATUS_RANK = {
 
 @dataclass(frozen=True)
 class BiomarkerRule:
-    biomarker_key: str       # dict key in the decrypted biomarker payload
-    threshold: float         # value above which the rule fires
+    biomarker: CanonicalBiomarker
+    when_classification: Literal["low", "high"]  # fires when biomarker has this classification
     keywords: tuple[str, ...]  # substrings to look for in ingredient names (lowercase)
     severity: ConflictSeverity
     message: str
 
 
-# Data-curated rules. Extend this list rather than adding branches in code.
+# Data-curated rules. Add entries here to extend coverage — no code changes needed.
 BIOMARKER_RULES: tuple[BiomarkerRule, ...] = (
     BiomarkerRule(
-        biomarker_key="ldl",
-        threshold=130.0,
-        keywords=("trans fat", "grasas trans", "aceite hidrogenado", "hydrogenated", "saturated fat"),
+        biomarker=CanonicalBiomarker.LDL,
+        when_classification="high",
+        keywords=("trans fat", "grasas trans", "aceite hidrogenado", "hydrogenated", "saturated fat", "palm oil", "aceite de palma"),
         severity=ConflictSeverity.HIGH,
-        message="LDL elevado con grasa trans/saturada",
+        message="LDL alto con grasa trans/saturada",
     ),
     BiomarkerRule(
-        biomarker_key="glucose",
-        threshold=100.0,
+        biomarker=CanonicalBiomarker.TOTAL_CHOLESTEROL,
+        when_classification="high",
+        keywords=("trans fat", "hydrogenated", "aceite hidrogenado", "palm oil", "saturated fat"),
+        severity=ConflictSeverity.HIGH,
+        message="Colesterol total alto con grasa trans/saturada",
+    ),
+    BiomarkerRule(
+        biomarker=CanonicalBiomarker.HDL,
+        when_classification="low",
+        keywords=("trans fat", "grasas trans", "hydrogenated", "aceite hidrogenado"),
+        severity=ConflictSeverity.MEDIUM,
+        message="HDL bajo con grasas trans",
+    ),
+    BiomarkerRule(
+        biomarker=CanonicalBiomarker.GLUCOSE,
+        when_classification="high",
         keywords=("jarabe de maíz", "high fructose", "corn syrup", "dextrosa", "dextrose", "azúcar añadida", "added sugar", "fructose"),
         severity=ConflictSeverity.HIGH,
-        message="Glucosa en ayuno alta con azúcares añadidos",
+        message="Glucosa alta con azúcares añadidos",
     ),
     BiomarkerRule(
-        biomarker_key="triglycerides",
-        threshold=150.0,
-        keywords=("fructose", "fructosa", "jarabe", "syrup"),
+        biomarker=CanonicalBiomarker.HBA1C,
+        when_classification="high",
+        keywords=("jarabe de maíz", "high fructose", "corn syrup", "dextrosa", "dextrose", "added sugar", "fructose"),
+        severity=ConflictSeverity.HIGH,
+        message="HbA1c alta con azúcares añadidos",
+    ),
+    BiomarkerRule(
+        biomarker=CanonicalBiomarker.TRIGLYCERIDES,
+        when_classification="high",
+        keywords=("fructose", "fructosa", "jarabe", "syrup", "added sugar"),
         severity=ConflictSeverity.MEDIUM,
         message="Triglicéridos altos con fructosa/jarabes",
     ),
     BiomarkerRule(
-        biomarker_key="sodium",
-        threshold=3000.0,
-        keywords=("sodio", "sodium", "msg", "glutamato monosódico"),
+        biomarker=CanonicalBiomarker.SODIUM,
+        when_classification="high",
+        keywords=("sodio", "sodium", "msg", "glutamato monosódico", "sal", "salt"),
         severity=ConflictSeverity.MEDIUM,
-        message="Sodio alto con ingredientes salinos añadidos",
+        message="Sodio alto con ingredientes salinos",
     ),
     BiomarkerRule(
-        biomarker_key="uric_acid",
-        threshold=7.0,
-        keywords=("jarabe de maíz", "high fructose", "corn syrup"),
+        biomarker=CanonicalBiomarker.URIC_ACID,
+        when_classification="high",
+        keywords=("jarabe de maíz", "high fructose", "corn syrup", "fructose", "fructosa"),
         severity=ConflictSeverity.MEDIUM,
         message="Ácido úrico alto con fructosa",
+    ),
+    BiomarkerRule(
+        biomarker=CanonicalBiomarker.POTASSIUM,
+        when_classification="high",
+        keywords=("potassium chloride", "cloruro de potasio"),
+        severity=ConflictSeverity.LOW,
+        message="Potasio alto con aditivos de potasio",
     ),
 )
 
@@ -123,44 +153,82 @@ def aggregate_regulatory_status(status_by_source: dict[str, str]) -> RegulatoryS
     return worst
 
 
+def find_ingredient_matches(
+    biomarkers: list | None,
+    ingredients: list[IngredientResult],
+) -> list[tuple[object, list[str], ConflictSeverity]]:
+    """Return (biomarker, matching_ingredient_names, severity) for each rule match.
+
+    `biomarkers` is a list of Biomarker schema objects (or dicts with 'name',
+    'value', 'classification' keys). Called by the `personalize` LangGraph node.
+    """
+    if not biomarkers or not ingredients:
+        return []
+
+    matches: list[tuple[object, list[str], ConflictSeverity]] = []
+    for bm in biomarkers:
+        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
+        classification = bm.get("classification") if isinstance(bm, dict) else getattr(bm, "classification", None)
+
+        if name is None or classification is None:
+            continue
+
+        # Normalize to string value (handles both enum and plain str)
+        name_val = name.value if hasattr(name, "value") else str(name)
+        class_val = classification.value if hasattr(classification, "value") else str(classification)
+
+        if class_val not in ("low", "high"):
+            continue
+
+        for rule in BIOMARKER_RULES:
+            if rule.biomarker.value != name_val:
+                continue
+            if rule.when_classification != class_val:
+                continue
+
+            matched_ingr: list[str] = []
+            for ing in ingredients:
+                ing_names = " ".join(filter(None, (ing.name, ing.canonical_name))).lower()
+                if any(kw in ing_names for kw in rule.keywords):
+                    matched_ingr.append(ing.canonical_name or ing.name)
+
+            if matched_ingr:
+                matches.append((bm, matched_ingr, rule.severity))
+
+    return matches
+
+
 def detect_biomarker_conflicts(
     ingredients: list[IngredientResult],
-    biomarkers: dict | None,
+    biomarkers: list | None,
 ) -> list[PersonalizedAlert]:
-    """Return alerts for ingredients that clash with the user's biomarker values."""
+    """Return legacy PersonalizedAlert list for ORANGE semaphore detection.
+
+    Thin wrapper around find_ingredient_matches — kept for backward compat
+    with compute_semaphore until the personalize node fully takes over.
+    """
     if not biomarkers:
         return []
 
     alerts: list[PersonalizedAlert] = []
-    for rule in BIOMARKER_RULES:
-        raw_value = biomarkers.get(rule.biomarker_key)
-        if raw_value is None:
-            continue
-        try:
-            value = float(raw_value)
-        except (TypeError, ValueError):
-            continue
-        if value <= rule.threshold:
-            continue
-
-        for ing in ingredients:
-            ing_names = " ".join(
-                filter(None, (ing.name, ing.canonical_name))
-            ).lower()
-            if any(kw in ing_names for kw in rule.keywords):
-                alerts.append(
-                    PersonalizedAlert(
-                        ingredient=ing.canonical_name or ing.name,
-                        biomarker_conflict=f"{rule.message} ({rule.biomarker_key}={value})",
-                        severity=rule.severity,
-                    )
+    for bm, ingr_names, severity in find_ingredient_matches(biomarkers, ingredients):
+        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
+        value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", None)
+        name_val = name.value if hasattr(name, "value") else str(name)
+        for ingr in ingr_names:
+            alerts.append(
+                PersonalizedAlert(
+                    ingredient=ingr,
+                    biomarker_conflict=f"{name_val}={value}",
+                    severity=severity,
                 )
+            )
     return alerts
 
 
 def compute_semaphore(
     ingredients: list[IngredientResult],
-    biomarkers: dict | None = None,
+    biomarkers: list | None = None,
     *,
     retrieval_degraded: bool = False,
 ) -> tuple[SemaphoreColor, ConflictSeverity | None, list[PersonalizedAlert]]:

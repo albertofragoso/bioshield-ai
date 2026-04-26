@@ -22,10 +22,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { AvatarGlow } from "@/components/AvatarGlow";
 import type {
   ConflictSeverity,
   IngredientConflict,
   IngredientResult,
+  PersonalizedInsight,
   RegulatoryStatus,
   ScanResponse,
   SemaphoreColor,
@@ -210,8 +212,11 @@ function ScanResultInner() {
             {explanation}
           </p>
 
-          {/* Alerta de biomarcadores — solo si ORANGE */}
-          {data.semaphore === "ORANGE" && <BiomarkerAlert />}
+          {/* Sección "Para ti" — insights personalizados */}
+          {data.personalized_insights.length > 0
+            ? <ParaTiSection insights={data.personalized_insights} />
+            : <BiomarkerEmptyState />
+          }
 
           {/* Metadata + acciones */}
           <div className="flex flex-col items-center gap-3 pt-1">
@@ -412,29 +417,101 @@ function ConflictRow({ conflict }: { conflict: IngredientConflict }) {
   );
 }
 
-function BiomarkerAlert() {
+function ParaTiSection({ insights }: { insights: PersonalizedInsight[] }) {
   return (
-    <div
-      className="rounded-card px-4 py-4 flex flex-col gap-1.5"
-      style={{
-        background: "rgba(251,146,60,.06)",
-        border: "1px solid rgba(251,146,60,.35)",
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <AlertTriangle size={14} style={{ color: "#FB923C" }} />
-        <p className="font-mono text-[11px] uppercase tracking-[0.08em]" style={{ color: "#FB923C" }}>
-          Alerta de biomarcadores
+    <div className="flex flex-col gap-3">
+      <div>
+        <h2 className="font-sans font-semibold text-base text-foreground">Para ti</h2>
+        <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.06em] mt-0.5">
+          Basado en tus biomarcadores recientes
         </p>
       </div>
-      <p className="font-sans text-[12px] text-foreground/80 leading-[1.5]">
-        Este producto contiene ingredientes que podrían afectar tu perfil metabólico.
-        Sube tu panel de sangre en{" "}
-        <Link href="/biosync" className="underline text-brand-teal">
-          biosync
-        </Link>{" "}
-        para alertas personalizadas.
-      </p>
+      {insights.map((insight, i) => (
+        <InsightCard key={i} insight={insight} />
+      ))}
+    </div>
+  );
+}
+
+const INSIGHT_BORDER: Record<string, string> = {
+  red:    "#F87171",
+  orange: "#FB923C",
+  yellow: "#FACC15",
+};
+const INSIGHT_BG: Record<string, string> = {
+  red:    "rgba(248,113,113,.05)",
+  orange: "rgba(251,146,60,.05)",
+  yellow: "rgba(250,204,21,.05)",
+};
+
+function InsightCard({ insight }: { insight: PersonalizedInsight }) {
+  const borderColor = INSIGHT_BORDER[insight.avatar_variant] ?? "#6B8A6A";
+  const bgColor = INSIGHT_BG[insight.avatar_variant] ?? "transparent";
+
+  return (
+    <div
+      className="rounded-card px-4 py-4 flex gap-4"
+      style={{
+        background: bgColor,
+        borderLeft: `3px solid ${borderColor}`,
+        border: `1px solid ${borderColor}30`,
+        borderLeftWidth: "3px",
+        borderLeftColor: borderColor,
+      }}
+    >
+      <AvatarGlow variant={insight.avatar_variant} size={72} intensity="medium" className="shrink-0 self-start" />
+      <div className="flex flex-col gap-2 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="font-sans font-semibold text-sm"
+            style={{ color: borderColor }}
+          >
+            {insight.friendly_title}
+          </span>
+          <span className="font-mono text-[10px] text-subtext">
+            {insight.biomarker_value} {insight.biomarker_unit} · {insight.classification === "high" ? "alto" : "bajo"}
+          </span>
+        </div>
+        <p className="font-sans text-[13px] text-foreground leading-[1.55]">
+          {insight.friendly_explanation}
+        </p>
+        <p className="font-sans text-[12px] leading-[1.5]" style={{ color: "#6B8A6A" }}>
+          {insight.friendly_recommendation}
+        </p>
+        {insight.affecting_ingredients.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            <span className="font-mono text-[9px] text-subtext self-center uppercase tracking-[0.06em]">Ingredientes:</span>
+            {insight.affecting_ingredients.map((ingr) => (
+              <span
+                key={ingr}
+                className="px-2 py-0.5 rounded-full font-mono text-[9px]"
+                style={{ background: "rgba(74,222,128,.06)", border: "1px solid rgba(74,222,128,.15)", color: "#6B8A6A" }}
+              >
+                {ingr}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BiomarkerEmptyState() {
+  return (
+    <div
+      className="rounded-card px-4 py-4 flex items-center gap-3"
+      style={{ background: "rgba(74,222,128,.03)", border: "1px solid rgba(74,222,128,.1)" }}
+    >
+      <AvatarGlow variant="gray" size={56} intensity="soft" className="shrink-0" />
+      <div>
+        <p className="font-sans text-[13px] text-foreground/80 leading-[1.5]">
+          Sube tus biomarcadores para que cada scan se adapte a ti.
+        </p>
+        <Link href="/biosync" className="font-mono text-[11px] text-brand-green hover:opacity-70 transition-opacity uppercase tracking-[0.06em]">
+          Ir a Biosync →
+        </Link>
+      </div>
     </div>
   );
 }
