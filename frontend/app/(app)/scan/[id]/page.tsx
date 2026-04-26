@@ -2,8 +2,10 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { scanBarcode } from "@/lib/api/scan";
+import { getBiomarkerStatus } from "@/lib/api/biosync";
+import type { BiomarkerStatusResponse } from "@/lib/api/types";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -34,28 +36,51 @@ import type {
 } from "@/lib/api/types";
 
 // ── Semáforo — config canónica (Fase B tokens) ─────────────────────────────────
-type SemConfig = { color: string; Icon: React.ComponentType<{ size?: number; className?: string }>; label: string; avatar: string };
+type SemConfig = {
+  color: string;
+  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  avatar: string;
+};
 const SEMAPHORE: Record<SemaphoreColor, SemConfig> = {
-  GRAY:   { color: "#A8B3A7", Icon: HelpCircle,    label: "Sin datos suficientes", avatar: "/avatars/gray.png"   },
-  BLUE:   { color: "#60A5FA", Icon: CheckCircle,   label: "Seguro",                avatar: "/avatars/blue.png"   },
-  YELLOW: { color: "#FACC15", Icon: AlertCircle,   label: "Precaución",            avatar: "/avatars/yellow.png" },
-  ORANGE: { color: "#FB923C", Icon: AlertTriangle, label: "Riesgo personal",       avatar: "/avatars/orange.png" },
-  RED:    { color: "#F87171", Icon: ShieldAlert,   label: "Prohibido",             avatar: "/avatars/red.png"    },
+  GRAY: {
+    color: "#A8B3A7",
+    Icon: HelpCircle,
+    label: "Sin datos suficientes",
+    avatar: "/avatars/gray.png",
+  },
+  BLUE: { color: "#60A5FA", Icon: CheckCircle, label: "Seguro", avatar: "/avatars/blue.png" },
+  YELLOW: {
+    color: "#FACC15",
+    Icon: AlertCircle,
+    label: "Precaución",
+    avatar: "/avatars/yellow.png",
+  },
+  ORANGE: {
+    color: "#FB923C",
+    Icon: AlertTriangle,
+    label: "Riesgo personal",
+    avatar: "/avatars/orange.png",
+  },
+  RED: { color: "#F87171", Icon: ShieldAlert, label: "Prohibido", avatar: "/avatars/red.png" },
 };
 
 // ── Severity styles ─────────────────────────────────────────────────────────────
 const SEV_STYLE: Record<ConflictSeverity, { bg: string; border: string; color: string }> = {
-  HIGH:   { bg: "rgba(248,113,113,.15)", border: "#F87171", color: "#F87171" },
-  MEDIUM: { bg: "rgba(251,146,60,.15)",  border: "#FB923C", color: "#FB923C" },
-  LOW:    { bg: "rgba(250,204,21,.15)",  border: "#FACC15", color: "#FACC15" },
+  HIGH: { bg: "rgba(248,113,113,.15)", border: "#F87171", color: "#F87171" },
+  MEDIUM: { bg: "rgba(251,146,60,.15)", border: "#FB923C", color: "#FB923C" },
+  LOW: { bg: "rgba(250,204,21,.15)", border: "#FACC15", color: "#FACC15" },
 };
 
 // ── Regulatory status styles ────────────────────────────────────────────────────
-const STATUS_STYLE: Record<NonNullable<RegulatoryStatus>, { bg: string; border: string; color: string }> = {
-  Approved:       { bg: "rgba(74,222,128,.12)",  border: "#4ADE80", color: "#4ADE80"  },
-  Banned:         { bg: "rgba(248,113,113,.12)", border: "#F87171", color: "#F87171"  },
-  Restricted:     { bg: "rgba(251,146,60,.12)",  border: "#FB923C", color: "#FB923C"  },
-  "Under Review": { bg: "rgba(250,204,21,.12)",  border: "#FACC15", color: "#FACC15"  },
+const STATUS_STYLE: Record<
+  NonNullable<RegulatoryStatus>,
+  { bg: string; border: string; color: string }
+> = {
+  Approved: { bg: "rgba(74,222,128,.12)", border: "#4ADE80", color: "#4ADE80" },
+  Banned: { bg: "rgba(248,113,113,.12)", border: "#F87171", color: "#F87171" },
+  Restricted: { bg: "rgba(251,146,60,.12)", border: "#FB923C", color: "#FB923C" },
+  "Under Review": { bg: "rgba(250,204,21,.12)", border: "#FACC15", color: "#FACC15" },
 };
 
 // ── Sort ingredients: mayor severidad primero ──────────────────────────────────
@@ -68,8 +93,8 @@ function maxSevOrder(ing: IngredientResult): number {
 // ── Tiempo relativo ─────────────────────────────────────────────────────────────
 function timeAgo(iso: string): string {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60)    return `hace ${s} seg`;
-  if (s < 3600)  return `hace ${Math.floor(s / 60)} min`;
+  if (s < 60) return `hace ${s} seg`;
+  if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
   if (s < 86400) return `hace ${Math.floor(s / 3600)}h`;
   return new Date(iso).toLocaleDateString("es-MX");
 }
@@ -103,12 +128,13 @@ export default function ScanResultPage() {
 
 function ScanResultInner() {
   const rawId = useParams<{ id: string }>().id;
-  const id = decodeURIComponent(rawId); // normalize regardless of how Next.js encodes the path segment
+  const id = decodeURIComponent(rawId);
   const searchParams = useSearchParams();
-  const viaPhoto = searchParams.get("via") === "photo";
+  // Photo pseudo-barcodes from history (photo-{hex}) don't have ?via=photo in the URL
+  const viaPhoto = searchParams.get("via") === "photo" || id.startsWith("photo-");
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery<ScanResponse>({
+  const { data, isLoading, isError, isFetching } = useQuery<ScanResponse>({
     queryKey: ["scan", id],
     queryFn: () => scanBarcode(id),
     enabled: !viaPhoto,
@@ -118,13 +144,34 @@ function ScanResultInner() {
     gcTime: 10 * 60 * 1000,
   });
 
+  const { data: bioStatus } = useQuery<BiomarkerStatusResponse>({
+    queryKey: ["biomarker-status"],
+    queryFn: getBiomarkerStatus,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  // Refetch once when both data and bioStatus are ready, biomarkers exist, but no insights yet.
+  // Using a ref prevents re-triggering after the refetch completes.
+  const hasTriggeredRefetch = useRef(false);
+  useEffect(() => {
+    if (
+      !hasTriggeredRefetch.current &&
+      !viaPhoto &&
+      data !== undefined &&
+      bioStatus?.has_data === true &&
+      data.personalized_insights.length === 0
+    ) {
+      hasTriggeredRefetch.current = true;
+      queryClient.invalidateQueries({ queryKey: ["scan", id] });
+    }
+  }, [data, bioStatus?.has_data, id, viaPhoto]);
+
   if (isLoading) return <LoadingState />;
   if (isError || !data) return viaPhoto ? <PhotoExpiredState /> : <NoCacheState />;
 
   const sem = SEMAPHORE[data.semaphore];
-  const sortedIngredients = [...data.ingredients].sort(
-    (a, b) => maxSevOrder(a) - maxSevOrder(b),
-  );
+  const sortedIngredients = [...data.ingredients].sort((a, b) => maxSevOrder(a) - maxSevOrder(b));
   const conflictCount = data.ingredients.filter((i) => i.conflicts.length > 0).length;
   const explanation = getExplanation(data.semaphore, conflictCount);
 
@@ -140,10 +187,8 @@ function ScanResultInner() {
 
       {/* Layout 2 columnas en desktop */}
       <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-10 lg:items-start">
-
         {/* ── Columna izquierda: hero + meta ── */}
         <div className="lg:sticky lg:top-[78px] flex flex-col gap-5 mb-8 lg:mb-0">
-
           {/* Hero card */}
           <div
             className="bs-card px-6 py-7 flex flex-col items-center gap-4 relative overflow-hidden"
@@ -213,10 +258,13 @@ function ScanResultInner() {
           </p>
 
           {/* Sección "Para ti" — insights personalizados */}
-          {data.personalized_insights.length > 0
-            ? <ParaTiSection insights={data.personalized_insights} />
-            : <BiomarkerEmptyState />
-          }
+          {data.personalized_insights.length > 0 ? (
+            <ParaTiSection insights={data.personalized_insights} />
+          ) : !bioStatus?.has_data ? (
+            <BiomarkerEmptyState />
+          ) : isFetching ? null : (
+            <BiomarkerClearState />
+          )}
 
           {/* Metadata + acciones */}
           <div className="flex flex-col items-center gap-3 pt-1">
@@ -228,7 +276,10 @@ function ScanResultInner() {
               <Link
                 href="/scan"
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-button font-mono text-[12px] uppercase tracking-[0.08em] text-brand-green transition-all bs-glow-green hover:bs-glow-green-strong"
-                style={{ background: "rgba(74,222,128,.12)", border: "1px solid rgba(74,222,128,.3)" }}
+                style={{
+                  background: "rgba(74,222,128,.12)",
+                  border: "1px solid rgba(74,222,128,.3)",
+                }}
               >
                 <RotateCcw size={13} />
                 Escanear otro
@@ -249,7 +300,8 @@ function ScanResultInner() {
         {/* ── Columna derecha: ingredientes ── */}
         <div>
           <h2 className="font-mono text-[11px] text-subtext uppercase tracking-[0.1em] mb-4">
-            {sortedIngredients.length} ingrediente{sortedIngredients.length !== 1 ? "s" : ""} analizados
+            {sortedIngredients.length} ingrediente{sortedIngredients.length !== 1 ? "s" : ""}{" "}
+            analizados
           </h2>
 
           {sortedIngredients.length === 0 ? (
@@ -278,7 +330,13 @@ function ScanResultInner() {
 // Sub-componentes inline (on-demand — único consumer por ahora)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function IngredientItem({ ingredient: ing, index }: { ingredient: IngredientResult; index: number }) {
+function IngredientItem({
+  ingredient: ing,
+  index,
+}: {
+  ingredient: IngredientResult;
+  index: number;
+}) {
   const statusStyle = ing.regulatory_status ? STATUS_STYLE[ing.regulatory_status] : null;
   const confidence = Math.round(ing.confidence_score * 100);
 
@@ -291,15 +349,17 @@ function IngredientItem({ ingredient: ing, index }: { ingredient: IngredientResu
       <AccordionTrigger className="py-4 px-2 hover:no-underline hover:bg-[rgba(74,222,128,.03)] rounded-[6px] transition-colors">
         <div className="flex flex-1 items-center gap-3 min-w-0 mr-3">
           {/* Nombre */}
-          <span className="font-sans text-sm text-foreground truncate min-w-0">
-            {ing.name}
-          </span>
+          <span className="font-sans text-sm text-foreground truncate min-w-0">{ing.name}</span>
 
           {/* Status badge */}
           {statusStyle && ing.regulatory_status && (
             <span
               className="shrink-0 px-1.5 py-0.5 rounded-full font-mono text-[9px] uppercase tracking-[0.08em]"
-              style={{ background: statusStyle.bg, border: `1px solid ${statusStyle.border}`, color: statusStyle.color }}
+              style={{
+                background: statusStyle.bg,
+                border: `1px solid ${statusStyle.border}`,
+                color: statusStyle.color,
+              }}
             >
               {ing.regulatory_status}
             </span>
@@ -329,7 +389,8 @@ function IngredientItem({ ingredient: ing, index }: { ingredient: IngredientResu
                 className="h-full rounded-full"
                 style={{
                   width: `${confidence}%`,
-                  background: confidence >= 80 ? "#4ADE80" : confidence >= 50 ? "#FB923C" : "#F87171",
+                  background:
+                    confidence >= 80 ? "#4ADE80" : confidence >= 50 ? "#FB923C" : "#F87171",
                 }}
               />
             </div>
@@ -344,19 +405,25 @@ function IngredientItem({ ingredient: ing, index }: { ingredient: IngredientResu
           <div className="flex flex-wrap gap-4">
             {ing.cas_number && (
               <div>
-                <p className="font-mono text-[9px] text-subtext uppercase tracking-[0.08em] mb-0.5">CAS</p>
+                <p className="font-mono text-[9px] text-subtext uppercase tracking-[0.08em] mb-0.5">
+                  CAS
+                </p>
                 <p className="font-mono text-[12px] text-foreground">{ing.cas_number}</p>
               </div>
             )}
             {ing.e_number && (
               <div>
-                <p className="font-mono text-[9px] text-subtext uppercase tracking-[0.08em] mb-0.5">E-number</p>
+                <p className="font-mono text-[9px] text-subtext uppercase tracking-[0.08em] mb-0.5">
+                  E-number
+                </p>
                 <p className="font-mono text-[12px] text-foreground">{ing.e_number}</p>
               </div>
             )}
             {ing.canonical_name && ing.canonical_name !== ing.name && (
               <div>
-                <p className="font-mono text-[9px] text-subtext uppercase tracking-[0.08em] mb-0.5">Nombre canónico</p>
+                <p className="font-mono text-[9px] text-subtext uppercase tracking-[0.08em] mb-0.5">
+                  Nombre canónico
+                </p>
                 <p className="font-sans text-[12px] text-foreground">{ing.canonical_name}</p>
               </div>
             )}
@@ -387,7 +454,11 @@ function ConflictRow({ conflict }: { conflict: IngredientConflict }) {
       <div className="flex items-center gap-2">
         <span
           className="px-1.5 py-0.5 rounded-full font-mono text-[9px] uppercase tracking-[0.08em]"
-          style={{ background: `${style.border}25`, border: `1px solid ${style.border}`, color: style.color }}
+          style={{
+            background: `${style.border}25`,
+            border: `1px solid ${style.border}`,
+            color: style.color,
+          }}
         >
           {conflict.severity}
         </span>
@@ -406,7 +477,10 @@ function ConflictRow({ conflict }: { conflict: IngredientConflict }) {
             <span
               key={src}
               className="px-2 py-0.5 rounded-full font-mono text-[9px] text-subtext"
-              style={{ background: "rgba(74,222,128,.06)", border: "1px solid rgba(74,222,128,.12)" }}
+              style={{
+                background: "rgba(74,222,128,.06)",
+                border: "1px solid rgba(74,222,128,.12)",
+              }}
             >
               {src}
             </span>
@@ -434,12 +508,12 @@ function ParaTiSection({ insights }: { insights: PersonalizedInsight[] }) {
 }
 
 const INSIGHT_BORDER: Record<string, string> = {
-  red:    "#F87171",
+  red: "#F87171",
   orange: "#FB923C",
   yellow: "#FACC15",
 };
 const INSIGHT_BG: Record<string, string> = {
-  red:    "rgba(248,113,113,.05)",
+  red: "rgba(248,113,113,.05)",
   orange: "rgba(251,146,60,.05)",
   yellow: "rgba(250,204,21,.05)",
 };
@@ -447,29 +521,42 @@ const INSIGHT_BG: Record<string, string> = {
 function InsightCard({ insight }: { insight: PersonalizedInsight }) {
   const borderColor = INSIGHT_BORDER[insight.avatar_variant] ?? "#6B8A6A";
   const bgColor = INSIGHT_BG[insight.avatar_variant] ?? "transparent";
+  const rgb = hexToRgb(borderColor);
 
   return (
     <div
-      className="rounded-card px-4 py-4 flex gap-4"
+      className="rounded-card px-5 py-6 flex flex-col items-center gap-4 relative overflow-hidden"
       style={{
         background: bgColor,
-        borderLeft: `3px solid ${borderColor}`,
-        border: `1px solid ${borderColor}30`,
-        borderLeftWidth: "3px",
-        borderLeftColor: borderColor,
+        border: `1px solid rgba(${rgb}, .35)`,
+        boxShadow: `0 0 32px rgba(${rgb}, .18), inset 0 0 40px rgba(${rgb}, .04)`,
       }}
     >
-      <AvatarGlow variant={insight.avatar_variant} size={72} intensity="medium" className="shrink-0 self-start" />
-      <div className="flex flex-col gap-2 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className="font-sans font-semibold text-sm"
-            style={{ color: borderColor }}
-          >
+      {/* Glow superior del color de la alerta */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none"
+        style={{
+          width: "160px",
+          height: "60px",
+          background: `radial-gradient(ellipse, rgba(${rgb}, .18) 0%, transparent 70%)`,
+        }}
+      />
+
+      <AvatarGlow
+        variant={insight.avatar_variant}
+        size={130}
+        intensity="medium"
+        className="relative z-10"
+      />
+
+      <div className="flex flex-col items-center gap-2 text-center w-full">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="font-sans font-semibold text-sm" style={{ color: borderColor }}>
             {insight.friendly_title}
           </span>
           <span className="font-mono text-[10px] text-subtext">
-            {insight.biomarker_value} {insight.biomarker_unit} · {insight.classification === "high" ? "alto" : "bajo"}
+            {insight.biomarker_value} {insight.biomarker_unit} ·{" "}
+            {insight.classification === "high" ? "alto" : "bajo"}
           </span>
         </div>
         <p className="font-sans text-[13px] text-foreground leading-[1.55]">
@@ -479,13 +566,19 @@ function InsightCard({ insight }: { insight: PersonalizedInsight }) {
           {insight.friendly_recommendation}
         </p>
         {insight.affecting_ingredients.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            <span className="font-mono text-[9px] text-subtext self-center uppercase tracking-[0.06em]">Ingredientes:</span>
+          <div className="flex flex-wrap justify-center gap-1.5 mt-1">
+            <span className="font-mono text-[9px] text-subtext self-center uppercase tracking-[0.06em]">
+              Ingredientes:
+            </span>
             {insight.affecting_ingredients.map((ingr) => (
               <span
                 key={ingr}
                 className="px-2 py-0.5 rounded-full font-mono text-[9px]"
-                style={{ background: "rgba(74,222,128,.06)", border: "1px solid rgba(74,222,128,.15)", color: "#6B8A6A" }}
+                style={{
+                  background: "rgba(74,222,128,.06)",
+                  border: "1px solid rgba(74,222,128,.15)",
+                  color: "#6B8A6A",
+                }}
               >
                 {ingr}
               </span>
@@ -500,17 +593,59 @@ function InsightCard({ insight }: { insight: PersonalizedInsight }) {
 function BiomarkerEmptyState() {
   return (
     <div
-      className="rounded-card px-4 py-4 flex items-center gap-3"
+      className="rounded-card px-4 py-4 flex flex-col items-center gap-2 text-center"
       style={{ background: "rgba(74,222,128,.03)", border: "1px solid rgba(74,222,128,.1)" }}
     >
-      <AvatarGlow variant="gray" size={56} intensity="soft" className="shrink-0" />
+      <p className="font-sans text-[13px] text-foreground/80 leading-[1.5]">
+        Sube tus biomarcadores para que cada scan se adapte a ti.
+      </p>
+      <Link
+        href="/biosync"
+        className="font-mono text-[11px] text-brand-green hover:opacity-70 transition-opacity uppercase tracking-[0.06em]"
+      >
+        Ir a Biosync →
+      </Link>
+    </div>
+  );
+}
+
+function BiomarkerClearState() {
+  return (
+    <div className="flex flex-col gap-3">
       <div>
-        <p className="font-sans text-[13px] text-foreground/80 leading-[1.5]">
-          Sube tus biomarcadores para que cada scan se adapte a ti.
+        <h2 className="font-sans font-semibold text-base text-foreground">Para ti</h2>
+        <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.06em] mt-0.5">
+          Basado en tus biomarcadores recientes
         </p>
-        <Link href="/biosync" className="font-mono text-[11px] text-brand-green hover:opacity-70 transition-opacity uppercase tracking-[0.06em]">
-          Ir a Biosync →
-        </Link>
+      </div>
+      <div
+        className="rounded-card px-5 py-6 flex flex-col items-center gap-4 relative overflow-hidden"
+        style={{
+          background: "rgba(96,165,250,.05)",
+          border: "1px solid rgba(96,165,250,.35)",
+          boxShadow: "0 0 32px rgba(96,165,250,.18), inset 0 0 40px rgba(96,165,250,.04)",
+        }}
+      >
+        <div
+          className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none"
+          style={{
+            width: "160px",
+            height: "60px",
+            background: "radial-gradient(ellipse, rgba(96,165,250,.18) 0%, transparent 70%)",
+          }}
+        />
+        <Image
+          src="/avatars/success.png"
+          alt=""
+          aria-hidden
+          width={130}
+          height={130}
+          className="object-contain animate-pulse-glow relative z-10"
+          style={{ filter: "drop-shadow(0 0 39px rgba(96,165,250,0.25))" }}
+        />
+        <p className="font-sans text-[13px] text-foreground/80 leading-[1.5] text-center">
+          Ningún ingrediente de este producto presenta conflictos con tus biomarcadores.
+        </p>
       </div>
     </div>
   );
@@ -555,9 +690,7 @@ function PhotoExpiredState() {
         />
       </div>
       <div>
-        <p className="font-sans text-base text-foreground font-semibold">
-          Resultado no disponible
-        </p>
+        <p className="font-sans text-base text-foreground font-semibold">Resultado no disponible</p>
         <p className="font-mono text-[12px] text-subtext mt-1 max-w-[280px] leading-[1.6]">
           Los resultados de foto no se guardan entre sesiones. Escanea la etiqueta de nuevo.
         </p>
