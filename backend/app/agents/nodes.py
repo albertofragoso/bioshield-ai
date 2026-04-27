@@ -79,6 +79,7 @@ def make_extract_ingredients_node(settings: Settings):
 
         extraction = await gemini_service.extract_from_image(image, settings)
         return {
+            "product_name": extraction.product_name,
             "extracted_ingredients": extraction.ingredients,
             "source": "photo",
         }

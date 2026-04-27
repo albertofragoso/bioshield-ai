@@ -148,11 +148,14 @@ Tablas (Alembic migration `fbea1868d5e6_initial_schema`):
 - `regulatory_statuses` — id, ingredient_id (FK), source_id (FK), status, hazard_note, usage_limits
 - `data_sources` — id, name (unique)
 - `ingestion_logs` — id, source_id (FK), started_at, finished_at, records_upserted
-- `scan_history` — id (UUID PK), user_id (FK), product_barcode (FK), ingredient_id (FK nullable), semaphore_result, confidence_score, conflict_severity, scanned_at
+- `scan_history` — id (UUID PK), user_id (FK), product_barcode (FK), ingredient_id (FK nullable), semaphore_result, confidence_score, conflict_severity, result_json (JSON nullable), scanned_at
 - `biomarkers` — id (UUID PK), user_id (FK unique), encrypted_data (BLOB), encryption_iv (BLOB), uploaded_at, expires_at
 
 Tabla adicional (migration `1906e8b727d2_add_refresh_tokens_table`):
 - `refresh_tokens` — id (UUID PK), user_id (FK), token_hash, jti, expires_at, revoked
+
+Migración `a3f7c2d1e845_add_scan_result_json`:
+- Añade columna `result_json JSON nullable` a `scan_history` — almacena el `ScanResponse` serializado para recuperar resultados completos de foto sin re-procesar.
 
 ---
 
@@ -505,6 +508,7 @@ Runbook completo que cubre:
 | GET | `/health` | No | — | 200 |
 | GET | `/scan/ping` | JWT | — | 200 |
 | GET | `/scan/history` | JWT | — | 200 |
+| GET | `/scan/result/{barcode}` | JWT | — | 200, 404 |
 | POST | `/scan/barcode` | JWT | 20/min | 200, 404, 429 |
 | POST | `/scan/photo` | JWT | 20/min | 200, 400, 413, 422, 429, 503 |
 | POST | `/scan/contribute` | JWT | 10/min | 202, 422, 429 |
@@ -535,7 +539,7 @@ UserResponse          { id: UUID, email, created_at }
 # Scan
 BarcodeRequest        { barcode: str (8-14 dígitos) }
 PhotoScanRequest      { image_base64: str }
-ProductExtraction     { ingredients: list[str], has_additives: bool, language: str }
+ProductExtraction     { product_name: str | None, ingredients: list[str], has_additives: bool, language: str }
 IngredientConflict    { conflict_type, severity, summary, sources: list[str] }
 IngredientResult      { name, canonical_name?, cas_number?, e_number?,
                         regulatory_status?, confidence_score, conflicts: [] }

@@ -80,6 +80,7 @@ class PhotoScanRequest(BaseModel):
 
 # Structured output schema used with Gemini (§3.A PRD)
 class ProductExtraction(BaseModel):
+    product_name: str | None = None
     ingredients: list[str]
     has_additives: bool
     language: str = "es"

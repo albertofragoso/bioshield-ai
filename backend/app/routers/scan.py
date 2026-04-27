@@ -48,22 +48,20 @@ def ping(current_user: User = Depends(get_current_user)):
 # GET /scan/history
 # ─────────────────────────────────────────────
 
+
 @router.get("/history", response_model=list[ScanHistoryEntry])
 def get_scan_history(
     limit: int = 20,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    rows = (
-        db.execute(
-            select(ScanHistory, Product.name)
-            .join(Product, ScanHistory.product_barcode == Product.barcode)
-            .where(ScanHistory.user_id == current_user.id)
-            .order_by(ScanHistory.scanned_at.desc())
-            .limit(limit)
-        )
-        .all()
-    )
+    rows = db.execute(
+        select(ScanHistory, Product.name)
+        .join(Product, ScanHistory.product_barcode == Product.barcode)
+        .where(ScanHistory.user_id == current_user.id)
+        .order_by(ScanHistory.scanned_at.desc())
+        .limit(limit)
+    ).all()
     return [
         ScanHistoryEntry(
             id=row.ScanHistory.id,
@@ -79,8 +77,34 @@ def get_scan_history(
 
 
 # ─────────────────────────────────────────────
+# GET /scan/result/{barcode}
+# ─────────────────────────────────────────────
+
+
+@router.get("/result/{barcode}", response_model=ScanResponse)
+def get_scan_result(
+    barcode: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    row = db.scalar(
+        select(ScanHistory)
+        .where(
+            ScanHistory.product_barcode == barcode,
+            ScanHistory.user_id == current_user.id,
+            ScanHistory.result_json.isnot(None),
+        )
+        .order_by(ScanHistory.scanned_at.desc())
+    )
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
+    return ScanResponse.model_validate(row.result_json)
+
+
+# ─────────────────────────────────────────────
 # POST /scan/barcode
 # ─────────────────────────────────────────────
+
 
 @router.post("/barcode", response_model=ScanResponse)
 @limiter.limit("20/minute")
@@ -92,9 +116,7 @@ async def scan_barcode(
     settings: Settings = Depends(get_settings),
 ):
     graph = build_scan_graph(db, settings)
-    final_state = await graph.ainvoke(
-        {"barcode": body.barcode, "user_id": current_user.id}
-    )
+    final_state = await graph.ainvoke({"barcode": body.barcode, "user_id": current_user.id})
 
     if not (final_state.get("extracted_ingredients") or []):
         raise HTTPException(
@@ -109,15 +131,17 @@ async def scan_barcode(
         brand=final_state.get("product_brand"),
         image_url=final_state.get("product_image_url"),
     )
-    _persist_scan_history(db, current_user, product.barcode, final_state)
+    response = _build_response(final_state, product.barcode, product.name)
+    _persist_scan_history(db, current_user, product.barcode, final_state, response)
     db.commit()
 
-    return _build_response(final_state, product.barcode, product.name)
+    return response
 
 
 # ─────────────────────────────────────────────
 # POST /scan/photo
 # ─────────────────────────────────────────────
+
 
 @router.post("/photo", response_model=ScanResponse)
 @limiter.limit("20/minute")
@@ -129,9 +153,7 @@ async def scan_photo(
     settings: Settings = Depends(get_settings),
 ):
     graph = build_scan_graph(db, settings)
-    final_state = await graph.ainvoke(
-        {"image_b64": body.image_base64, "user_id": current_user.id}
-    )
+    final_state = await graph.ainvoke({"image_b64": body.image_base64, "user_id": current_user.id})
 
     if final_state.get("error"):
         raise HTTPException(
@@ -147,16 +169,24 @@ async def scan_photo(
     # Photo scans have no real barcode — synthesize a marker so the FK holds.
     # Use hyphen (not colon) so the value is safe in URL path segments.
     pseudo_barcode = f"photo-{uuid4().hex[:16]}"
-    product = _upsert_product(db, barcode=pseudo_barcode, name=None, brand=None, image_url=None)
-    _persist_scan_history(db, current_user, product.barcode, final_state)
+    product = _upsert_product(
+        db,
+        barcode=pseudo_barcode,
+        name=final_state.get("product_name"),
+        brand=None,
+        image_url=None,
+    )
+    response = _build_response(final_state, product.barcode, product.name)
+    _persist_scan_history(db, current_user, product.barcode, final_state, response)
     db.commit()
 
-    return _build_response(final_state, product.barcode, product.name)
+    return response
 
 
 # ─────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────
+
 
 def _upsert_product(
     db: Session,
@@ -186,6 +216,7 @@ def _persist_scan_history(
     user: User,
     product_barcode: str,
     state: dict,
+    response: ScanResponse,
 ) -> None:
     resolved: list[IngredientResult] = state.get("resolved") or []
     semaphore = state.get("semaphore", SemaphoreColor.GRAY)
@@ -201,9 +232,7 @@ def _persist_scan_history(
                 break
 
     avg_confidence = (
-        sum(ing.confidence_score for ing in resolved) / len(resolved)
-        if resolved
-        else 0.0
+        sum(ing.confidence_score for ing in resolved) / len(resolved) if resolved else 0.0
     )
 
     db.add(
@@ -216,6 +245,7 @@ def _persist_scan_history(
             ),
             confidence_score=avg_confidence,
             conflict_severity=state.get("conflict_severity"),
+            result_json=response.model_dump(mode="json"),
         )
     )
 
@@ -236,6 +266,7 @@ def _build_response(state: dict, barcode: str, product_name: str | None) -> Scan
 # ─────────────────────────────────────────────
 # POST /scan/contribute  (Fase 2 — flujo contributivo OFF)
 # ─────────────────────────────────────────────
+
 
 @router.post("/contribute", response_model=OFFContributeResponse, status_code=202)
 @limiter.limit("10/minute")

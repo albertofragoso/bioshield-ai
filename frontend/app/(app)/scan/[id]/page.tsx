@@ -1,9 +1,9 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { scanBarcode } from "@/lib/api/scan";
+import { getScanResult, scanBarcode } from "@/lib/api/scan";
 import { getBiomarkerStatus } from "@/lib/api/biosync";
 import type { BiomarkerStatusResponse } from "@/lib/api/types";
 import Image from "next/image";
@@ -131,15 +131,12 @@ export default function ScanResultPage() {
 function ScanResultInner() {
   const rawId = useParams<{ id: string }>().id;
   const id = decodeURIComponent(rawId);
-  const searchParams = useSearchParams();
-  // Photo pseudo-barcodes from history (photo-{hex}) don't have ?via=photo in the URL
-  const viaPhoto = searchParams.get("via") === "photo" || id.startsWith("photo-");
+  const isPhotoScan = id.startsWith("photo-");
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, isFetching } = useQuery<ScanResponse>({
     queryKey: ["scan", id],
-    queryFn: () => scanBarcode(id),
-    enabled: !viaPhoto,
+    queryFn: () => (isPhotoScan ? getScanResult(id) : scanBarcode(id)),
     initialData: () => queryClient.getQueryData<ScanResponse>(["scan", id]),
     initialDataUpdatedAt: () => queryClient.getQueryState(["scan", id])?.dataUpdatedAt,
     staleTime: 5 * 60 * 1000,
@@ -159,7 +156,6 @@ function ScanResultInner() {
   useEffect(() => {
     if (
       !hasTriggeredRefetch.current &&
-      !viaPhoto &&
       data !== undefined &&
       bioStatus?.has_data === true &&
       data.personalized_insights.length === 0
@@ -167,10 +163,10 @@ function ScanResultInner() {
       hasTriggeredRefetch.current = true;
       queryClient.invalidateQueries({ queryKey: ["scan", id] });
     }
-  }, [data, bioStatus?.has_data, id, viaPhoto]);
+  }, [data, bioStatus?.has_data, id]);
 
   if (isLoading) return <LoadingState />;
-  if (isError || !data) return viaPhoto ? <PhotoExpiredState /> : <NoCacheState />;
+  if (isError || !data) return <NoCacheState />;
 
   const sem = SEMAPHORE[data.semaphore];
   const sortedIngredients = [...data.ingredients].sort((a, b) => maxSevOrder(a) - maxSevOrder(b));
@@ -836,7 +832,7 @@ function DiagnosticInsightCard({
 
   return (
     <article
-      className="relative overflow-hidden rounded-card px-5 py-5 flex flex-col gap-4"
+      className="relative overflow-hidden rounded-card px-5 py-5 flex flex-col gap-4 h-full"
       style={{
         background: `rgba(${rgb}, .04)`,
         border: `1px solid rgba(${rgb}, .28)`,
@@ -1002,37 +998,6 @@ function LoadingState() {
           unos segundos
         </p>
       </div>
-    </div>
-  );
-}
-
-function PhotoExpiredState() {
-  return (
-    <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-56px)] gap-5 px-4 text-center">
-      <div className="bs-mascot-glow">
-        <Image
-          src="/avatars/support.png"
-          alt=""
-          aria-hidden
-          width={100}
-          height={100}
-          className="object-contain animate-pulse-glow"
-          priority
-        />
-      </div>
-      <div>
-        <p className="font-sans text-base text-foreground font-semibold">Resultado no disponible</p>
-        <p className="font-mono text-[12px] text-subtext mt-1 max-w-[280px] leading-[1.6]">
-          Los resultados de foto no se guardan entre sesiones. Escanea la etiqueta de nuevo.
-        </p>
-      </div>
-      <Link
-        href="/scan"
-        className="px-6 py-3 rounded-button font-mono text-[12px] uppercase tracking-[0.08em] text-brand-green bs-glow-green"
-        style={{ background: "rgba(74,222,128,.12)", border: "1px solid rgba(74,222,128,.3)" }}
-      >
-        ⟶ escanear de nuevo
-      </Link>
     </div>
   );
 }

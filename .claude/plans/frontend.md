@@ -964,7 +964,7 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 **Decisiones de implementación:**
 - `decodeURIComponent(rawId)` en el hook `useParams` — normaliza el barcode para hacer match con la cache key (que usa el valor sin encodear del response del backend).
 - Glow color: `@keyframes pulse-glow` en globals.css tiene `drop-shadow` hardcodeado verde. Solución: `animate-pulse` en el wrapper (solo opacity) + `filter: drop-shadow` inline en el mismo wrapper. No usar `animate-pulse-glow` sobre el avatar — sobreescribiría el color dinámico.
-- `viaPhoto`: lee `useSearchParams().get("via") === "photo"`. Si `isError || !data`: `viaPhoto ? <PhotoExpiredState /> : <NoCacheState />`.
+- `isPhotoScan`: `id.startsWith("photo-")`. La query llama `getScanResult(id)` para fotos y `scanBarcode(id)` para barcodes. Eliminados `useSearchParams`, `viaPhoto` y `PhotoExpiredState` — los resultados de foto ahora se persisten en `scan_history.result_json` y se recuperan via `GET /scan/result/{barcode}`.
 - Para Ti layout: hero column reducida a `300px` (era `380px`); Para Ti sale del sticky left column y pasa a Row 2 separada por `border-top rgba(green,.08)`.
 - Carousel Para Ti: `overflow-x-auto + snap-x snap-mandatory` en lugar de `translateX` — el swipe nativo del browser maneja mobile; `trackRef.scrollTo` para navegación desktop via dots.
 - `scrollbarWidth: none` cast como `React.CSSProperties` para evitar error TypeScript (`WebkitOverflowScrolling` es non-standard).
@@ -974,8 +974,9 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - Accordion expande y muestra CAS/E-number en mono + conflicts ordenados por severity.
 - Alertas de biomarcadores aparecen solo si `semaphore === "ORANGE"`.
 - Accesibilidad: navegar con teclado + screen reader (macOS VoiceOver) anuncia semáforo.
-- Foto scan: `progress.png` → loading → navega a `/scan/photo-abc123?via=photo` → resultado visible.
-- Foto scan en sesión nueva (cache vacío): muestra `PhotoExpiredState` (no `NoCacheState`).
+- Foto scan: `progress.png` → loading → navega a `/scan/photo-abc123` → resultado visible inmediatamente (desde cache TanStack Query).
+- Foto scan en sesión nueva (refresh / link directo): `getScanResult("photo-abc123")` → `GET /scan/result/photo-abc123` → resultado recuperado desde DB.
+- Nombre del producto visible en foto scan si Gemini lo extrae de la etiqueta (`product_name` en `ProductExtraction`).
 
 ### 7.5 · Biosync UI ✅ REESCRITA (flujo PDF)
 
