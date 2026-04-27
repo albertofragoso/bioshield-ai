@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AvatarGlow } from "@/components/AvatarGlow";
+import { AILoadingState, BIOSYNC_PHASES } from "@/components/AILoadingState";
 import { extractBiomarkers, uploadBiomarkers, getBiomarkerStatus, deleteBiomarkers } from "@/lib/api/biosync";
 import { HttpError } from "@/lib/api/client";
 import type { Biomarker, BiomarkerExtractionResult, AvatarVariant } from "@/lib/api/types";
@@ -257,20 +258,7 @@ export default function BiosyncPage() {
           )}
 
           {/* ── Estado B: Loading ── */}
-          {flow === "loading" && (
-            <div className="flex flex-col items-center gap-6 py-10">
-              <AvatarGlow variant="blue" size={140} intensity="strong" />
-              <div className="text-center">
-                <p className="font-sans text-sm text-foreground">Analizando tu PDF con IA…</p>
-                <p className="font-mono text-[11px] text-subtext mt-1">
-                  Esto toma ~10 segundos. No estamos guardando nada todavía.
-                </p>
-              </div>
-              <div className="w-full max-w-xs h-1 rounded-full overflow-hidden" style={{ background: "rgba(74,222,128,.1)" }}>
-                <div className="h-full rounded-full animate-pulse" style={{ background: "#4ADE80", width: "60%" }} />
-              </div>
-            </div>
-          )}
+          {flow === "loading" && <AILoadingState phases={BIOSYNC_PHASES} />}
 
           {/* ── Estado C: Review ── */}
           {flow === "review" && extraction && (

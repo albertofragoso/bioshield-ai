@@ -315,6 +315,11 @@ Keyframes disponibles en `globals.css`:
 | `animate-scan-line` | translateY -100%→100% | 2s linear infinite | Línea láser barcode |
 | `animate-pulse-glow` | opacity + drop-shadow | 2.4s infinite | Avatar semáforo en resultado |
 | `animate-pulse` (Tailwind) | opacity 1↔0.5 | 2s infinite | Semáforo al cambiar color |
+| `bs-orbital-ring-outer` | `bs-orbit-cw` 360° | 22s linear infinite | Anillo exterior del loader orbital |
+| `bs-orbital-ring-inner` | `bs-orbit-ccw` -360° | 7s linear infinite | Anillo inner del loader orbital |
+| `.bs-cursor-blink` | opacity 1↔0 step-end | 0.9s infinite | Cursor parpadeante en terminal del loader |
+| `.bs-wordmark-green` | text-shadow verde 3 capas | 3s ease-in-out infinite | Glow pulsante de "BioShield" en navbar |
+| `.bs-wordmark-amber` | text-shadow ámbar 2 capas | 3s ease-in-out infinite (delay 0.4s) | Glow pulsante de "AI" en navbar |
 
 Transición estándar: `0.2s ease`. `transform-origin: bottom center` en avatar wobble.
 
@@ -327,7 +332,7 @@ Transición estándar: `0.2s ease`. `transform-origin: bottom center` en avatar 
 
 No requieren wrappers extra en componentes — ya aplicados en `globals.css`.
 
-Utilidades adicionales: `bs-card` (card + glow), `bs-corner-{tl,tr,bl,br}` (corner accents), `bs-glow-green`, `bs-glow-green-strong`, `bs-input-focus`, `bs-mascot-glow`.
+Utilidades adicionales: `bs-card` (card + glow), `bs-corner-{tl,tr,bl,br}` (corner accents), `bs-glow-green`, `bs-glow-green-strong`, `bs-input-focus`, `bs-mascot-glow`, `bs-wordmark-green` / `bs-wordmark-amber` (glow pulsante del wordmark en navbar), `bs-orbital-ring-outer` / `bs-orbital-ring-inner` (anillos del loader), `bs-cursor-blink` (cursor terminal del loader).
 
 ### B.7 · Avatares mascota (`/public/avatars/`)
 
@@ -337,7 +342,7 @@ Utilidades adicionales: `bs-card` (card + glow), `bs-corner-{tl,tr,bl,br}` (corn
 |---|---|---|
 | `main.png` | Login, Register — hero con `animate-wobble` + `bs-mascot-glow` | 140×140 |
 | `welcome.png` | Dashboard primer login, empty state onboarding | 120×120 |
-| `progress.png` | Loading de `/scan` procesando foto | 100×100 |
+| `progress.png` | Loading de `/scan`, `/scan/[id]` y `/biosync` — avatar central del `AILoadingState` | 110×110 |
 | `success.png` | Toast/confirmación biosync upload OK | 80×80 |
 | `profile.png` | Avatar usuario en header autenticado | 40×40 |
 | `support.png` | Empty state errores, fallback 500 | 120×120 |
@@ -693,9 +698,7 @@ TRES ESTADOS (no tabs — flujo lineal):
 - Click/drop → POST `/biosync/extract` → pasa a Estado B.
 
 **Estado B: Loading (analizando)**
-- Progress bar indeterminada + copy "Analizando tu PDF con IA…" (mono).
-- Subtexto: "~10 segundos. No estamos guardando nada todavía."
-- `<AvatarGlow variant="blue" size={80} intensity="strong" />` animado.
+- `<AILoadingState phases={BIOSYNC_PHASES} />` — mismos 4 anillos orbitales y terminal que en `/scan`, con fases propias: `READING_PDF_OCR` → `PARSING_LAB_RESULTS` → `NORMALIZING_BIOMARKERS` → `CLASSIFYING_VALUES` → `CROSS_REF_RANGES`.
 
 **Estado C: Review (post-OCR)**
 - Header: "Revisa los valores extraídos" + chip `lab_name` y `test_date`.
@@ -861,6 +864,7 @@ Plan de emergencia de componentes, en el orden en que las pantallas pendientes l
 | `IngredientAccordion` | `/scan/[id]` | — | shadcn Accordion + badge status + barra confidence + badge "N conflictos" |
 | `ConflictRow` | `/scan/[id]` (dentro de IngredientAccordion) | — | severity badge HIGH/MEDIUM/LOW + summary + sources chips |
 | `AvatarGlow` | `/biosync` (Estado A/B/C) + `/scan/[id]` (InsightCards) | **Inmediatamente** — nació como componente compartido | `variant: gray\|blue\|yellow\|orange\|red`, `size?: number`, `intensity?: soft\|medium\|strong`; animación CSS `avatar-glow-pulse-kf` con custom props |
+| `AILoadingState` | `/scan` (photo tab), `/scan/[id]` (LoadingState), `/biosync` (flow=loading) | **Inmediatamente** — compartido desde el inicio | `phases: AILoadingPhase[]`; 4 anillos orbitales con glow de colores distintos, terminal de log con typewriter/cursor, 4 nodos que se iluminan por fase. Exports: `SCAN_PHASES`, `BIOSYNC_PHASES`. `PhotoLoadingState` es un thin-wrapper con `SCAN_PHASES`. |
 | `InsightCard` | `/scan/[id]` — sección "Para ti" | — | `<AvatarGlow>` 72px + friendly_title + friendly_explanation + friendly_recommendation + chips de ingredientes |
 | `BiomarkerEmptyState` | `/scan/[id]` — sin biomarcadores | — | `<AvatarGlow variant="gray" size={56} intensity="soft">` + link a /biosync; reemplaza el antiguo `BiomarkerAlert` |
 | `BiomarkerField` | eliminado de `/biosync` — flujo manual removido | — | — |
@@ -928,7 +932,7 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - URL param = `product_barcode` (siempre presente en `ScanResponse`). Cache key: `["scan", barcode]`.
 - Cache check ANTES de llamar al backend (implementa 7.6 sin staleTime explícito — si está en cache navega directo).
 - `controls.stop()` para cleanup de @zxing (no `reader.reset()` — no existe en v0.1.5).
-- Avatar `progress.png` en loading de foto (`animate-pulse-glow bs-mascot-glow`), `support.png` en permiso denegado.
+- Avatar `progress.png` en loading de foto — reemplazado por `AILoadingState` con `SCAN_PHASES` (4 anillos orbitales + terminal). `PhotoLoadingState` es el thin-wrapper usado en `/scan` y `/scan/[id]`. `support.png` en permiso denegado.
 - **pseudo_barcode de foto:** formato `photo-{uuid16}` con guión (no `photo:` — los dos puntos hacen que Next.js interprete `photo:` como URL scheme, corrompiendo el query string `?via=photo`).
 - **Navegación post-foto:** `router.push(\`/scan/${encodeURIComponent(data.product_barcode)}?via=photo\`)` — `encodeURIComponent` hace explícito el path segment.
 - **Error type `error_process`:** estado para 400/5xx del servidor (mensaje: "El servidor no pudo procesar la imagen. Intenta de nuevo."), diferenciado de `error_read` (422) y `error_net` (network).

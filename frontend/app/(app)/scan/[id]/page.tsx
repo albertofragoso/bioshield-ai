@@ -27,6 +27,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { AvatarGlow } from "@/components/AvatarGlow";
+import { PhotoLoadingState } from "@/components/scanner/PhotoLoadingState";
 import type {
   ConflictSeverity,
   IngredientConflict,
@@ -845,7 +846,7 @@ function DiagnosticInsightCard({
 
       {/* Row 0 — avatar + label + status pill */}
       <header className="flex items-center gap-3 animate-data-row-in" style={row(0)}>
-        <AvatarGlow variant={insight.avatar_variant} size={56} intensity="soft" />
+        <AvatarGlow variant={insight.avatar_variant} size={84} intensity="soft" />
         <div className="flex-1 min-w-0">
           <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-subtext">
             Tu marcador
@@ -980,23 +981,9 @@ function BiomarkerClearState() {
 
 function LoadingState() {
   return (
-    <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-56px)] gap-5 px-4">
-      <div className="bs-mascot-glow">
-        <Image
-          src="/avatars/progress.png"
-          alt=""
-          aria-hidden
-          width={100}
-          height={100}
-          className="object-contain animate-pulse-glow"
-          priority
-        />
-      </div>
-      <div className="text-center">
-        <p className="font-sans text-sm text-foreground">Analizando producto...</p>
-        <p className="font-mono text-[11px] text-subtext mt-1 uppercase tracking-[0.08em]">
-          unos segundos
-        </p>
+    <div className="relative z-10 min-h-[calc(100vh-56px)] flex items-center justify-center px-4">
+      <div className="w-full max-w-[480px]">
+        <PhotoLoadingState />
       </div>
     </div>
   );

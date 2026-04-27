@@ -418,6 +418,102 @@
   animation: range-fill-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+/* ---------- Wordmark glow pulse ---------- */
+
+@keyframes bs-wordmark-green-kf {
+  0%,
+  100% {
+    text-shadow:
+      0 0 8px rgba(74, 222, 128, 0.8),
+      0 0 20px rgba(74, 222, 128, 0.45),
+      0 0 45px rgba(74, 222, 128, 0.18);
+  }
+  50% {
+    text-shadow:
+      0 0 12px rgba(74, 222, 128, 1),
+      0 0 30px rgba(74, 222, 128, 0.6),
+      0 0 60px rgba(74, 222, 128, 0.25);
+  }
+}
+@keyframes bs-wordmark-amber-kf {
+  0%,
+  100% {
+    text-shadow:
+      0 0 8px rgba(245, 158, 11, 0.75),
+      0 0 20px rgba(245, 158, 11, 0.35);
+  }
+  50% {
+    text-shadow:
+      0 0 12px rgba(245, 158, 11, 1),
+      0 0 30px rgba(245, 158, 11, 0.5);
+  }
+}
+
+.bs-wordmark-green {
+  animation: bs-wordmark-green-kf 3s ease-in-out infinite;
+}
+.bs-wordmark-amber {
+  animation: bs-wordmark-amber-kf 3s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bs-wordmark-green {
+    animation: none;
+    text-shadow:
+      0 0 8px rgba(74, 222, 128, 0.8),
+      0 0 20px rgba(74, 222, 128, 0.45);
+  }
+  .bs-wordmark-amber {
+    animation: none;
+    text-shadow:
+      0 0 8px rgba(245, 158, 11, 0.75),
+      0 0 20px rgba(245, 158, 11, 0.35);
+  }
+}
+
+/* ---------- PhotoLoadingState — orbital + terminal ---------- */
+
+@keyframes bs-orbit-cw {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes bs-orbit-ccw {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes bs-cursor-blink-kf {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.bs-orbital-ring-outer {
+  animation: bs-orbit-cw 22s linear infinite;
+  transform-origin: center;
+}
+.bs-orbital-ring-inner {
+  animation: bs-orbit-ccw 7s linear infinite;
+  transform-origin: center;
+}
+.bs-cursor-blink {
+  display: inline-block;
+  animation: bs-cursor-blink-kf 0.9s step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bs-orbital-ring-outer,
+  .bs-orbital-ring-inner {
+    animation: none;
+  }
+}
+
 .animate-marker-appear {
   animation: marker-appear 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }

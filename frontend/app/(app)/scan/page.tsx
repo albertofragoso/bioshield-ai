@@ -9,6 +9,7 @@ import { ArrowLeft, Keyboard } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarcodeScanner } from "@/components/scanner/BarcodeScanner";
 import { PhotoCapture } from "@/components/scanner/PhotoCapture";
+import { PhotoLoadingState } from "@/components/scanner/PhotoLoadingState";
 import { scanBarcode, scanPhoto } from "@/lib/api/scan";
 import { HttpError } from "@/lib/api/client";
 import type { ScanResponse } from "@/lib/api/types";
@@ -72,7 +73,7 @@ export default function ScanPage() {
       setBarcodeStatus("loading");
       barcodeMutation.mutate(barcode);
     },
-    [queryClient, router, barcodeMutation],
+    [queryClient, router, barcodeMutation]
   );
 
   const handlePermissionDenied = useCallback(() => {
@@ -83,7 +84,7 @@ export default function ScanPage() {
     (base64: string) => {
       photoMutation.mutate(base64);
     },
-    [photoMutation],
+    [photoMutation]
   );
 
   function handleTabChange(value: string) {
@@ -253,30 +254,6 @@ export default function ScanPage() {
 
 /* ── Sub-components ─────────────────────────────────────── */
 
-function PhotoLoadingState() {
-  return (
-    <div className="flex flex-col items-center gap-5 py-12">
-      <div className="bs-mascot-glow">
-        <Image
-          src="/avatars/progress.png"
-          alt=""
-          aria-hidden
-          width={100}
-          height={100}
-          className="object-contain animate-pulse-glow"
-          priority
-        />
-      </div>
-      <div className="text-center">
-        <p className="font-sans text-sm text-foreground">Analizando etiqueta con IA...</p>
-        <p className="font-mono text-[11px] text-subtext mt-1 uppercase tracking-[0.08em]">
-          5–8 segundos
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function PermissionDeniedCard({
   manualBarcode,
   setManualBarcode,
@@ -338,8 +315,8 @@ function NotFoundCard({ onTryPhoto }: { onTryPhoto: () => void }) {
         No encontramos este producto
       </p>
       <p className="font-mono text-[12px] text-subtext max-w-[280px] leading-[1.6]">
-        Este código de barras no está en la base de datos. Puedes intentar analizando
-        la foto de la etiqueta.
+        Este código de barras no está en la base de datos. Puedes intentar analizando la foto de la
+        etiqueta.
       </p>
       <button
         onClick={onTryPhoto}

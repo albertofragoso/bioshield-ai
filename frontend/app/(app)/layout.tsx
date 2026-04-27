@@ -51,11 +51,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         >
           <span
             className="font-display text-[20px] text-brand-green"
-            style={{ textShadow: "0 0 20px rgba(74,222,128,.4)" }}
+            style={{
+              textShadow:
+                "0 0 8px rgba(74,222,128,.8), 0 0 22px rgba(74,222,128,.45), 0 0 48px rgba(74,222,128,.18)",
+              animation: "bs-wordmark-green-kf 3s ease-in-out infinite",
+            }}
           >
             BioShield
           </span>
-          <span className="font-sans font-bold text-[18px] text-brand-amber tracking-[0.06em]">
+          <span
+            className="font-sans font-bold text-[18px] text-brand-amber tracking-[0.06em]"
+            style={{
+              textShadow:
+                "0 0 8px rgba(245,158,11,.8), 0 0 22px rgba(245,158,11,.4)",
+              animation: "bs-wordmark-amber-kf 3s ease-in-out infinite",
+              animationDelay: "0.4s",
+            }}
+          >
             AI
           </span>
         </Link>
