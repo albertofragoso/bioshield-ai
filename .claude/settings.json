@@ -27,5 +27,21 @@
         ]
       }
     ]
+  },
+  "permissions": {
+      "allowedTools": [
+      "Read", 
+      "Grep", 
+      "Glob",
+      "Write",
+      "Execute(npm *)",
+      "Execute(git add *)",
+      "Execute(git commit *)",
+      "Execute(git status)",
+      "Execute(git diff*)",
+      "Execute(git log*)",
+      "Execute(python *)",
+      "Execute(node *)"
+    ]
   }
 }

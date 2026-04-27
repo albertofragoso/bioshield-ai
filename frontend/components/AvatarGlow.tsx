@@ -27,6 +27,8 @@ const INTENSITY_ALPHA: Record<Intensity, { idle: string; peak: string }> = {
 export function AvatarGlow({ variant, size = 80, intensity = "medium", className = "" }: AvatarGlowProps) {
   const base = GLOW_COLOR[variant];
   const { idle, peak } = INTENSITY_ALPHA[intensity];
+  const r = Math.round(size * 0.3);
+  const rPeak = Math.round(size * 0.45);
 
   return (
     <Image
@@ -35,10 +37,13 @@ export function AvatarGlow({ variant, size = 80, intensity = "medium", className
       aria-hidden
       width={size}
       height={size}
-      className={`animate-pulse-glow object-contain shrink-0 ${className}`}
+      className={`animate-filter-glow-pulse object-contain shrink-0 ${className}`}
       style={
         {
-          filter: `drop-shadow(0 0 ${Math.round(size * 0.3)}px ${base}${intensity === "soft" ? idle : intensity === "medium" ? idle : peak})`,
+          "--fg-r": `${r}px`,
+          "--fg-r-peak": `${rPeak}px`,
+          "--fg-idle": `${base}${idle}`,
+          "--fg-peak": `${base}${peak}`,
         } as React.CSSProperties
       }
     />

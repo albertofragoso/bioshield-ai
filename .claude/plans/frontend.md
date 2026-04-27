@@ -585,18 +585,25 @@ LAYOUT (top-to-bottom):
    - RED: "Contiene X ingredientes prohibidos en al menos una jurisdicción."
    - GRAY: "No pudimos resolver suficientes ingredientes con confianza."
 
-3. SECCIÓN "PARA TI" (entre el hero y la lista de ingredientes):
+3. SECCIÓN "PARA TI" — fila dedicada (full-width, debajo del grid hero+ingredientes):
    - Renderizar solo si `data.personalized_insights.length > 0`.
-   - Header H2 "Para ti" + subtítulo "Basado en tus biomarcadores recientes".
-   - Una `InsightCard` por cada `PersonalizedInsight`:
-     - Izquierda: `<AvatarGlow variant={insight.avatar_variant} size={72} intensity="medium" />`.
-     - Top: `friendly_title` en bold + valor con unidad en mono pequeño ("150 mg/dL · alto").
-     - Mid: `friendly_explanation` como párrafo principal (lenguaje cotidiano, sin jerga médica).
-     - Bottom-mid: `friendly_recommendation` en tono secundario más suave.
-     - Footer: chips de `affecting_ingredients` (click → scroll + expand del acordeón correspondiente).
-     - Border-left 3px del color de severity; bg sutil por severity.
-   - **Sin badges técnicos** ("LDL", "HIGH") — el usuario ve `friendly_biomarker_label`.
-   - Empty state (sin biomarcadores activos): `<AvatarGlow variant="gray" size={56} intensity="soft" />` + texto + link a /biosync.
+   - Layout: Row 1 = grid `[300px hero | 1fr ingredientes]`; Row 2 = Para Ti ancho completo.
+   - Header horizontal: H2 "Para ti" a la izquierda, tabs Alertas/Vigilar fijos 256px a la derecha (`sm:flex-row`).
+   - Carousel scroll-snap (`overflow-x-auto snap-x snap-mandatory`), cards `w-full sm:w-[460px]`.
+     - Swipe nativo en mobile; scroll programático en desktop vía `trackRef.current.scrollTo`.
+     - Dots de navegación: pill activo 16px, círculo inactivo 6px.
+     - Cambio de tab resetea al primer card y hace scroll a `left: 0`.
+   - `kind === "alert"` → tab Alertas; `kind === "watch"` → tab Vigilar.
+   - `DiagnosticInsightCard` por insight:
+     - Row 0: `<AvatarGlow>` 56px + `friendly_biomarker_label` + `StatusPill` (ALTO/BAJO/NORMAL).
+     - Row 1: valor numérico grande (30px mono) + unidad.
+     - Row 2: `BiomarkerRangeBar` — track animado con zonas low/normal/high + marker dot con halo y ring; usa `reference_range_low`/`reference_range_high`.
+     - Row 3: "Este producto lo movería ↑↑" — `ImpactArrows` según `impact_direction` y `severity`.
+     - Row 4: `friendly_explanation` + `friendly_recommendation`.
+     - Row 5: chips de `affecting_ingredients`.
+   - Separador visual sutil `border-top rgba(green, .08)` entre Row 1 y Row 2 del layout.
+   - `BiomarkerClearState`: card full-width (`w-full`), `py-10`, contenido centrado, glow radial 320px.
+   - `BiomarkerEmptyState`: `max-w-[480px]`.
    - El anterior componente `BiomarkerAlert` (borde naranja con string genérico) fue eliminado.
 
 4. LISTA DE INGREDIENTES:
@@ -945,8 +952,11 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - `frontend/app/(app)/scan/[id]/page.tsx` ✅ — spec: Fase C — Pantalla 5. Actualizado con sección "Para ti".
 - `SemaphoreHero` ✅ — inline en la pantalla.
 - `IngredientAccordion` + `ConflictRow` ✅ — inline, un único consumer.
-- `ParaTiSection` + `InsightCard` ✅ — inline; sección entre hero y accordion con `<AvatarGlow>` por insight.
-- `BiomarkerEmptyState` ✅ — inline; reemplaza el antiguo `BiomarkerAlert`; muestra `gray.png` con glow + link a /biosync.
+- `ParaTiSection` ✅ — fila dedicada full-width debajo del grid; carousel scroll-snap con tabs en header.
+- `DiagnosticInsightCard` ✅ — inline; incluye `BiomarkerRangeBar` (animado), `ImpactArrows`, `StatusPill`.
+- `BiomarkerRangeBar` ✅ — track con zonas low/normal/high + marker dot animado (halo + ring + dot appear).
+- `BiomarkerEmptyState` ✅ — inline; `max-w-[480px]`; reemplaza el antiguo `BiomarkerAlert`.
+- `BiomarkerClearState` ✅ — inline; card full-width (`w-full py-10`), contenido centrado, sin wrapper limitante.
 - `AvatarGlow` ✅ — extraído a `components/AvatarGlow.tsx` (compartido con /biosync). Props: `variant`, `size`, `intensity`.
 - `SemaphoreBadge` ✅ — extraído a `components/semaphore/SemaphoreBadge.tsx` al aparecer en Dashboard (7.7).
 - `PhotoExpiredState` ✅ — inline: estado fallback cuando `viaPhoto=true` y el cache está vacío.
@@ -955,6 +965,9 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - `decodeURIComponent(rawId)` en el hook `useParams` — normaliza el barcode para hacer match con la cache key (que usa el valor sin encodear del response del backend).
 - Glow color: `@keyframes pulse-glow` en globals.css tiene `drop-shadow` hardcodeado verde. Solución: `animate-pulse` en el wrapper (solo opacity) + `filter: drop-shadow` inline en el mismo wrapper. No usar `animate-pulse-glow` sobre el avatar — sobreescribiría el color dinámico.
 - `viaPhoto`: lee `useSearchParams().get("via") === "photo"`. Si `isError || !data`: `viaPhoto ? <PhotoExpiredState /> : <NoCacheState />`.
+- Para Ti layout: hero column reducida a `300px` (era `380px`); Para Ti sale del sticky left column y pasa a Row 2 separada por `border-top rgba(green,.08)`.
+- Carousel Para Ti: `overflow-x-auto + snap-x snap-mandatory` en lugar de `translateX` — el swipe nativo del browser maneja mobile; `trackRef.scrollTo` para navegación desktop via dots.
+- `scrollbarWidth: none` cast como `React.CSSProperties` para evitar error TypeScript (`WebkitOverflowScrolling` es non-standard).
 
 **Checks de éxito:**
 - Los 5 colores se renderizan con glow del color correcto (amarillo para YELLOW, no verde).

@@ -26,6 +26,7 @@ node_modules/
 # Claude Code (local settings)
 .claude/CLAUDE.local.md
 .claude/settings.local.json
+.vscode/
 
 # Misc
 *.pdf

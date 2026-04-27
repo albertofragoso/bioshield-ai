@@ -69,10 +69,27 @@ export interface ScanResponse {
 // ── Biomarker types (mirror of backend Biosync schemas) ──────────────────────
 
 export type CanonicalBiomarker =
-  | "ldl" | "hdl" | "total_cholesterol" | "triglycerides" | "glucose" | "hba1c"
-  | "sodium" | "potassium" | "uric_acid" | "creatinine" | "alt" | "ast" | "tsh"
-  | "vitamin_d" | "iron" | "ferritin" | "hemoglobin" | "hematocrit" | "platelets"
-  | "wbc" | "other";
+  | "ldl"
+  | "hdl"
+  | "total_cholesterol"
+  | "triglycerides"
+  | "glucose"
+  | "hba1c"
+  | "sodium"
+  | "potassium"
+  | "uric_acid"
+  | "creatinine"
+  | "alt"
+  | "ast"
+  | "tsh"
+  | "vitamin_d"
+  | "iron"
+  | "ferritin"
+  | "hemoglobin"
+  | "hematocrit"
+  | "platelets"
+  | "wbc"
+  | "other";
 
 export type BiomarkerClassification = "low" | "normal" | "high" | "unknown";
 export type ReferenceSource = "lab" | "canonical" | "none";
@@ -107,9 +124,13 @@ export interface PersonalizedInsight {
   biomarker_name: CanonicalBiomarker;
   biomarker_value: number;
   biomarker_unit: string;
-  classification: "low" | "high";
+  classification: "low" | "normal" | "high";
   affecting_ingredients: string[];
   severity: ConflictSeverity;
+  kind: "alert" | "watch";
+  impact_direction: "raises" | "lowers";
+  reference_range_low: number | null;
+  reference_range_high: number | null;
   friendly_title: string;
   friendly_biomarker_label: string;
   friendly_explanation: string;

@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { scanBarcode } from "@/lib/api/scan";
 import { getBiomarkerStatus } from "@/lib/api/biosync";
 import type { BiomarkerStatusResponse } from "@/lib/api/types";
@@ -10,6 +10,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowUp,
+  ArrowDown,
   HelpCircle,
   CheckCircle,
   AlertCircle,
@@ -176,25 +178,24 @@ function ScanResultInner() {
   const explanation = getExplanation(data.semaphore, conflictCount);
 
   return (
-    <div className="relative z-10 px-4 py-6 max-w-[1080px] mx-auto">
+    <div className="relative z-10 px-4 py-6 max-w-[1080px] mx-auto flex flex-col gap-10">
       <Link
         href="/scan"
-        className="inline-flex items-center gap-1.5 font-mono text-[11px] text-subtext hover:text-foreground transition-colors uppercase tracking-[0.08em] mb-6"
+        className="inline-flex items-center gap-1.5 font-mono text-[11px] text-subtext hover:text-foreground transition-colors uppercase tracking-[0.08em] -mb-4"
       >
         <ArrowLeft size={13} />
         escanear otro
       </Link>
 
-      {/* Layout 2 columnas en desktop */}
-      <div className="lg:grid lg:grid-cols-[380px_1fr] lg:gap-10 lg:items-start">
-        {/* ── Columna izquierda: hero + meta ── */}
+      {/* ── Row 1: Hero (sticky) + Ingredientes ── */}
+      <div className="lg:grid lg:grid-cols-[300px_1fr] lg:gap-10 lg:items-start">
+        {/* Columna izquierda: hero + meta */}
         <div className="lg:sticky lg:top-[78px] flex flex-col gap-5 mb-8 lg:mb-0">
           {/* Hero card */}
           <div
             className="bs-card px-6 py-7 flex flex-col items-center gap-4 relative overflow-hidden"
             style={{ borderColor: `rgba(${hexToRgb(sem.color)}, .35)` }}
           >
-            {/* Glow superior del color del semáforo */}
             <div
               className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none"
               style={{
@@ -203,8 +204,6 @@ function ScanResultInner() {
                 background: `radial-gradient(ellipse, ${sem.color}20 0%, transparent 70%)`,
               }}
             />
-
-            {/* Avatar con glow dinámico del color del semáforo */}
             <div
               className="flex justify-center animate-pulse"
               aria-live="polite"
@@ -215,14 +214,12 @@ function ScanResultInner() {
                 src={sem.avatar}
                 alt=""
                 aria-hidden
-                width={130}
-                height={130}
+                width={120}
+                height={120}
                 className="object-contain"
                 priority
               />
             </div>
-
-            {/* Texto del hero — centrado */}
             <div className="flex flex-col items-center gap-1.5 text-center">
               <h1
                 className="font-sans font-bold text-2xl flex items-center gap-2"
@@ -257,15 +254,6 @@ function ScanResultInner() {
             {explanation}
           </p>
 
-          {/* Sección "Para ti" — insights personalizados */}
-          {data.personalized_insights.length > 0 ? (
-            <ParaTiSection insights={data.personalized_insights} />
-          ) : !bioStatus?.has_data ? (
-            <BiomarkerEmptyState />
-          ) : isFetching ? null : (
-            <BiomarkerClearState />
-          )}
-
           {/* Metadata + acciones */}
           <div className="flex flex-col items-center gap-3 pt-1">
             <p className="font-mono text-[10px] text-subtext">
@@ -297,13 +285,12 @@ function ScanResultInner() {
           </div>
         </div>
 
-        {/* ── Columna derecha: ingredientes ── */}
+        {/* Columna derecha: ingredientes */}
         <div>
           <h2 className="font-mono text-[11px] text-subtext uppercase tracking-[0.1em] mb-4">
             {sortedIngredients.length} ingrediente{sortedIngredients.length !== 1 ? "s" : ""}{" "}
             analizados
           </h2>
-
           {sortedIngredients.length === 0 ? (
             <div className="bs-card px-6 py-8 text-center">
               <p className="font-sans text-sm text-subtext">
@@ -321,6 +308,19 @@ function ScanResultInner() {
             </Accordion>
           )}
         </div>
+      </div>
+
+      {/* ── Row 2: Para Ti — fila dedicada ── */}
+      <div className="pt-2" style={{ borderTop: "1px solid rgba(74,222,128,.08)" }}>
+        {data.personalized_insights.length > 0 ? (
+          <ParaTiSection insights={data.personalized_insights} />
+        ) : !bioStatus?.has_data ? (
+          <div className="max-w-[480px]">
+            <BiomarkerEmptyState />
+          </div>
+        ) : isFetching ? null : (
+          <BiomarkerClearState />
+        )}
       </div>
     </div>
   );
@@ -491,102 +491,433 @@ function ConflictRow({ conflict }: { conflict: IngredientConflict }) {
   );
 }
 
-function ParaTiSection({ insights }: { insights: PersonalizedInsight[] }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <h2 className="font-sans font-semibold text-base text-foreground">Para ti</h2>
-        <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.06em] mt-0.5">
-          Basado en tus biomarcadores recientes
-        </p>
-      </div>
-      {insights.map((insight, i) => (
-        <InsightCard key={i} insight={insight} />
-      ))}
-    </div>
-  );
-}
+// ── Para ti — color map ────────────────────────────────────────────────────────
 
 const INSIGHT_BORDER: Record<string, string> = {
   red: "#F87171",
   orange: "#FB923C",
   yellow: "#FACC15",
 };
-const INSIGHT_BG: Record<string, string> = {
-  red: "rgba(248,113,113,.05)",
-  orange: "rgba(251,146,60,.05)",
-  yellow: "rgba(250,204,21,.05)",
-};
 
-function InsightCard({ insight }: { insight: PersonalizedInsight }) {
-  const borderColor = INSIGHT_BORDER[insight.avatar_variant] ?? "#6B8A6A";
-  const bgColor = INSIGHT_BG[insight.avatar_variant] ?? "transparent";
-  const rgb = hexToRgb(borderColor);
+// ── Para ti — section ────────────────────────────────────────────────────────
+
+function ParaTiSection({ insights }: { insights: PersonalizedInsight[] }) {
+  const alerts = insights.filter((i) => i.kind === "alert");
+  const watches = insights.filter((i) => i.kind === "watch");
+  const initialTab: "alerts" | "watches" = alerts.length > 0 ? "alerts" : "watches";
+  const [tab, setTab] = useState<"alerts" | "watches">(initialTab);
+  const [index, setIndex] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const active = tab === "alerts" ? alerts : watches;
+
+  function scrollToIndex(i: number) {
+    setIndex(i);
+    const track = trackRef.current;
+    if (!track) return;
+    const card = track.children[i] as HTMLElement | undefined;
+    if (card) track.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
+  }
+
+  function handleTabChange(t: "alerts" | "watches") {
+    setTab(t);
+    setIndex(0);
+    if (trackRef.current) trackRef.current.scrollTo({ left: 0, behavior: "smooth" });
+  }
 
   return (
-    <div
-      className="rounded-card px-5 py-6 flex flex-col items-center gap-4 relative overflow-hidden"
+    <div className="flex flex-col gap-5">
+      {/* Header: título izq, tabs der */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="font-sans font-semibold text-base text-foreground">Para ti</h2>
+          <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.06em] mt-0.5">
+            Cruce con tus biomarcadores recientes
+          </p>
+        </div>
+        <div className="sm:w-64 shrink-0">
+          <ParaTiTabs
+            tab={tab}
+            onChange={handleTabChange}
+            alertCount={alerts.length}
+            watchCount={watches.length}
+          />
+        </div>
+      </div>
+
+      {tab === "watches" && (
+        <p className="font-sans text-[12px] text-foreground/55 leading-[1.5] -mt-2">
+          Estos marcadores están en rango, pero este producto los podría mover.
+        </p>
+      )}
+
+      {/* Carousel — scroll-snap, peek del siguiente card visible */}
+      <div
+        ref={trackRef}
+        className="flex gap-4 overflow-x-auto snap-x snap-mandatory"
+        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      >
+        {active.map((insight, i) => (
+          <div key={i} className="w-full sm:w-[460px] shrink-0 snap-start">
+            <DiagnosticInsightCard insight={insight} index={i} />
+          </div>
+        ))}
+      </div>
+
+      {/* Dots */}
+      {active.length > 1 && (
+        <div className="flex items-center gap-1.5">
+          {active.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToIndex(i)}
+              aria-label={`Ir al insight ${i + 1}`}
+              className="rounded-full transition-all duration-200"
+              style={{
+                width: i === index ? "16px" : "6px",
+                height: "6px",
+                background: i === index ? "#4ADE80" : "rgba(74,222,128,.22)",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ParaTiTabs({
+  tab,
+  onChange,
+  alertCount,
+  watchCount,
+}: {
+  tab: "alerts" | "watches";
+  onChange: (t: "alerts" | "watches") => void;
+  alertCount: number;
+  watchCount: number;
+}) {
+  const Pill = ({
+    active,
+    id,
+    label,
+    count,
+    color,
+  }: {
+    active: boolean;
+    id: "alerts" | "watches";
+    label: string;
+    count: number;
+    color: string;
+  }) => {
+    const rgb = hexToRgb(color);
+    const isEmpty = count === 0;
+    return (
+      <button
+        onClick={() => !isEmpty && onChange(id)}
+        disabled={isEmpty}
+        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-card font-mono text-[11px] uppercase tracking-[0.08em] transition-all disabled:cursor-not-allowed"
+        style={{
+          background: active && !isEmpty ? `rgba(${rgb}, .09)` : "transparent",
+          border: `1px solid rgba(${rgb}, ${active && !isEmpty ? 0.4 : 0.1})`,
+          color: active && !isEmpty ? color : "rgba(255,255,255,.25)",
+          boxShadow: active && !isEmpty ? `0 0 20px rgba(${rgb}, .12)` : "none",
+          opacity: isEmpty ? 0.45 : 1,
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full"
+          style={{ background: color, opacity: active && !isEmpty ? 1 : 0.2 }}
+        />
+        {label} <span className="opacity-55">({count})</span>
+      </button>
+    );
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Pill
+        active={tab === "alerts"}
+        id="alerts"
+        label="Alertas"
+        count={alertCount}
+        color="#FB923C"
+      />
+      <Pill
+        active={tab === "watches"}
+        id="watches"
+        label="Vigilar"
+        count={watchCount}
+        color="#FACC15"
+      />
+    </div>
+  );
+}
+
+// ── Diagnostic insight card ───────────────────────────────────────────────────
+
+function StatusPill({
+  classification,
+  kind,
+  color,
+}: {
+  classification: string;
+  kind: string;
+  color: string;
+}) {
+  const label = kind === "watch" ? "NORMAL" : classification === "high" ? "ALTO" : "BAJO";
+  const rgb = hexToRgb(color);
+  return (
+    <span
+      className="px-2.5 py-1 rounded-full font-mono text-[9px] uppercase tracking-[0.1em] font-medium whitespace-nowrap"
       style={{
-        background: bgColor,
-        border: `1px solid rgba(${rgb}, .35)`,
-        boxShadow: `0 0 32px rgba(${rgb}, .18), inset 0 0 40px rgba(${rgb}, .04)`,
+        background: `rgba(${rgb}, .12)`,
+        border: `1px solid rgba(${rgb}, .38)`,
+        color,
       }}
     >
-      {/* Glow superior del color de la alerta */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none"
-        style={{
-          width: "160px",
-          height: "60px",
-          background: `radial-gradient(ellipse, rgba(${rgb}, .18) 0%, transparent 70%)`,
-        }}
-      />
+      {label}
+    </span>
+  );
+}
 
-      <AvatarGlow
-        variant={insight.avatar_variant}
-        size={130}
-        intensity="medium"
-        className="relative z-10"
-      />
+function ImpactArrows({
+  direction,
+  severity,
+}: {
+  direction: "raises" | "lowers";
+  severity: PersonalizedInsight["severity"];
+}) {
+  const count = severity === "HIGH" ? 3 : severity === "MEDIUM" ? 2 : 1;
+  const color = severity === "HIGH" ? "#F87171" : severity === "MEDIUM" ? "#FB923C" : "#FACC15";
+  const Icon = direction === "raises" ? ArrowUp : ArrowDown;
+  return (
+    <span className="flex items-center" style={{ color }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <Icon key={i} size={13} strokeWidth={2.5} style={{ marginLeft: i === 0 ? 0 : -4 }} />
+      ))}
+    </span>
+  );
+}
 
-      <div className="flex flex-col items-center gap-2 text-center w-full">
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <span className="font-sans font-semibold text-sm" style={{ color: borderColor }}>
-            {insight.friendly_title}
-          </span>
-          <span className="font-mono text-[10px] text-subtext">
-            {insight.biomarker_value} {insight.biomarker_unit} ·{" "}
-            {insight.classification === "high" ? "alto" : "bajo"}
-          </span>
+function BiomarkerRangeBar({
+  insight,
+  accent,
+  animDelay = 0,
+}: {
+  insight: PersonalizedInsight;
+  accent: string;
+  animDelay?: number;
+}) {
+  const { biomarker_value: value, reference_range_low: lo, reference_range_high: hi } = insight;
+
+  if (lo == null && hi == null) return null;
+
+  // Extend display window 30% beyond range so the marker stays visible even when out-of-range
+  const span = (hi ?? value * 1.5) - (lo ?? 0);
+  const minVal = (lo ?? 0) - span * 0.3;
+  const maxVal = (hi ?? value * 1.5) + span * 0.3;
+  const total = maxVal - minVal;
+
+  const pct = (n: number) => Math.max(0, Math.min(100, ((n - minVal) / total) * 100));
+
+  const lowEnd = lo != null ? pct(lo) : 0;
+  const highStart = hi != null ? pct(hi) : 100;
+  const markerPct = pct(value);
+
+  // Marker appears ~70% into the bar fill animation
+  const markerDelay = animDelay + 630;
+  // Glow/ring start after the marker has fully appeared
+  const glowDelay = markerDelay + 300;
+
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {/* Track area — position context for animated zones + marker layers */}
+      <div className="relative h-2">
+        {/* ── Animated zones (clip-path reveal, no child distortion) ── */}
+        <div
+          className="absolute inset-0 rounded-full overflow-hidden animate-range-fill"
+          style={{ animationDelay: `${animDelay}ms` }}
+        >
+          {/* Base track */}
+          <div className="absolute inset-0 bg-foreground/[0.07]" />
+          {/* Low zone */}
+          {lo != null && (
+            <div
+              className="absolute inset-y-0 left-0"
+              style={{
+                width: `${lowEnd}%`,
+                background: "linear-gradient(90deg, rgba(96,165,250,.16), rgba(96,165,250,.30))",
+              }}
+            />
+          )}
+          {/* Normal zone */}
+          <div
+            className="absolute inset-y-0"
+            style={{
+              left: `${lowEnd}%`,
+              width: `${highStart - lowEnd}%`,
+              background: "linear-gradient(90deg, rgba(74,222,128,.24), rgba(74,222,128,.32))",
+            }}
+          />
+          {/* High zone */}
+          {hi != null && (
+            <div
+              className="absolute inset-y-0"
+              style={{
+                left: `${highStart}%`,
+                right: 0,
+                background: "linear-gradient(90deg, rgba(248,113,113,.30), rgba(248,113,113,.16))",
+              }}
+            />
+          )}
         </div>
-        <p className="font-sans text-[13px] text-foreground leading-[1.55]">
-          {insight.friendly_explanation}
-        </p>
-        <p className="font-sans text-[12px] leading-[1.5]" style={{ color: "#6B8A6A" }}>
-          {insight.friendly_recommendation}
-        </p>
-        {insight.affecting_ingredients.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1.5 mt-1">
-            <span className="font-mono text-[9px] text-subtext self-center uppercase tracking-[0.06em]">
-              Ingredientes:
-            </span>
-            {insight.affecting_ingredients.map((ingr) => (
-              <span
-                key={ingr}
-                className="px-2 py-0.5 rounded-full font-mono text-[9px]"
-                style={{
-                  background: "rgba(74,222,128,.06)",
-                  border: "1px solid rgba(74,222,128,.15)",
-                  color: "#6B8A6A",
-                }}
-              >
-                {ingr}
-              </span>
-            ))}
-          </div>
-        )}
+
+        {/* ── Marker layers (outside the clipped zones div) ── */}
+
+        {/* Halo — blurred background pulse */}
+        <div
+          className="absolute top-1/2 w-4 h-4 rounded-full animate-marker-halo"
+          style={{
+            left: `calc(${markerPct}% - 8px)`,
+            background: accent,
+            filter: "blur(5px)",
+            animationDelay: `${glowDelay}ms`,
+          }}
+        />
+
+        {/* Ring — expanding border */}
+        <div
+          className="absolute top-1/2 w-3 h-3 rounded-full animate-marker-ring"
+          style={{
+            left: `calc(${markerPct}% - 6px)`,
+            border: `1.5px solid ${accent}`,
+            animationDelay: `${glowDelay + 400}ms`,
+          }}
+        />
+
+        {/* Marker dot */}
+        <div
+          className="absolute top-1/2 w-3 h-3 rounded-full z-10 animate-marker-appear"
+          style={{
+            left: `calc(${markerPct}% - 6px)`,
+            background: accent,
+            boxShadow: `0 0 8px ${accent}, 0 0 0 2px rgba(8,12,7,.95)`,
+            animationDelay: `${markerDelay}ms`,
+          }}
+        />
+      </div>
+
+      {/* Range labels */}
+      <div className="flex justify-between font-mono text-[9px] text-subtext uppercase tracking-[0.04em]">
+        <span>{lo ?? ""}</span>
+        <span className="opacity-40">{insight.biomarker_unit}</span>
+        <span>{hi ?? ""}</span>
       </div>
     </div>
+  );
+}
+
+function DiagnosticInsightCard({
+  insight,
+  index,
+}: {
+  insight: PersonalizedInsight;
+  index: number;
+}) {
+  const accent = INSIGHT_BORDER[insight.avatar_variant] ?? "#6B8A6A";
+  const rgb = hexToRgb(accent);
+  const base = index * 60;
+  const row = (i: number): React.CSSProperties => ({
+    animationDelay: `${base + i * 80}ms`,
+  });
+
+  const impactVerb = insight.kind === "watch" ? "podría moverlo" : "lo movería";
+
+  return (
+    <article
+      className="relative overflow-hidden rounded-card px-5 py-5 flex flex-col gap-4"
+      style={{
+        background: `rgba(${rgb}, .04)`,
+        border: `1px solid rgba(${rgb}, .28)`,
+        boxShadow: `0 0 32px rgba(${rgb}, .12), inset 0 0 60px rgba(${rgb}, .03)`,
+      }}
+    >
+      {/* Corner accents */}
+      <span className="bs-corner bs-corner-tl" style={{ borderColor: `rgba(${rgb}, .5)` }} />
+      <span className="bs-corner bs-corner-br" style={{ borderColor: `rgba(${rgb}, .5)` }} />
+
+      {/* Row 0 — avatar + label + status pill */}
+      <header className="flex items-center gap-3 animate-data-row-in" style={row(0)}>
+        <AvatarGlow variant={insight.avatar_variant} size={56} intensity="soft" />
+        <div className="flex-1 min-w-0">
+          <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-subtext">
+            Tu marcador
+          </p>
+          <h3
+            className="font-sans font-semibold text-[13px] leading-tight mt-0.5 truncate"
+            style={{ color: accent }}
+          >
+            {insight.friendly_biomarker_label}
+          </h3>
+        </div>
+        <StatusPill classification={insight.classification} kind={insight.kind} color={accent} />
+      </header>
+
+      {/* Row 1 — numeric value */}
+      <div className="animate-data-row-in flex items-baseline gap-1.5" style={row(1)}>
+        <span className="font-mono text-[30px] font-medium text-foreground leading-none">
+          {insight.biomarker_value}
+        </span>
+        <span className="font-mono text-[12px] text-subtext">{insight.biomarker_unit}</span>
+      </div>
+
+      {/* Row 2 — range bar */}
+      <div className="animate-data-row-in" style={row(2)}>
+        <BiomarkerRangeBar insight={insight} accent={accent} animDelay={base + 2 * 80} />
+      </div>
+
+      {/* Row 3 — impact direction */}
+      <div className="animate-data-row-in flex items-center gap-2" style={row(3)}>
+        <span className="font-mono text-[10px] uppercase tracking-[0.07em] text-subtext">
+          Este producto {impactVerb}
+        </span>
+        <ImpactArrows direction={insight.impact_direction} severity={insight.severity} />
+      </div>
+
+      {/* Row 4 — explanation + recommendation */}
+      <div className="animate-data-row-in flex flex-col gap-1.5" style={row(4)}>
+        <p className="font-sans text-[13px] text-foreground/85 leading-[1.55]">
+          {insight.friendly_explanation}
+        </p>
+        <p
+          className="font-sans text-[12px] leading-[1.5] flex gap-1.5"
+          style={{ color: "#6B8A6A" }}
+        >
+          <span aria-hidden>→</span>
+          <span>{insight.friendly_recommendation}</span>
+        </p>
+      </div>
+
+      {/* Row 5 — ingredient pills */}
+      {insight.affecting_ingredients.length > 0 && (
+        <div className="animate-data-row-in flex flex-wrap gap-1.5" style={row(5)}>
+          {insight.affecting_ingredients.map((ingr) => (
+            <span
+              key={ingr}
+              className="px-2 py-0.5 rounded-full font-mono text-[10px] uppercase tracking-[0.04em]"
+              style={{
+                background: `rgba(${rgb}, .09)`,
+                border: `1px solid rgba(${rgb}, .28)`,
+                color: accent,
+              }}
+            >
+              {ingr}
+            </span>
+          ))}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -611,7 +942,7 @@ function BiomarkerEmptyState() {
 
 function BiomarkerClearState() {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       <div>
         <h2 className="font-sans font-semibold text-base text-foreground">Para ti</h2>
         <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.06em] mt-0.5">
@@ -619,7 +950,7 @@ function BiomarkerClearState() {
         </p>
       </div>
       <div
-        className="rounded-card px-5 py-6 flex flex-col items-center gap-4 relative overflow-hidden"
+        className="w-full rounded-card py-10 flex flex-col items-center justify-center gap-4 relative overflow-hidden"
         style={{
           background: "rgba(96,165,250,.05)",
           border: "1px solid rgba(96,165,250,.35)",
@@ -629,8 +960,8 @@ function BiomarkerClearState() {
         <div
           className="absolute left-1/2 -translate-x-1/2 top-0 pointer-events-none"
           style={{
-            width: "160px",
-            height: "60px",
+            width: "320px",
+            height: "80px",
             background: "radial-gradient(ellipse, rgba(96,165,250,.18) 0%, transparent 70%)",
           }}
         />
@@ -643,7 +974,7 @@ function BiomarkerClearState() {
           className="object-contain animate-pulse-glow relative z-10"
           style={{ filter: "drop-shadow(0 0 39px rgba(96,165,250,0.25))" }}
         />
-        <p className="font-sans text-[13px] text-foreground/80 leading-[1.5] text-center">
+        <p className="font-sans text-[14px] text-foreground/80 leading-[1.5] text-center max-w-[400px]">
           Ningún ingrediente de este producto presenta conflictos con tus biomarcadores.
         </p>
       </div>

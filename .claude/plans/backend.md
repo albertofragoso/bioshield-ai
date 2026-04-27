@@ -584,8 +584,13 @@ PersonalizedInsightCopy { friendly_title: str, friendly_biomarker_label: str,
                           friendly_explanation: str, friendly_recommendation: str }
                           # Output de generate_personalized_insight() / PERSONALIZED_INSIGHT_PROMPT
 PersonalizedInsight     { biomarker_name: str, biomarker_value: float, biomarker_unit: str,
-                          classification: low | high, affecting_ingredients: list[str],
+                          classification: low | high,
+                          kind: alert | watch,          # alert = valor fuera de rango; watch = en rango pero el producto podría moverlo
+                          impact_direction: raises | lowers,
+                          affecting_ingredients: list[str],
                           severity: HIGH | MEDIUM | LOW,
+                          reference_range_low: float | None,   # del PDF del lab o CANONICAL_RANGES
+                          reference_range_high: float | None,
                           friendly_title, friendly_biomarker_label,
                           friendly_explanation, friendly_recommendation,
                           avatar_variant: AvatarVariant }
@@ -606,7 +611,7 @@ BiosyncAnalysis         { has_biomarkers, alerts: [], semaphore_override? }
 
 ## Suite de tests
 
-10 módulos, 100 tests passing:
+10 módulos, ~103 tests passing (test_graph.py expandido con casos del nodo personalize):
 
 | Archivo | Qué prueba |
 |---|---|

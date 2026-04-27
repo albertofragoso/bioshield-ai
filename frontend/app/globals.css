@@ -164,18 +164,13 @@
     /* Fondo decorativo global — hex-grid + glow radial superior + scanlines
      * subtiles. Se aplica en body para que todas las pantallas lo hereden. */
     background-image:
-      radial-gradient(
-        ellipse 70% 50% at 50% 0%,
-        rgba(74, 222, 128, 0.08) 0%,
-        transparent 65%
-      ),
-      radial-gradient(
-        ellipse 50% 40% at 80% 90%,
-        rgba(245, 158, 11, 0.04) 0%,
-        transparent 60%
-      ),
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(74, 222, 128, 0.08) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 40% at 80% 90%, rgba(245, 158, 11, 0.04) 0%, transparent 60%),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='64'%3E%3Cpath d='M28 2 L54 17 L54 47 L28 62 L2 47 L2 17 Z' fill='none' stroke='rgba(74,222,128,0.04)' stroke-width='1'/%3E%3C/svg%3E");
-    background-size: auto, auto, 56px 64px;
+    background-size:
+      auto,
+      auto,
+      56px 64px;
     background-attachment: fixed;
   }
   body::after {
@@ -311,6 +306,21 @@
   }
 }
 
+/* Variant-aware drop-shadow pulse — color driven by --fg-idle / --fg-peak CSS vars */
+@keyframes filter-glow-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 var(--fg-r, 16px) var(--fg-idle, rgba(74, 222, 128, 0.25)));
+  }
+  50% {
+    filter: drop-shadow(0 0 var(--fg-r-peak, 28px) var(--fg-peak, rgba(74, 222, 128, 0.55)));
+  }
+}
+
+.animate-filter-glow-pulse {
+  animation: filter-glow-pulse 2.5s ease-in-out infinite;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -322,8 +332,13 @@
 
 /* AvatarGlow — driven by CSS custom props set inline per variant */
 @keyframes avatar-glow-pulse-kf {
-  0%, 100% { box-shadow: 0 0 var(--glow-spread) var(--glow-idle); }
-  50%       { box-shadow: 0 0 calc(var(--glow-spread) * 2) var(--glow-peak); }
+  0%,
+  100% {
+    box-shadow: 0 0 var(--glow-spread) var(--glow-idle);
+  }
+  50% {
+    box-shadow: 0 0 calc(var(--glow-spread) * 2) var(--glow-peak);
+  }
 }
 
 .avatar-glow-pulse {
@@ -335,4 +350,82 @@
     animation: none;
     box-shadow: 0 0 var(--glow-spread) var(--glow-idle);
   }
+}
+
+@keyframes data-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bar fill — reveals left-to-right via clip-path (no child distortion) */
+@keyframes range-fill-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0% 0 0);
+  }
+}
+
+/* Marker fade-in after bar reaches its position */
+@keyframes marker-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+/* Halo that pulses outward from the marker */
+@keyframes marker-halo {
+  0%,
+  100% {
+    transform: translateY(-50%) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-50%) scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Expanding ring — radiates once per cycle */
+@keyframes marker-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.animate-data-row-in {
+  animation: data-row-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.animate-range-fill {
+  animation: range-fill-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.animate-marker-appear {
+  animation: marker-appear 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-marker-halo {
+  animation: marker-halo 2.2s ease-in-out infinite;
+}
+
+.animate-marker-ring {
+  animation: marker-ring 2.2s ease-out infinite;
 }
