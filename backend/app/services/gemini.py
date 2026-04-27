@@ -50,9 +50,18 @@ class _ReconcilerResponse(BaseModel):
 
 
 _GEMINI_SCHEMA_ALLOWED = {
-    "type", "format", "description", "nullable", "enum",
-    "properties", "required", "items",
-    "minItems", "maxItems", "minimum", "maximum",
+    "type",
+    "format",
+    "description",
+    "nullable",
+    "enum",
+    "properties",
+    "required",
+    "items",
+    "minItems",
+    "maxItems",
+    "minimum",
+    "maximum",
 }
 
 
@@ -319,8 +328,8 @@ async def extract_biomarkers_from_pdf(
 
 
 _INSIGHT_FALLBACK_LABEL: dict[str, str] = {
-    "ldl": "tu colesterol \"malo\"",
-    "hdl": "tu colesterol \"bueno\"",
+    "ldl": 'tu colesterol "malo"',
+    "hdl": 'tu colesterol "bueno"',
     "total_cholesterol": "tu colesterol total",
     "triglycerides": "tus triglicéridos",
     "glucose": "tu nivel de azúcar en sangre",
@@ -350,6 +359,7 @@ async def generate_personalized_insight(
     severity: str,
     affecting_ingredients: list[str],
     settings: Settings,
+    kind: str = "alert",
 ) -> PersonalizedInsightCopy:
     """Generate friendly copy for one biomarker × ingredient conflict.
 
@@ -365,6 +375,7 @@ async def generate_personalized_insight(
         classification=classification,
         severity=severity,
         affecting_ingredients=", ".join(affecting_ingredients),
+        kind=kind,
     )
 
     try:
@@ -379,10 +390,20 @@ async def generate_personalized_insight(
     except (google_exceptions.ResourceExhausted, google_exceptions.GoogleAPIError) as exc:
         logger.warning("Gemini unavailable for personalized insight, using fallback: %s", exc)
         label = _INSIGHT_FALLBACK_LABEL.get(biomarker_name, biomarker_name)
-        ingr_str = " y ".join(affecting_ingredients[:2]) if affecting_ingredients else "algunos ingredientes"
+        ingr_str = (
+            " y ".join(affecting_ingredients[:2])
+            if affecting_ingredients
+            else "algunos ingredientes"
+        )
+        if kind == "watch":
+            explanation = f"{label.capitalize()} está en rango normal pero este producto contiene {ingr_str}, que podrían subirlo."
+        else:
+            explanation = (
+                f"{label.capitalize()} está {classification} y este producto contiene {ingr_str}."
+            )
         return PersonalizedInsightCopy(
             friendly_title="Revisa este producto",
             friendly_biomarker_label=label,
-            friendly_explanation=f"{label.capitalize()} está {classification} y este producto contiene {ingr_str}.",
+            friendly_explanation=explanation,
             friendly_recommendation="Considera revisar la etiqueta de productos similares antes de decidir.",
         )

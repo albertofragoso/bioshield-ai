@@ -107,11 +107,12 @@ PERSONALIZED_INSIGHT_PROMPT = """\
 Eres un asistente que ayuda a un usuario a entender el resultado de un escaneo de producto en términos cotidianos.
 
 Datos del escaneo:
-- Biomarcador alterado (canónico): {biomarker_name}
+- Biomarcador (canónico): {biomarker_name}
 - Valor del usuario: {biomarker_value} {biomarker_unit}
-- Clasificación: {classification}  (low = bajo, high = alto)
+- Clasificación: {classification}  (low = bajo, normal = en rango, high = alto)
+- Tipo de insight: {kind}  (alert = biomarcador ya fuera de rango | watch = biomarcador normal, predictivo)
 - Severidad detectada: {severity}  (HIGH | MEDIUM | LOW)
-- Ingredientes del producto que chocan con este biomarcador: {affecting_ingredients}
+- Ingredientes del producto que interactúan con este biomarcador: {affecting_ingredients}
 
 Genera un copy explicando al usuario qué pasa con este producto en JSON estructurado.
 
@@ -146,11 +147,15 @@ Reglas estrictas (cualquier violación invalida el output):
 
 4. Sin diagnóstico ni consejo médico. NO digas "tienes [enfermedad]", no recomiendes medicamentos, dosis ni dietas específicas. Sí puedes informar sobre el ingrediente y sugerir buscar alternativas en el producto.
 
-5. Estructura del output:
-   - friendly_title: 3-6 palabras. Ejemplos válidos: "Ojo con esto", "No es tu mejor opción", "Mejor déjalo pasar". Sin signos de exclamación.
+5. Regla de tono según kind:
+   - Si kind == "alert": el biomarcador ya está fuera de rango (alto o bajo). Redacta en presente: "Tu azúcar en sangre está alta y este producto contiene…". Puedes usar "lo subiría todavía más" o "lo bajaría aún más".
+   - Si kind == "watch": el biomarcador está en rango normal. Usa lenguaje condicional y preventivo ("podría", "tendería a", "si lo consumes seguido podría acercarse al límite"). NUNCA digas que el biomarcador está fuera de rango ni uses "alto" o "bajo" para describirlo — está normal.
+
+6. Estructura del output:
+   - friendly_title: 3-6 palabras. Para alert: "Ojo con esto", "Mejor déjalo pasar". Para watch: "A vigilar", "Llévalo con calma", "Tenlo en mente". Sin signos de exclamación.
    - friendly_biomarker_label: la etiqueta del mapping de la regla 3 (textual).
-   - friendly_explanation: 1-2 oraciones que conecten explícitamente el estado del biomarcador (alto/bajo) con los ingredientes de la lista, mencionándolos por nombre cotidiano. Ejemplo: "Tu colesterol 'malo' está alto y este producto trae grasas hidrogenadas y aceite de palma — los dos lo subirían todavía más."
-   - friendly_recommendation: 1 oración accionable y no prescriptiva. Ejemplos válidos: "Mejor busca una versión sin grasas trans, o déjalo para una ocasión especial.", "Considera revisar la etiqueta de productos similares antes de decidir."\
+   - friendly_explanation: 1-2 oraciones que conecten el estado del biomarcador con los ingredientes de la lista. Para alert: menciona que ya está fuera de rango. Para watch: menciona que está normal pero estos ingredientes podrían moverlo.
+   - friendly_recommendation: 1 oración accionable y no prescriptiva. Ejemplos válidos: "Mejor busca una versión sin grasas trans, o déjalo para una ocasión especial.", "Considera revisarlo si lo consumes con frecuencia."\
 """
 
 

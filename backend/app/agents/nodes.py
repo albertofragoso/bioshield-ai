@@ -25,7 +25,11 @@ from app.schemas.models import (
 )
 from app.services import gemini as gemini_service
 from app.services import off_client
-from app.services.analysis import aggregate_regulatory_status, compute_semaphore, find_ingredient_matches
+from app.services.analysis import (
+    aggregate_regulatory_status,
+    compute_semaphore,
+    find_ingredient_matches,
+)
 from app.services.conflicts import detect_conflicts
 from app.services.crypto import decrypt_biomarker
 from app.services.entity_resolution import resolve
@@ -37,6 +41,7 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────
 # 1. Identify product — OFF barcode lookup
 # ─────────────────────────────────────────────
+
 
 def make_identify_product_node(settings: Settings):
     async def node(state: ScanState) -> ScanState:
@@ -63,6 +68,7 @@ def make_identify_product_node(settings: Settings):
 # 2. Extract ingredients via Gemini Vision (fallback)
 # ─────────────────────────────────────────────
 
+
 def make_extract_ingredients_node(settings: Settings):
     async def node(state: ScanState) -> ScanState:
         image = state.get("image_b64")
@@ -84,6 +90,7 @@ def make_extract_ingredients_node(settings: Settings):
 # 3. Resolve entities
 # ─────────────────────────────────────────────
 
+
 def make_resolve_entities_node(db: Session):
     async def node(state: ScanState) -> ScanState:
         names = state.get("extracted_ingredients") or []
@@ -95,9 +102,7 @@ def make_resolve_entities_node(db: Session):
             reg_status: RegulatoryStatus | None = None
             if ing is not None:
                 status_by_source = {
-                    s.source.name: s.status
-                    for s in ing.regulatory_statuses
-                    if s.source is not None
+                    s.source.name: s.status for s in ing.regulatory_statuses if s.source is not None
                 }
                 reg_status = aggregate_regulatory_status(status_by_source)
 
@@ -121,6 +126,7 @@ def make_resolve_entities_node(db: Session):
 # 4. Hybrid RAG search
 # ─────────────────────────────────────────────
 
+
 def make_search_regulatory_node(db: Session, settings: Settings):
     async def node(state: ScanState) -> ScanState:
         resolved = state.get("resolved") or []
@@ -141,6 +147,7 @@ def make_search_regulatory_node(db: Session, settings: Settings):
 # ─────────────────────────────────────────────
 # 5. Bio-Sync — load & decrypt biomarkers
 # ─────────────────────────────────────────────
+
 
 def make_biosync_node(db: Session, settings: Settings):
     async def node(state: ScanState) -> ScanState:
@@ -240,6 +247,7 @@ _SEVERITY_TO_AVATAR: dict[str, str] = {
 # 7. Personalize — generate friendly insights per biomarker × ingredient
 # ─────────────────────────────────────────────
 
+
 def make_personalize_node(settings: Settings):
     async def node(state: ScanState) -> ScanState:
         resolved = state.get("resolved") or []
@@ -249,13 +257,35 @@ def make_personalize_node(settings: Settings):
         if not matches:
             return {"personalized_insights": []}
 
-        async def _build_insight(bm, ingr_names: list[str], severity: ConflictSeverity) -> PersonalizedInsight:
+        async def _build_insight(
+            bm,
+            ingr_names: list[str],
+            severity: ConflictSeverity,
+            kind: str,
+            direction: str,
+        ) -> PersonalizedInsight:
             name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", "")
             value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", 0.0)
             unit = bm.get("unit") if isinstance(bm, dict) else getattr(bm, "unit", "")
-            classification = bm.get("classification") if isinstance(bm, dict) else getattr(bm, "classification", "high")
+            classification = (
+                bm.get("classification")
+                if isinstance(bm, dict)
+                else getattr(bm, "classification", "high")
+            )
+            ref_low = (
+                bm.get("reference_range_low")
+                if isinstance(bm, dict)
+                else getattr(bm, "reference_range_low", None)
+            )
+            ref_high = (
+                bm.get("reference_range_high")
+                if isinstance(bm, dict)
+                else getattr(bm, "reference_range_high", None)
+            )
             name_val = name.value if hasattr(name, "value") else str(name)
-            class_val = classification.value if hasattr(classification, "value") else str(classification)
+            class_val = (
+                classification.value if hasattr(classification, "value") else str(classification)
+            )
 
             copy = await gemini_service.generate_personalized_insight(
                 biomarker_name=name_val,
@@ -264,6 +294,7 @@ def make_personalize_node(settings: Settings):
                 classification=class_val,
                 severity=severity.value,
                 affecting_ingredients=ingr_names,
+                kind=kind,
                 settings=settings,
             )
             return PersonalizedInsight(
@@ -273,6 +304,10 @@ def make_personalize_node(settings: Settings):
                 classification=class_val,
                 affecting_ingredients=ingr_names,
                 severity=severity,
+                kind=kind,
+                impact_direction=direction,
+                reference_range_low=ref_low,
+                reference_range_high=ref_high,
                 friendly_title=copy.friendly_title,
                 friendly_biomarker_label=copy.friendly_biomarker_label,
                 friendly_explanation=copy.friendly_explanation,
@@ -290,6 +325,7 @@ def make_personalize_node(settings: Settings):
 # 8. Calculate semaphore risk
 # ─────────────────────────────────────────────
 
+
 def make_calculate_risk_node():
     async def node(state: ScanState) -> ScanState:
         resolved = state.get("resolved") or []
@@ -304,10 +340,14 @@ def make_calculate_risk_node():
         if insights and semaphore not in (SemaphoreColor.RED, SemaphoreColor.ORANGE):
             worst = max(
                 insights,
-                key=lambda i: _rank.get(i.severity.value if hasattr(i.severity, "value") else str(i.severity), 1),
+                key=lambda i: _rank.get(
+                    i.severity.value if hasattr(i.severity, "value") else str(i.severity), 1
+                ),
             )
             semaphore = SemaphoreColor.ORANGE
-            sev_val = worst.severity.value if hasattr(worst.severity, "value") else str(worst.severity)
+            sev_val = (
+                worst.severity.value if hasattr(worst.severity, "value") else str(worst.severity)
+            )
             severity = ConflictSeverity(sev_val)
 
         return {
@@ -322,6 +362,7 @@ def make_calculate_risk_node():
 # ─────────────────────────────────────────────
 # Conditional router
 # ─────────────────────────────────────────────
+
 
 def needs_image_extraction(state: ScanState) -> str:
     if state.get("extracted_ingredients"):

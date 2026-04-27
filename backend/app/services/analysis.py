@@ -46,76 +46,104 @@ _STATUS_RANK = {
 @dataclass(frozen=True)
 class BiomarkerRule:
     biomarker: CanonicalBiomarker
-    when_classification: Literal["low", "high"]  # fires when biomarker has this classification
+    direction: Literal["raises", "lowers"]  # effect of the ingredient on this biomarker
     keywords: tuple[str, ...]  # substrings to look for in ingredient names (lowercase)
     severity: ConflictSeverity
     message: str
+    # Firing logic (derived from direction):
+    #   raises → alert when classification=="high", watch when "normal"
+    #   lowers → alert when classification=="low",  watch when "normal"
 
 
 # Data-curated rules. Add entries here to extend coverage — no code changes needed.
 BIOMARKER_RULES: tuple[BiomarkerRule, ...] = (
     BiomarkerRule(
         biomarker=CanonicalBiomarker.LDL,
-        when_classification="high",
-        keywords=("trans fat", "grasas trans", "aceite hidrogenado", "hydrogenated", "saturated fat", "palm oil", "aceite de palma"),
+        direction="raises",
+        keywords=(
+            "trans fat",
+            "grasas trans",
+            "aceite hidrogenado",
+            "hydrogenated",
+            "saturated fat",
+            "palm oil",
+            "aceite de palma",
+        ),
         severity=ConflictSeverity.HIGH,
-        message="LDL alto con grasa trans/saturada",
+        message="LDL con grasa trans/saturada",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.TOTAL_CHOLESTEROL,
-        when_classification="high",
+        direction="raises",
         keywords=("trans fat", "hydrogenated", "aceite hidrogenado", "palm oil", "saturated fat"),
         severity=ConflictSeverity.HIGH,
-        message="Colesterol total alto con grasa trans/saturada",
+        message="Colesterol total con grasa trans/saturada",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.HDL,
-        when_classification="low",
+        direction="lowers",
         keywords=("trans fat", "grasas trans", "hydrogenated", "aceite hidrogenado"),
         severity=ConflictSeverity.MEDIUM,
-        message="HDL bajo con grasas trans",
+        message="HDL con grasas trans",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.GLUCOSE,
-        when_classification="high",
-        keywords=("jarabe de maíz", "high fructose", "corn syrup", "dextrosa", "dextrose", "azúcar añadida", "added sugar", "fructose"),
+        direction="raises",
+        keywords=(
+            "jarabe de maíz",
+            "high fructose",
+            "corn syrup",
+            "dextrosa",
+            "dextrose",
+            "azúcar añadida",
+            "added sugar",
+            "fructose",
+        ),
         severity=ConflictSeverity.HIGH,
-        message="Glucosa alta con azúcares añadidos",
+        message="Glucosa con azúcares añadidos",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.HBA1C,
-        when_classification="high",
-        keywords=("jarabe de maíz", "high fructose", "corn syrup", "dextrosa", "dextrose", "added sugar", "fructose"),
+        direction="raises",
+        keywords=(
+            "jarabe de maíz",
+            "high fructose",
+            "corn syrup",
+            "dextrosa",
+            "dextrose",
+            "added sugar",
+            "fructose",
+        ),
         severity=ConflictSeverity.HIGH,
-        message="HbA1c alta con azúcares añadidos",
+        message="HbA1c con azúcares añadidos",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.TRIGLYCERIDES,
-        when_classification="high",
+        direction="raises",
         keywords=("fructose", "fructosa", "jarabe", "syrup", "added sugar"),
         severity=ConflictSeverity.MEDIUM,
-        message="Triglicéridos altos con fructosa/jarabes",
+        message="Triglicéridos con fructosa/jarabes",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.SODIUM,
-        when_classification="high",
+        direction="raises",
         keywords=("sodio", "sodium", "msg", "glutamato monosódico", "sal", "salt"),
         severity=ConflictSeverity.MEDIUM,
-        message="Sodio alto con ingredientes salinos",
+        message="Sodio con ingredientes salinos",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.URIC_ACID,
-        when_classification="high",
+        direction="raises",
         keywords=("jarabe de maíz", "high fructose", "corn syrup", "fructose", "fructosa"),
         severity=ConflictSeverity.MEDIUM,
-        message="Ácido úrico alto con fructosa",
+        message="Ácido úrico con fructosa",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.POTASSIUM,
-        when_classification="high",
+        direction="raises",
         keywords=("potassium chloride", "cloruro de potasio"),
         severity=ConflictSeverity.LOW,
-        message="Potasio alto con aditivos de potasio",
+        message="Potasio con aditivos de potasio",
     ),
 )
 
@@ -156,8 +184,16 @@ def aggregate_regulatory_status(status_by_source: dict[str, str]) -> RegulatoryS
 def find_ingredient_matches(
     biomarkers: list | None,
     ingredients: list[IngredientResult],
-) -> list[tuple[object, list[str], ConflictSeverity]]:
-    """Return (biomarker, matching_ingredient_names, severity) for each rule match.
+) -> list[
+    tuple[
+        object, list[str], ConflictSeverity, Literal["alert", "watch"], Literal["raises", "lowers"]
+    ]
+]:
+    """Return (biomarker, matching_ingredient_names, severity, kind) for each rule match.
+
+    `kind` is "alert" when the biomarker is already out of range in the direction
+    the ingredient pushes it, or "watch" when the biomarker is currently normal
+    (predictive: the ingredient could push it out of range).
 
     `biomarkers` is a list of Biomarker schema objects (or dicts with 'name',
     'value', 'classification' keys). Called by the `personalize` LangGraph node.
@@ -165,25 +201,48 @@ def find_ingredient_matches(
     if not biomarkers or not ingredients:
         return []
 
-    matches: list[tuple[object, list[str], ConflictSeverity]] = []
+    matches: list[
+        tuple[
+            object,
+            list[str],
+            ConflictSeverity,
+            Literal["alert", "watch"],
+            Literal["raises", "lowers"],
+        ]
+    ] = []
     for bm in biomarkers:
         name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
-        classification = bm.get("classification") if isinstance(bm, dict) else getattr(bm, "classification", None)
+        classification = (
+            bm.get("classification")
+            if isinstance(bm, dict)
+            else getattr(bm, "classification", None)
+        )
 
         if name is None or classification is None:
             continue
 
         # Normalize to string value (handles both enum and plain str)
         name_val = name.value if hasattr(name, "value") else str(name)
-        class_val = classification.value if hasattr(classification, "value") else str(classification)
+        class_val = (
+            classification.value if hasattr(classification, "value") else str(classification)
+        )
 
-        if class_val not in ("low", "high"):
+        if class_val == "unknown":
             continue
 
         for rule in BIOMARKER_RULES:
             if rule.biomarker.value != name_val:
                 continue
-            if rule.when_classification != class_val:
+
+            # Derive kind and decide whether to fire
+            if class_val == "normal":
+                kind: Literal["alert", "watch"] = "watch"
+            elif rule.direction == "raises" and class_val == "high":
+                kind = "alert"
+            elif rule.direction == "lowers" and class_val == "low":
+                kind = "alert"
+            else:
+                # Opposite direction (e.g. raises but classification is low) — skip
                 continue
 
             matched_ingr: list[str] = []
@@ -193,7 +252,7 @@ def find_ingredient_matches(
                     matched_ingr.append(ing.canonical_name or ing.name)
 
             if matched_ingr:
-                matches.append((bm, matched_ingr, rule.severity))
+                matches.append((bm, matched_ingr, rule.severity, kind, rule.direction))
 
     return matches
 
@@ -211,7 +270,9 @@ def detect_biomarker_conflicts(
         return []
 
     alerts: list[PersonalizedAlert] = []
-    for bm, ingr_names, severity in find_ingredient_matches(biomarkers, ingredients):
+    for bm, ingr_names, severity, _kind, _direction in find_ingredient_matches(
+        biomarkers, ingredients
+    ):
         name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
         value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", None)
         name_val = name.value if hasattr(name, "value") else str(name)

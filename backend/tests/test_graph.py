@@ -312,3 +312,106 @@ async def test_graph_skips_gemini_when_off_has_ingredients(seeded_db, monkeypatc
     )
     assert called["count"] == 0  # gemini should not be called
     assert result.get("source") == "barcode"
+
+
+# ─────────────────────────────────────────────
+# Predictive insights — normal biomarkers
+# ─────────────────────────────────────────────
+
+
+async def test_normal_glucose_with_hfcs_produces_watch_insight(seeded_db, monkeypatch):
+    """Glucose in normal range + HFCS ingredient → kind='watch' insight and ORANGE semaphore."""
+
+    async def _off_hit(*a, **kw):
+        return {
+            "barcode": "6666",
+            "name": "Soda Light",
+            "brand": "Fizzy",
+            "image_url": None,
+            "ingredients": ["High-Fructose Corn Syrup"],
+        }
+
+    monkeypatch.setattr(off_client, "fetch_product", _off_hit)
+
+    user_id = "user-watch-001"
+    payload = {
+        "biomarkers": [
+            {
+                "name": "glucose",
+                "raw_name": "Glucosa en ayuno",
+                "value": 92.0,  # normal (70–99 mg/dL)
+                "unit": "mg/dL",
+                "unit_normalized": True,
+                "reference_range_low": 70.0,
+                "reference_range_high": 99.0,
+                "reference_source": "canonical",
+                "classification": "normal",
+            }
+        ],
+        "lab_name": None,
+        "test_date": None,
+    }
+    ciphertext, iv = encrypt_biomarker(payload, TEST_SETTINGS.aes_key)
+    seeded_db.add(Biomarker(user_id=user_id, encrypted_data=ciphertext, encryption_iv=iv))
+    seeded_db.commit()
+
+    result = await _run_graph(seeded_db, {"barcode": "6666", "user_id": user_id})
+
+    assert result["semaphore"] == SemaphoreColor.ORANGE
+    insights = result.get("personalized_insights", [])
+    assert any(getattr(i, "kind", None) == "watch" for i in insights), (
+        "Expected at least one watch insight for normal glucose + HFCS"
+    )
+    watch = next(i for i in insights if getattr(i, "kind", None) == "watch")
+    assert watch.impact_direction == "raises"
+    assert watch.reference_range_low == 70.0
+    assert watch.reference_range_high == 99.0
+
+
+async def test_high_glucose_with_hfcs_produces_alert_insight(seeded_db, monkeypatch):
+    """Regression: glucose HIGH + HFCS → kind='alert', not watch."""
+
+    async def _off_hit(*a, **kw):
+        return {
+            "barcode": "7777",
+            "name": "Soda Full",
+            "brand": "Fizzy",
+            "image_url": None,
+            "ingredients": ["High-Fructose Corn Syrup"],
+        }
+
+    monkeypatch.setattr(off_client, "fetch_product", _off_hit)
+
+    user_id = "user-alert-001"
+    payload = {
+        "biomarkers": [
+            {
+                "name": "glucose",
+                "raw_name": "Glucosa en ayuno",
+                "value": 180.0,  # high
+                "unit": "mg/dL",
+                "unit_normalized": True,
+                "reference_range_low": 70.0,
+                "reference_range_high": 99.0,
+                "reference_source": "canonical",
+                "classification": "high",
+            }
+        ],
+        "lab_name": None,
+        "test_date": None,
+    }
+    ciphertext, iv = encrypt_biomarker(payload, TEST_SETTINGS.aes_key)
+    seeded_db.add(Biomarker(user_id=user_id, encrypted_data=ciphertext, encryption_iv=iv))
+    seeded_db.commit()
+
+    result = await _run_graph(seeded_db, {"barcode": "7777", "user_id": user_id})
+
+    assert result["semaphore"] == SemaphoreColor.ORANGE
+    insights = result.get("personalized_insights", [])
+    assert any(getattr(i, "kind", None) == "alert" for i in insights), (
+        "Expected at least one alert insight for high glucose + HFCS"
+    )
+    alert = next(i for i in insights if getattr(i, "kind", None) == "alert")
+    assert alert.impact_direction == "raises"
+    assert alert.reference_range_low == 70.0
+    assert alert.reference_range_high == 99.0

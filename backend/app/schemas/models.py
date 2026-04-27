@@ -243,14 +243,22 @@ class PersonalizedInsightCopy(BaseModel):
 
 
 class PersonalizedInsight(BaseModel):
-    """Insight personalizado por biomarcador alterado × ingredientes del producto."""
+    """Insight personalizado por biomarcador × ingredientes del producto.
+
+    kind="alert"  → biomarcador ya fuera de rango en la dirección que empuja el aditivo.
+    kind="watch"  → biomarcador normal; el aditivo podría sacarlo de rango (predictivo).
+    """
 
     biomarker_name: CanonicalBiomarker
     biomarker_value: float
     biomarker_unit: str
-    classification: Literal["low", "high"]
+    classification: Literal["low", "normal", "high"]
     affecting_ingredients: list[str]
     severity: ConflictSeverity
+    kind: Literal["alert", "watch"] = "alert"
+    impact_direction: Literal["raises", "lowers"]
+    reference_range_low: float | None = None
+    reference_range_high: float | None = None
     friendly_title: str
     friendly_biomarker_label: str
     friendly_explanation: str
