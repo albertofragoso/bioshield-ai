@@ -29,6 +29,9 @@ node_modules/
 .claude/settings.local.json
 .vscode/
 
+# Golden dataset — generated files (keep .gitkeep, ignore JSON outputs)
+backend/data/golden/*.json
+
 # Misc
 *.pdf
 cookies.txt
