@@ -137,6 +137,8 @@ Se implementa una matriz de severidad para categorizar las discrepancias detecta
 ## 9. Vector DB Justification: ChromaDB
 
 * **Engine:** **ChromaDB** (Local-first).
+* **Dimensión de vector:** **1024** (BGE-M3 local, `BAAI/bge-m3`). Migrado desde 768 (Gemini embedding-001) para permitir el semantic re-ranking de biomarcadores sin enviar datos médicos a APIs externas. El cambio de dimensión requiere re-seed (`rm -rf chroma_db` + `seed_rag`).
+* **Footprint RAM adicional:** BGE-M3 añade ~500MB al proceso de ingesta (inference local). Dentro del envelope de 8GB del entorno de desarrollo.
 * **Justificación:**
     * **Latencia:** < 50ms para búsqueda vectorial y filtrado en el volumen esperado (~20k chunks).
     * **Escala:** Compatible con la infraestructura actual (8GB RAM), permitiendo ejecución local y bajo costo operativo.

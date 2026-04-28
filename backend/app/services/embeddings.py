@@ -1,14 +1,18 @@
 """Text embedding service.
 
-Primary: Gemini `gemini-embedding-001` (768-dim).
-Fallback: local BGE-M3 (1024-dim) — flagged via settings.use_local_embeddings.
-Changing models requires re-indexing Chroma (dimension mismatch).
+Primary: BGE-M3 local (1024-dim) — activated when USE_LOCAL_EMBEDDINGS=true (default).
+Fallback: Gemini `gemini-embedding-001` (768-dim) — USE_LOCAL_EMBEDDINGS=false.
+Changing models requires re-indexing Chroma (dimension mismatch — see docs/runbooks).
+
+Gemini is still required for Vision OCR and personalized insight copy generation,
+but is no longer in the embedding path when local embeddings are enabled.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from functools import lru_cache
 
 import google.generativeai as genai
@@ -17,6 +21,13 @@ from google.api_core import exceptions as google_exceptions
 from app.config import Settings
 
 logger = logging.getLogger(__name__)
+
+# BGE-M3 singleton — loaded lazily on first call to _embed_local_bge.
+# threading.Lock (not asyncio) because _embed_local_bge is a sync function
+# called from asyncio.to_thread's thread pool.
+_bge_model = None
+_bge_load_lock = threading.Lock()
+
 
 @lru_cache(maxsize=256)
 def _cached_embed(text: str, model: str) -> tuple[float, ...]:
@@ -46,7 +57,7 @@ async def embed_text(text: str, settings: Settings) -> list[float]:
         raise ValueError("Cannot embed empty text")
 
     if settings.use_local_embeddings:
-        return _embed_local_bge(text, settings)
+        return await asyncio.to_thread(_embed_local_bge, text, settings)
 
     genai.configure(api_key=settings.gemini_api_key)
     key = (text.strip(), settings.gemini_embedding_model)
@@ -83,14 +94,16 @@ async def embed_text(text: str, settings: Settings) -> list[float]:
 
 
 def _embed_local_bge(text: str, settings: Settings) -> list[float]:
-    """BGE-M3 local fallback path.
+    """BGE-M3 local embedding — runs in asyncio.to_thread, never blocks the event loop.
 
-    Not installed by default — sentence-transformers adds ~500MB. Enable by
-    installing sentence-transformers + torch and implementing here. Tracked
-    in backend/reviews/18-04.md.
+    Lazy-loads the SentenceTransformer singleton on first call. Double-check
+    locking prevents duplicate model loads if multiple threads race at startup.
     """
-    raise NotImplementedError(
-        "Local BGE-M3 embeddings are not wired in MVP. "
-        "Install sentence-transformers and implement _embed_local_bge. "
-        "See backend/reviews/18-04.md."
-    )
+    global _bge_model
+    if _bge_model is None:
+        with _bge_load_lock:
+            if _bge_model is None:
+                from sentence_transformers import SentenceTransformer  # noqa: PLC0415
+
+                _bge_model = SentenceTransformer(settings.bge_model_name)
+    return _bge_model.encode(text).tolist()

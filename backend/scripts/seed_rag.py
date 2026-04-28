@@ -109,6 +109,8 @@ async def run_live(db: Session) -> None:
             await coro
         except Exception as exc:
             logger.warning("PARTIAL FAILURE — %s skipped: %s", name, exc)
+            # Rollback para que la sesión pueda continuar con la siguiente fuente
+            db.rollback()
 
     all_ingredients = list(db.scalars(select(Ingredient)))
     for ing in all_ingredients:

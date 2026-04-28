@@ -14,9 +14,13 @@ Extending it is a data-curation task, not a code change.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from app.config import Settings
 
 from app.schemas.models import (
     CanonicalBiomarker,
@@ -28,6 +32,12 @@ from app.schemas.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Umbral de similitud coseno para considerar un hit semántico válido.
+# BGE-M3 contra templates regulatorios (sin propiedades clínicas) puede dar
+# similitudes bajas (~0.4–0.55); este valor captura sinónimos sin ruido.
+# Calibrar con ground truth antes de subir.
+_SEMANTIC_SIMILARITY_THRESHOLD = 0.65
 
 _SEVERITY_RANK = {
     ConflictSeverity.HIGH: 3,
@@ -181,7 +191,7 @@ def aggregate_regulatory_status(status_by_source: dict[str, str]) -> RegulatoryS
     return worst
 
 
-def find_ingredient_matches(
+def _find_matches_keywords(
     biomarkers: list | None,
     ingredients: list[IngredientResult],
 ) -> list[
@@ -189,15 +199,7 @@ def find_ingredient_matches(
         object, list[str], ConflictSeverity, Literal["alert", "watch"], Literal["raises", "lowers"]
     ]
 ]:
-    """Return (biomarker, matching_ingredient_names, severity, kind) for each rule match.
-
-    `kind` is "alert" when the biomarker is already out of range in the direction
-    the ingredient pushes it, or "watch" when the biomarker is currently normal
-    (predictive: the ingredient could push it out of range).
-
-    `biomarkers` is a list of Biomarker schema objects (or dicts with 'name',
-    'value', 'classification' keys). Called by the `personalize` LangGraph node.
-    """
+    """Keyword-only matching. Sync — usado por detect_biomarker_conflicts y como base de find_ingredient_matches."""
     if not biomarkers or not ingredients:
         return []
 
@@ -257,20 +259,101 @@ def find_ingredient_matches(
     return matches
 
 
+async def find_ingredient_matches(
+    biomarkers: list | None,
+    ingredients: list[IngredientResult],
+    settings: Settings | None = None,
+    collection=None,
+) -> list[
+    tuple[
+        object,
+        list[str],
+        ConflictSeverity,
+        Literal["alert", "watch"],
+        Literal["raises", "lowers"],
+        float,
+    ]
+]:
+    """Keyword + semantic matching. Async — usado solo desde make_personalize_node.
+
+    Cuando settings=None o collection=None, cae a keyword-only con semantic_score=0.0.
+    Los valores reales del biomarcador NUNCA se embeddean — solo el texto canónico de la
+    regla clínica (nombre + direction + keywords), que es código estático sin PHI.
+    """
+    if not biomarkers or not ingredients:
+        return []
+
+    keyword_results = _find_matches_keywords(biomarkers, ingredients)
+    if settings is None or collection is None:
+        return [(*m, 0.0) for m in keyword_results]
+
+    from app.services.embeddings import embed_text
+    from app.services.rag import query_by_embedding
+
+    enriched = []
+    for match in keyword_results:
+        bm, ingr_names, severity, kind, direction = match
+
+        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
+        name_val = name.value if hasattr(name, "value") else str(name)
+
+        rule = next(
+            (r for r in BIOMARKER_RULES if r.biomarker.value == name_val and r.direction == direction),
+            None,
+        )
+
+        if rule is None:
+            enriched.append((*match, 0.0))
+            continue
+
+        # Solo texto canónico de la regla — sin valores del usuario
+        query_text = (
+            f"{rule.biomarker.value.replace('_', ' ')} {rule.direction}: "
+            f"{', '.join(rule.keywords)}"
+        )
+
+        try:
+            embedding = await embed_text(query_text, settings)
+            hits = query_by_embedding(collection, embedding, top_k=5)
+
+            semantic_score = 0.0
+            additional: list[str] = []
+            for hit in hits:
+                if hit.similarity < _SEMANTIC_SIMILARITY_THRESHOLD:
+                    continue
+                hit_canonical = hit.metadata.get("canonical_name", "").lower()
+                for ing in ingredients:
+                    ing_canonical = (ing.canonical_name or "").lower()
+                    if hit_canonical and (
+                        ing_canonical == hit_canonical or hit_canonical in ing.name.lower()
+                    ):
+                        match_str = ing.canonical_name or ing.name
+                        if match_str not in ingr_names and match_str not in additional:
+                            additional.append(match_str)
+                            semantic_score = max(semantic_score, hit.similarity)
+
+            enriched.append((bm, list(ingr_names) + additional, severity, kind, direction, semantic_score))
+
+        except Exception as exc:
+            logger.warning("Semantic enrichment skipped for %s: %s", name_val, exc)
+            enriched.append((*match, 0.0))
+
+    return enriched
+
+
 def detect_biomarker_conflicts(
     ingredients: list[IngredientResult],
     biomarkers: list | None,
 ) -> list[PersonalizedAlert]:
     """Return legacy PersonalizedAlert list for ORANGE semaphore detection.
 
-    Thin wrapper around find_ingredient_matches — kept for backward compat
-    with compute_semaphore until the personalize node fully takes over.
+    Thin wrapper around _find_matches_keywords — sync, no semantic path.
     """
     if not biomarkers:
         return []
 
     alerts: list[PersonalizedAlert] = []
-    for bm, ingr_names, severity, _kind, _direction in find_ingredient_matches(
+    for bm, ingr_names, severity, _kind, _direction in _find_matches_keywords(
         biomarkers, ingredients
     ):
         name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)

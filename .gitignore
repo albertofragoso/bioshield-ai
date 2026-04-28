@@ -15,6 +15,7 @@ __pycache__/
 
 # Vector store
 chroma_db/
+bioshield_chroma_*_backup_*.tar.gz
 
 # Frontend
 node_modules/

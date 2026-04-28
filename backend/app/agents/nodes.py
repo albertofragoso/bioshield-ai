@@ -33,6 +33,7 @@ from app.services.analysis import (
 from app.services.conflicts import detect_conflicts
 from app.services.crypto import decrypt_biomarker
 from app.services.entity_resolution import resolve
+from app.services.rag import get_collection
 from app.services.retrieval import hybrid_search
 
 logger = logging.getLogger(__name__)
@@ -182,24 +183,6 @@ def make_biosync_node(db: Session, settings: Settings):
 # 6. Detect conflicts (regulatory + biomarker)
 # ─────────────────────────────────────────────
 
-_BIOMARKER_KEYS_WARNING: dict[str, set[str]] = {
-    "glucose": {"high-fructose corn syrup", "sucrose", "sugar", "dextrose"},
-    "hba1c": {"high-fructose corn syrup", "sucrose", "sugar", "aspartame"},
-    "cholesterol_ldl": {"butylated hydroxyanisole", "butylated hydroxytoluene"},
-    "sodium": {"monosodium glutamate", "sodium nitrite", "sodium benzoate"},
-}
-
-
-def _biomarker_matches(biomarkers: dict, ingredient_name: str) -> list[str]:
-    ing_lower = ingredient_name.lower()
-    matched: list[str] = []
-    for key, risky in _BIOMARKER_KEYS_WARNING.items():
-        if key not in biomarkers:
-            continue
-        if any(term in ing_lower for term in risky):
-            matched.append(key)
-    return matched
-
 
 def _sources_from_summary(summary: str) -> list[str]:
     sources = []
@@ -254,7 +237,8 @@ def make_personalize_node(settings: Settings):
         resolved = state.get("resolved") or []
         biomarkers = state.get("biomarkers")
 
-        matches = find_ingredient_matches(biomarkers, resolved)
+        collection = get_collection(settings)
+        matches = await find_ingredient_matches(biomarkers, resolved, settings, collection)
         if not matches:
             return {"personalized_insights": []}
 
@@ -264,6 +248,7 @@ def make_personalize_node(settings: Settings):
             severity: ConflictSeverity,
             kind: str,
             direction: str,
+            semantic_score: float = 0.0,
         ) -> PersonalizedInsight:
             name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", "")
             value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", 0.0)

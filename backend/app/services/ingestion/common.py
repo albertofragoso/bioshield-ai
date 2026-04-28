@@ -51,7 +51,13 @@ def checksum(data: bytes) -> str:
 
 
 def get_or_create_source(
-    db: Session, name: str, region: str, version: str, source_checksum: str, license_: str, format_: str
+    db: Session,
+    name: str,
+    region: str,
+    version: str,
+    source_checksum: str,
+    license_: str,
+    format_: str,
 ) -> DataSource:
     source = db.scalar(select(DataSource).where(DataSource.name == name))
     if not source:
@@ -150,15 +156,20 @@ async def index_record(
         hazard_note=record.hazard_note,
         usage_limits=record.usage_limits,
     )
-    # Skip embedding on empty gemini_api_key (unit tests run offline)
-    if not settings.gemini_api_key or settings.gemini_api_key == "test-key":
+    # Skip embedding in tests (no API key AND local model disabled).
+    # When use_local_embeddings=True, no Gemini key is needed — allow through.
+    if not settings.use_local_embeddings and (
+        not settings.gemini_api_key or settings.gemini_api_key == "test-key"
+    ):
         return
     try:
         embedding = await embed_text(template, settings)
     except (RuntimeError, Exception) as exc:
         logger.warning(
             "Chroma indexing skipped for %s (%s): %s — BM25 still available",
-            ingredient.canonical_name, source_name, exc,
+            ingredient.canonical_name,
+            source_name,
+            exc,
         )
         return
     collection = get_collection(settings)

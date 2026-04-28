@@ -1,6 +1,6 @@
 # Estrategia de Embeddings — BioShield AI
 
-**Versión:** 1.0 · **Última actualización:** 2026-04-18
+**Versión:** 2.0 · **Última actualización:** 2026-04-28
 
 Documento que consolida las decisiones de embedding para el RAG regulatorio.
 Complementa a `data-sources.md` (fuentes) y `architecture.md` (tabla `ingredients`).
@@ -11,10 +11,12 @@ Complementa a `data-sources.md` (fuentes) y `architecture.md` (tabla `ingredient
 
 | Capa | Modelo | Dimensión | Trigger |
 |---|---|---|---|
-| **Primaria** | `gemini-embedding-001` (API Gemini) | 768 | `USE_LOCAL_EMBEDDINGS=false` (default) |
-| **Fallback local** | `BAAI/bge-m3` (sentence-transformers) | 1024 | `USE_LOCAL_EMBEDDINGS=true` o API caída |
+| **Primaria** | `BAAI/bge-m3` (sentence-transformers, local) | 1024 | `USE_LOCAL_EMBEDDINGS=true` (default) |
+| **Fallback API** | `gemini-embedding-001` (Gemini API) | 768 | `USE_LOCAL_EMBEDDINGS=false` |
 
-**Nota importante:** las dimensiones difieren. Cambiar de Gemini a BGE-M3 requiere re-indexar la colección Chroma completa (no es hot-swappable).
+**Nota importante:** las dimensiones difieren (1024 vs 768). Cambiar entre modelos requiere re-indexar la colección Chroma completa — no es hot-swappable. Ver §Migración en `docs/runbooks/embeddings-fallback.md`.
+
+**Gemini API** sigue siendo necesaria para Vision (OCR de etiquetas) y generación de insights personalizados, pero ya **no** para embeddings cuando `USE_LOCAL_EMBEDDINGS=true`.
 
 ---
 
@@ -112,10 +114,12 @@ El umbral HITL de 0.7 es **inicial/arbitrario**. Plan de calibración en
 
 Orden de degradación cuando falla el path principal:
 
-1. **Gemini API healthy** → embedding via API, vector search Chroma.
-2. **Gemini rate-limited** → retry exponencial (100ms, 200ms, 400ms).
+1. **BGE-M3 local healthy** → embedding local (1024-dim), vector search Chroma.
+2. **BGE-M3 falla** (OOM, modelo no cacheado) → degradar a BM25.
 3. **Chroma unreachable** → BM25 puro sobre SQL (`rank_bm25` in-process).
 4. **Todo falla** → degraded response: `risk_level: "UNKNOWN"`, `semaphore: GRAY`, error log estructurado.
+
+Fallback Gemini embedding (768-dim): solo disponible con `USE_LOCAL_EMBEDDINGS=false`. Requiere re-seed previo con Gemini para tener la colección a 768-dim.
 
 ---
 
@@ -132,6 +136,23 @@ Ver `services/ingestion/` para detalles:
 7. **Log** en `ingestion_log` con status `SUCCESS`/`PARTIAL`/`FAILED`.
 
 Trigger: `python -m scripts.seed_rag` (idempotente).
+
+---
+
+## 10. Limitaciones del semantic matching biomarker × ingrediente
+
+El re-ranking semántico de `find_ingredient_matches` embeddea el texto canónico de la regla clínica (e.g., `"ldl raises: trans fat, hydrogenated, palm oil"`) y lo compara contra los templates de ChromaDB.
+
+**Limitación clave:** los templates regulatorios codifican información de **estatus y riesgo regulatorio** (FDA/EFSA/Codex), no propiedades clínicas. La similitud coseno entre una query clínica y un template regulatorio puede ser baja (~0.40–0.55). El path semántico aporta principalmente:
+
+- Captura de **sinónimos y variantes de nombre** no presentes en los keywords.
+- Mejor recall para ingredientes con múltiples denominaciones internacionales.
+
+**Lo que NO hace:** inferir nuevas relaciones clínicas biomarker-ingrediente no modeladas en `BIOMARKER_RULES`.
+
+**Threshold actual:** `_SEMANTIC_SIMILARITY_THRESHOLD = 0.65`. Calibrar con ground truth antes de ajustar este valor.
+
+**Garantía de privacidad:** los valores reales del biomarcador del usuario (ej. `ldl=160`) NUNCA se embeddean. Solo se embeddea el texto canónico de la regla (`"ldl raises: trans fat, hydrogenated..."`), que es código estático sin PHI.
 
 ---
 

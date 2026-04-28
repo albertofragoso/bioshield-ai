@@ -1,7 +1,7 @@
-# Runbook: Migración de Gemini Embeddings a BGE-M3 (Fallback Local)
+# Runbook: Embeddings — BGE-M3 Primary / Gemini Fallback
 
-**Versión:** 1.0  
-**Última actualización:** 2026-04-22  
+**Versión:** 2.0  
+**Última actualización:** 2026-04-28  
 **Audiencia:** DevOps / SRE / Technical Lead  
 **Criticidad:** Media (servicio degradado pero funcional)
 
@@ -9,17 +9,28 @@
 
 ## 1. Overview
 
-BioShield usa **Gemini embedding-001** (API) como primaria y **BGE-M3** (local) como fallback.
+BioShield usa **BGE-M3** (local, `BAAI/bge-m3`) como primario desde la v2.0 y **Gemini embedding-001** (API) como fallback.
 
-| Aspecto | Gemini | BGE-M3 |
+El cambio fue motivado por el semantic re-ranking de biomarcadores: los datos médicos del usuario no pueden enviarse a APIs externas. Solo el texto canónico de la regla clínica (código estático, sin PHI) se embeddea.
+
+| Aspecto | BGE-M3 (primario) | Gemini embedding-001 (fallback) |
 |---|---|---|
-| Dimensión | 768 | 1024 |
-| Ubicación | Google Cloud | proceso local |
-| Latencia | 200–400ms | 50–100ms |
-| Costo | ~$0.25 / 1k calls | $0 (batch) |
-| Fallo rápido | Sí (rate limit claro) | No (degrade silencioso) |
+| Dimensión | **1024** | 768 |
+| Ubicación | proceso local | Google Cloud |
+| Latencia | 50–100ms | 200–400ms |
+| Costo | $0 (batch) | ~$0.25 / 1k calls |
+| Privacidad PHI | Garantizada | Requiere revisión |
+| Config | `USE_LOCAL_EMBEDDINGS=true` | `USE_LOCAL_EMBEDDINGS=false` |
 
-**Cambiar entre ellos requiere re-indexar Chroma** porque la dimensión es incompatible. No es hot-swappable.
+**Cambiar entre modelos requiere re-indexar Chroma** porque la dimensión es incompatible (1024 vs 768). No es hot-swappable.
+
+### Plataforma Intel Mac (x86_64)
+
+PyTorch >= 2.3 no tiene wheels para Intel Mac en PyPI. El máximo disponible es torch 2.2.2. Para compatibilidad:
+- `transformers` debe ser < 4.51 (a partir de 4.51 bloquea torch < 2.6 incondicionalmente)
+- `numpy` debe ser < 2 (torch 2.2.2 fue compilado contra NumPy 1.x ABI)
+
+Ver `requirements.txt` para las versiones fijadas.
 
 ---
 
@@ -271,18 +282,19 @@ Patrones esperados:
 
 ## 6. Troubleshooting
 
-### Problema: `torch` no instala
+### Problema: `torch` no instala (o solo encuentra 2.2.2)
 
 ```bash
-# Síntoma:
-pip install torch
-# ERROR: Could not find a version that satisfies the requirement torch
+# Síntoma en Intel Mac:
+pip install "torch>=2.6"
+# ERROR: No matching distribution found — PyTorch >= 2.3 no tiene wheels x86_64 macOS
 
-# Solución A: Especificar versión compatible
-pip install torch==2.0.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Causa: PyTorch eliminó soporte Intel Mac (x86_64) a partir de 2.3.
+# Solución: torch 2.2.2 + pinear transformers<4.51 + numpy<2
+pip install "torch==2.2.2" "transformers==4.50.3" "numpy<2"
 
-# Solución B: Usar versión precompilada
-pip install sentence-transformers  # Instala torch automáticamente si existe PyTorch
+# En Linux (CI/producción), instalar CPU-only:
+pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
 
 ### Problema: OOM (Out of Memory) durante embedding

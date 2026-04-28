@@ -21,7 +21,7 @@
     ],
     "Stop": [
       {
-        "matcher": "",
+        "matcher": "*",
         "hooks": [
           { "type": "command", "command": "bash scripts/hooks/type-check.sh" }
         ]

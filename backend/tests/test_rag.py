@@ -8,15 +8,18 @@ Gemini are mocked; real API keys are never needed in the test suite.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from sqlalchemy import select
 
+from app.config import Settings
 from app.models import Ingredient, RegulatoryStatus
 from app.services.conflicts import detect_conflicts
 from app.services.entity_resolution import resolve
 from app.services.ingestion.common import (
     IngestionRecord,
     get_or_create_source,
+    index_record,
     upsert_ingredient,
     upsert_regulatory_status,
 )
@@ -239,6 +242,46 @@ def test_no_conflict_single_approval(db_session):
 # ─────────────────────────────────────────────
 # retrieval.py — BM25 fallback path
 # ─────────────────────────────────────────────
+
+# ─────────────────────────────────────────────
+# ingestion/common.py — guard fix en index_record
+# ─────────────────────────────────────────────
+
+async def test_index_record_runs_with_local_embeddings(db_session):
+    """Con use_local_embeddings=True, index_record NO hace early return aunque la API key sea 'test-key'."""
+    settings = Settings(
+        debug=True,
+        database_url="sqlite:///:memory:",
+        jwt_secret="test-jwt",
+        aes_key="test-aes-key-32-bytes-xxxxxxxxxx",
+        gemini_api_key="test-key",
+        chroma_persist_directory="",  # Chroma efímero
+        allowed_origins=["http://testserver"],
+        use_local_embeddings=True,
+        bge_model_name="BAAI/bge-m3",
+    )
+
+    rec = IngestionRecord(canonical_name="Trans Fat", cas_number="None", status="APPROVED")
+    ingredient = upsert_ingredient(db_session, rec)
+
+    captured_upserts: list = []
+
+    with (
+        patch(
+            "app.services.ingestion.common.embed_text",
+            new_callable=AsyncMock,
+            return_value=[0.1] * 1024,
+        ),
+        patch(
+            "app.services.ingestion.common.upsert_record",
+            side_effect=lambda **kwargs: captured_upserts.append(kwargs),
+        ),
+    ):
+        await index_record(ingredient, rec, "FDA_EAFUS", settings)
+
+    # Si el guard hubiera hecho early return, upsert_record nunca se habría llamado
+    assert len(captured_upserts) == 1, "upsert_record debe llamarse cuando use_local_embeddings=True"
+
 
 async def test_hybrid_search_bm25_fallback(db_session, monkeypatch):
     """Force vector search failure; retrieval must degrade to BM25."""

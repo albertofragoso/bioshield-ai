@@ -39,7 +39,11 @@ def _client_for(persist_directory: str) -> chromadb.ClientAPI:
 
 
 def get_collection(settings: Settings) -> Collection:
-    """Return the bioshield_ingredients collection, creating it if needed."""
+    """Return the bioshield_ingredients collection, creating it if needed.
+
+    Dimension is 1024 (BGE-M3). ChromaDB infers it from the first upsert —
+    re-seed required if the embedding model changes (see docs/runbooks).
+    """
     client = _client_for(settings.chroma_persist_directory)
     return client.get_or_create_collection(
         name=settings.chroma_collection_name,
