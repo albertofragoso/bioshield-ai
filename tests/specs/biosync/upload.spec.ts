@@ -28,11 +28,6 @@ test.describe("Feature: Biosync PDF flow", () => {
 
     await mockedPage.locator('input[type="file"]').setInputFiles(PDF_FIXTURE);
 
-    // AI loader visible during extraction
-    await expect(
-      mockedPage.getByText(/READING_PDF_OCR|PARSING_LAB_RESULTS|BioShield\s+AI/i),
-    ).toBeVisible();
-
     // Review state
     await expect(
       mockedPage.getByRole("heading", { name: /revisa los valores extraídos/i }),

@@ -48,12 +48,16 @@ test.describe("Feature: Scan result", () => {
   });
 
   test("edge — Para Ti shows Alertas and Vigilar tabs with counts", async ({ mockedPage }) => {
-    const alert = makePersonalizedInsight({ kind: "alert", friendly_title: "Alerta de LDL" });
+    const alert = makePersonalizedInsight({
+      kind: "alert",
+      friendly_biomarker_label: "Colesterol LDL",
+    });
     const watch = makePersonalizedInsight({
       kind: "watch",
       avatar_variant: "yellow",
       severity: "LOW",
-      friendly_title: "Vigilancia glucosa",
+      // Unique label so it's identifiable when the Vigilar tab is active
+      friendly_biomarker_label: "Glucosa en ayunas",
     });
     await mockScanBarcode(
       mockedPage,
@@ -64,8 +68,9 @@ test.describe("Feature: Scan result", () => {
     await expect(mockedPage.getByRole("button", { name: /alertas \(1\)/i })).toBeVisible();
     await expect(mockedPage.getByRole("button", { name: /vigilar \(1\)/i })).toBeVisible();
 
+    // Switch to Vigilar tab and verify the watch insight's biomarker label renders
     await mockedPage.getByRole("button", { name: /vigilar \(1\)/i }).click();
-    await expect(mockedPage.getByText("Vigilancia glucosa")).toBeVisible();
+    await expect(mockedPage.getByText("Glucosa en ayunas")).toBeVisible();
   });
 
   test("edge — BGE-M3 re-ranking: multiple affecting_ingredients render as pills", async ({ mockedPage }) => {
@@ -73,8 +78,8 @@ test.describe("Feature: Scan result", () => {
     await mockedPage.goto(`/scan/${NUTELLA_BARCODE}`);
 
     await expect(mockedPage.getByLabel(/Semáforo/i)).toBeVisible();
-    await expect(mockedPage.getByText("Grasas trans")).toBeVisible();
-    await expect(mockedPage.getByText("Aceite de palma")).toBeVisible();
+    await expect(mockedPage.getByText("Grasas trans").first()).toBeVisible();
+    await expect(mockedPage.getByText("Aceite de palma").first()).toBeVisible();
     await expect(mockedPage.getByText(/tu LDL está/i)).toBeVisible();
   });
 

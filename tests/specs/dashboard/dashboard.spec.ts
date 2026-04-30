@@ -26,7 +26,7 @@ test.describe("Feature: Dashboard", () => {
     await mockedPage.goto("/");
 
     await expect(mockedPage.getByText(/sin scans aún/i)).toBeVisible();
-    await expect(mockedPage.getByRole("link", { name: /escanear producto/i })).toBeVisible();
+    await expect(mockedPage.getByRole("link", { name: /escanear producto/i }).first()).toBeVisible();
   });
 
   test("edge — biomarker expiring in <30 days shows amber warning", async ({ mockedPage }) => {

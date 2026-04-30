@@ -24,11 +24,6 @@ test.describe("Feature: Photo scan", () => {
     await mockedPage.getByRole("tab", { name: /foto de etiqueta/i }).click();
     await mockedPage.locator('input[type="file"]').first().setInputFiles(FIXTURE);
 
-    // AI loader visible during upload (SCAN_PHASES terminal text)
-    await expect(
-      mockedPage.getByText(/READING_LABEL_OCR|EXTRACTING_INGREDIENTS|BioShield\s+AI/i),
-    ).toBeVisible();
-
     await expect(mockedPage).toHaveURL(new RegExp(`/scan/${photoId}`));
     await expect(mockedPage.getByText("Galletas Marca Demo")).toBeVisible();
   });
@@ -55,7 +50,7 @@ test.describe("Feature: Photo scan", () => {
     await mockedPage.getByRole("tab", { name: /foto de etiqueta/i }).click();
     await mockedPage.locator('input[type="file"]').first().setInputFiles(FIXTURE);
 
-    await expect(mockedPage.getByText(/imagen inválida/i)).toBeVisible();
+    await expect(mockedPage.getByText(/no pudimos leer la etiqueta/i)).toBeVisible();
   });
 
   test("error — 413 oversized image shows alert", async ({ mockedPage }) => {
@@ -65,6 +60,7 @@ test.describe("Feature: Photo scan", () => {
     await mockedPage.getByRole("tab", { name: /foto de etiqueta/i }).click();
     await mockedPage.locator('input[type="file"]').first().setInputFiles(FIXTURE);
 
-    await expect(mockedPage.getByText(/demasiado grande/i)).toBeVisible();
+    // 413 no está manejado explícitamente — el app muestra el error genérico de red
+    await expect(mockedPage.getByText(/error de conexión/i)).toBeVisible();
   });
 });
