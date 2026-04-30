@@ -37,7 +37,6 @@ export function OFFContributeToggle({ scanData }: Props) {
   }
 
   function handleRetry() {
-    mutation.reset();
     mutation.mutate();
   }
 
@@ -80,6 +79,7 @@ export function OFFContributeToggle({ scanData }: Props) {
           </p>
         </div>
         <button
+          type="button"
           onClick={handleRetry}
           className="shrink-0 px-3 py-1.5 rounded-button font-mono text-[10px] uppercase tracking-[0.08em] transition-opacity hover:opacity-70"
           style={{
@@ -122,6 +122,7 @@ export function OFFContributeToggle({ scanData }: Props) {
               Se compartirá: barcode · ingredientes detectados
             </p>
             <button
+              type="button"
               onClick={handleSubmit}
               className="mt-2 px-3 py-1.5 rounded-button font-mono text-[10px] uppercase tracking-[0.08em] text-brand-green transition-all hover:opacity-80"
               style={{
@@ -141,6 +142,7 @@ export function OFFContributeToggle({ scanData }: Props) {
 
       {!isLoading && (
         <button
+          type="button"
           role="switch"
           aria-checked={enabled}
           aria-label="Contribuir a Open Food Facts"
