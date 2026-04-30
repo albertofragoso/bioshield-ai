@@ -49,9 +49,7 @@ def detect_conflicts(ingredient: Ingredient, db: Session) -> list[Conflict]:
     Returns the (possibly empty) list of persisted Conflict rows.
     """
     statuses = list(
-        db.scalars(
-            select(RegulatoryStatus).where(RegulatoryStatus.ingredient_id == ingredient.id)
-        )
+        db.scalars(select(RegulatoryStatus).where(RegulatoryStatus.ingredient_id == ingredient.id))
     )
     if not statuses:
         return []

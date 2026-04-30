@@ -50,6 +50,7 @@ def _set_auth_cookies(response: Response, access: str, refresh: str, settings: S
 # POST /auth/register
 # ─────────────────────────────────────────────
 
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("10/minute")
 def register(
@@ -82,6 +83,7 @@ def register(
 # POST /auth/login
 # ─────────────────────────────────────────────
 
+
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
 def login(
@@ -112,6 +114,7 @@ def login(
 # POST /auth/refresh
 # ─────────────────────────────────────────────
 
+
 @router.post("/refresh", response_model=TokenResponse)
 def refresh(
     response: Response,
@@ -138,6 +141,7 @@ def refresh(
 # ─────────────────────────────────────────────
 # POST /auth/logout
 # ─────────────────────────────────────────────
+
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(

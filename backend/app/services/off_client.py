@@ -112,6 +112,7 @@ async def fetch_product(barcode: str, settings: Settings) -> OFFProduct | None:
 # Flujo contributivo (write path, Fase 2)
 # ─────────────────────────────────────────────
 
+
 async def contribute_product(
     barcode: str,
     ingredients_text: str,

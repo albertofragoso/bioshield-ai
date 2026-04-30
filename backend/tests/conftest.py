@@ -47,6 +47,7 @@ def disable_rate_limiting():
 # Database
 # ─────────────────────────────────────────────
 
+
 @pytest.fixture(scope="session")
 def test_engine():
     """In-memory SQLite engine with all tables created once per session."""
@@ -83,6 +84,7 @@ def db_session(test_engine):
 # ─────────────────────────────────────────────
 # HTTP client
 # ─────────────────────────────────────────────
+
 
 @pytest.fixture
 async def client(db_session):

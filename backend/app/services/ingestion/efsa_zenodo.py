@@ -89,9 +89,7 @@ def parse_workbook_bytes(raw_bytes: bytes) -> list[IngestionRecord]:
 async def fetch_live_bytes(client: httpx.AsyncClient) -> bytes:
     meta = (await client.get(ZENODO_RECORD_URL)).json()
     files = meta.get("files", [])
-    file_url = next(
-        (f["links"]["self"] for f in files if f["key"] == TARGET_FILE), None
-    )
+    file_url = next((f["links"]["self"] for f in files if f["key"] == TARGET_FILE), None)
     if not file_url:
         raise ValueError(f"{TARGET_FILE} not found in Zenodo record {ZENODO_RECORD_URL}")
     response = await client.get(file_url)

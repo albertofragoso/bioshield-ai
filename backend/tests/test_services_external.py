@@ -14,6 +14,7 @@ from tests.conftest import TEST_SETTINGS
 # _parse_ingredients
 # ─────────────────────────────────────────────
 
+
 def test_parse_ingredients_basic():
     text = "sugar, water, salt"
     assert _parse_ingredients(text) == ["sugar", "water", "salt"]
@@ -42,6 +43,7 @@ def test_parse_ingredients_empty_cases():
 # ─────────────────────────────────────────────
 # fetch_product — OFF client
 # ─────────────────────────────────────────────
+
 
 class _FakeResponse:
     def __init__(self, status_code: int, payload: dict | None = None):
@@ -136,6 +138,7 @@ async def test_fetch_product_timeout_returns_none(monkeypatch):
 # Gemini image decode
 # ─────────────────────────────────────────────
 
+
 def test_decode_image_valid():
     raw = b"\x89PNG\r\n\x1a\n" + b"x" * 100
     b64 = base64.b64encode(raw).decode()
@@ -144,6 +147,7 @@ def test_decode_image_valid():
 
 def test_decode_image_invalid_b64():
     from fastapi import HTTPException
+
     with pytest.raises(HTTPException) as exc:
         gemini_service._decode_image("!!!not-base64!!!")
     assert exc.value.status_code == 400
@@ -151,6 +155,7 @@ def test_decode_image_invalid_b64():
 
 def test_decode_image_too_large():
     from fastapi import HTTPException
+
     oversized = base64.b64encode(b"x" * (11 * 1024 * 1024)).decode()
     with pytest.raises(HTTPException) as exc:
         gemini_service._decode_image(oversized)
@@ -160,6 +165,7 @@ def test_decode_image_too_large():
 # ─────────────────────────────────────────────
 # Gemini extract_from_image (mocked)
 # ─────────────────────────────────────────────
+
 
 class _FakeGeminiResponse:
     def __init__(self, data: dict):

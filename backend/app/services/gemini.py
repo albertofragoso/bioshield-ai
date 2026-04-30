@@ -100,7 +100,7 @@ def _to_gemini_schema(schema: dict, defs: dict | None = None) -> dict:
             return _to_gemini_schema(merged, defs)
 
     # 3. Filter to Gemini-allowed keys
-    result = {}
+    result: dict[str, Any] = {}
     for k, v in schema.items():
         if k not in _GEMINI_SCHEMA_ALLOWED:
             continue

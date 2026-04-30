@@ -34,8 +34,11 @@ def _make_expired_access_token(user_id: str) -> str:
 # POST /auth/register
 # ─────────────────────────────────────────────
 
+
 async def test_register_success(client):
-    response = await client.post(REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
+    response = await client.post(
+        REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD}
+    )
     assert response.status_code == 201
     body = response.json()
     assert body["email"] == VALID_EMAIL
@@ -55,18 +58,23 @@ async def test_register_duplicate_email(client):
 
 
 async def test_register_short_password(client):
-    response = await client.post(REGISTER_URL, json={"email": "short@bioshield.ai", "password": "abc"})
+    response = await client.post(
+        REGISTER_URL, json={"email": "short@bioshield.ai", "password": "abc"}
+    )
     assert response.status_code == 422
 
 
 async def test_register_invalid_email(client):
-    response = await client.post(REGISTER_URL, json={"email": "not-an-email", "password": VALID_PASSWORD})
+    response = await client.post(
+        REGISTER_URL, json={"email": "not-an-email", "password": VALID_PASSWORD}
+    )
     assert response.status_code == 422
 
 
 # ─────────────────────────────────────────────
 # POST /auth/login
 # ─────────────────────────────────────────────
+
 
 async def test_login_success(client):
     await client.post(REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
@@ -82,19 +90,24 @@ async def test_login_success(client):
 
 async def test_login_wrong_password(client):
     await client.post(REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
-    response = await client.post(LOGIN_URL, json={"email": VALID_EMAIL, "password": "wrongpassword"})
+    response = await client.post(
+        LOGIN_URL, json={"email": VALID_EMAIL, "password": "wrongpassword"}
+    )
     assert response.status_code == 401
     assert "Invalid credentials" in response.json()["detail"]
 
 
 async def test_login_unknown_email(client):
-    response = await client.post(LOGIN_URL, json={"email": "ghost@bioshield.ai", "password": VALID_PASSWORD})
+    response = await client.post(
+        LOGIN_URL, json={"email": "ghost@bioshield.ai", "password": VALID_PASSWORD}
+    )
     assert response.status_code == 401
 
 
 # ─────────────────────────────────────────────
 # Protected route access
 # ─────────────────────────────────────────────
+
 
 async def test_protected_route_without_token(client):
     response = await client.get(PROTECTED_URL)
@@ -136,7 +149,9 @@ async def test_protected_route_with_refresh_token_rejected(client):
         "iat": datetime.now(UTC),
         "exp": datetime.now(UTC) + timedelta(days=7),
     }
-    refresh_token = jwt.encode(payload, TEST_SETTINGS.jwt_secret, algorithm=TEST_SETTINGS.jwt_algorithm)
+    refresh_token = jwt.encode(
+        payload, TEST_SETTINGS.jwt_secret, algorithm=TEST_SETTINGS.jwt_algorithm
+    )
     response = await client.get(PROTECTED_URL, cookies={"access_token": refresh_token})
     assert response.status_code == 401
 
@@ -144,6 +159,7 @@ async def test_protected_route_with_refresh_token_rejected(client):
 # ─────────────────────────────────────────────
 # POST /auth/refresh
 # ─────────────────────────────────────────────
+
 
 async def test_refresh_issues_new_token_pair(client):
     await client.post(REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
@@ -175,7 +191,9 @@ async def test_refresh_with_access_token_as_refresh_rejected(client):
         "iat": datetime.now(UTC),
         "exp": datetime.now(UTC) + timedelta(minutes=30),
     }
-    access_as_refresh = jwt.encode(payload, TEST_SETTINGS.jwt_secret, algorithm=TEST_SETTINGS.jwt_algorithm)
+    access_as_refresh = jwt.encode(
+        payload, TEST_SETTINGS.jwt_secret, algorithm=TEST_SETTINGS.jwt_algorithm
+    )
     response = await client.post(REFRESH_URL, cookies={"refresh_token": access_as_refresh})
     assert response.status_code == 401
 
@@ -183,6 +201,7 @@ async def test_refresh_with_access_token_as_refresh_rejected(client):
 # ─────────────────────────────────────────────
 # POST /auth/logout
 # ─────────────────────────────────────────────
+
 
 async def test_logout_clears_cookies(client):
     await client.post(REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})

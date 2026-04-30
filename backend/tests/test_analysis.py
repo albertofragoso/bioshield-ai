@@ -14,10 +14,8 @@ from app.schemas.models import (
     SemaphoreColor,
 )
 from app.services.analysis import (
-    BIOMARKER_RULES,
     _find_matches_keywords,
     compute_semaphore,
-    detect_biomarker_conflicts,
     find_ingredient_matches,
 )
 
@@ -56,6 +54,7 @@ def _base_settings(**overrides) -> Settings:
 # _find_matches_keywords
 # ─────────────────────────────────────────────
 
+
 def test_keyword_match_ldl_high():
     biomarkers = [_bm("ldl", 160, "high")]
     ingredients = [_ing("hydrogenated vegetable oil")]
@@ -93,6 +92,7 @@ def test_keyword_empty_inputs():
 # find_ingredient_matches — backward compat (sin settings)
 # ─────────────────────────────────────────────
 
+
 async def test_find_ingredient_matches_keyword_fallback_when_no_settings():
     biomarkers = [_bm("ldl", 160, "high")]
     ingredients = [_ing("trans fat"), _ing("olive oil")]
@@ -114,6 +114,7 @@ async def test_find_ingredient_matches_returns_no_matches_when_empty():
 # find_ingredient_matches — semantic path
 # ─────────────────────────────────────────────
 
+
 async def test_find_ingredient_matches_semantic_adds_extra_hit():
     """Un hit semántico por encima del threshold extiende la lista de ingredientes."""
     from app.services.rag import RAGHit
@@ -132,7 +133,9 @@ async def test_find_ingredient_matches_semantic_adds_extra_hit():
     )
 
     with (
-        patch("app.services.embeddings.embed_text", new_callable=AsyncMock, return_value=[0.1] * 1024),
+        patch(
+            "app.services.embeddings.embed_text", new_callable=AsyncMock, return_value=[0.1] * 1024
+        ),
         patch("app.services.rag.query_by_embedding", return_value=[semantic_hit]),
     ):
         matches = await find_ingredient_matches(biomarkers, ingredients, settings, mock_collection)
@@ -160,7 +163,9 @@ async def test_find_ingredient_matches_semantic_below_threshold_ignored():
     )
 
     with (
-        patch("app.services.embeddings.embed_text", new_callable=AsyncMock, return_value=[0.1] * 1024),
+        patch(
+            "app.services.embeddings.embed_text", new_callable=AsyncMock, return_value=[0.1] * 1024
+        ),
         patch("app.services.rag.query_by_embedding", return_value=[low_hit]),
     ):
         matches = await find_ingredient_matches(biomarkers, ingredients, settings, mock_collection)
@@ -189,9 +194,11 @@ async def test_find_ingredient_matches_semantic_failure_falls_back_gracefully():
 # compute_semaphore — regression guard (debe seguir siendo sync)
 # ─────────────────────────────────────────────
 
+
 def test_compute_semaphore_still_sync():
     """compute_semaphore NO debe ser async — regression guard del async cascade."""
     import inspect
+
     assert not inspect.iscoroutinefunction(compute_semaphore)
 
 

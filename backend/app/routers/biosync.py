@@ -10,7 +10,6 @@ the user to review before they confirm via POST /biosync/upload.
 
 import base64
 from datetime import UTC, datetime, timedelta
-from io import BytesIO
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile, status
 from sqlalchemy import select
@@ -21,12 +20,12 @@ from app.middleware.auth import get_current_user
 from app.middleware.rate_limit import limiter
 from app.models import Biomarker, User
 from app.models.base import get_db
+from app.schemas.models import Biomarker as BiomarkerSchema
 from app.schemas.models import (
     BiomarkerExtractionResult,
     BiomarkerStatusResponse,
     BiomarkerUploadRequest,
 )
-from app.schemas.models import Biomarker as BiomarkerSchema
 from app.services.biomarker_ranges import classify
 from app.services.crypto import encrypt_biomarker
 from app.services.gemini import extract_biomarkers_from_pdf
@@ -41,6 +40,7 @@ _MAX_PDF_PAGES = 5
 # ─────────────────────────────────────────────
 # POST /biosync/extract  (PDF → biomarkers, no persiste)
 # ─────────────────────────────────────────────
+
 
 @router.post(
     "/extract",
@@ -104,6 +104,7 @@ async def extract_biomarkers(
 # POST /biosync/upload
 # ─────────────────────────────────────────────
 
+
 @router.post(
     "/upload",
     response_model=BiomarkerStatusResponse,
@@ -155,6 +156,7 @@ def upload_biomarkers(
 # GET /biosync/status
 # ─────────────────────────────────────────────
 
+
 @router.get("/status", response_model=BiomarkerStatusResponse)
 def biomarker_status(
     current_user: User = Depends(get_current_user),
@@ -177,6 +179,7 @@ def biomarker_status(
 # ─────────────────────────────────────────────
 # DELETE /biosync/data
 # ─────────────────────────────────────────────
+
 
 @router.delete("/data", status_code=status.HTTP_204_NO_CONTENT)
 def delete_biomarkers(

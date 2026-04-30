@@ -5,7 +5,6 @@ SentenceTransformer se mockea para evitar descarga de ~500MB en CI.
 
 from __future__ import annotations
 
-import importlib
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -34,6 +33,7 @@ def _local_settings(**overrides) -> Settings:
 def reset_bge_singleton():
     """Resetea el singleton _bge_model entre tests para aislar efectos de carga."""
     import app.services.embeddings as emb
+
     original = emb._bge_model
     emb._bge_model = None
     yield
@@ -50,12 +50,14 @@ def _make_mock_model(dim: int = 1024) -> MagicMock:
 # _embed_local_bge
 # ─────────────────────────────────────────────
 
+
 def test_embed_local_bge_returns_list_of_floats():
     settings = _local_settings()
     mock_model = _make_mock_model()
 
     with patch("sentence_transformers.SentenceTransformer", return_value=mock_model):
         from app.services.embeddings import _embed_local_bge
+
         result = _embed_local_bge("sodium benzoate preservative", settings)
 
     assert isinstance(result, list)
@@ -70,6 +72,7 @@ def test_embed_local_bge_singleton_does_not_reload_model():
 
     with patch("sentence_transformers.SentenceTransformer", return_value=mock_model) as mock_cls:
         from app.services.embeddings import _embed_local_bge
+
         _embed_local_bge("first call", settings)
         _embed_local_bge("second call", settings)
 
@@ -82,6 +85,7 @@ def test_embed_local_bge_propagates_load_error():
 
     with patch("sentence_transformers.SentenceTransformer", side_effect=OSError("model not found")):
         from app.services.embeddings import _embed_local_bge
+
         with pytest.raises(OSError, match="model not found"):
             _embed_local_bge("test", settings)
 
@@ -90,12 +94,14 @@ def test_embed_local_bge_propagates_load_error():
 # embed_text — ruta local
 # ─────────────────────────────────────────────
 
+
 async def test_embed_text_local_path_returns_vector():
     settings = _local_settings()
     mock_model = _make_mock_model()
 
     with patch("sentence_transformers.SentenceTransformer", return_value=mock_model):
         from app.services import embeddings as emb
+
         result = await emb.embed_text("trans fat hydrogenated", settings)
 
     assert isinstance(result, list)

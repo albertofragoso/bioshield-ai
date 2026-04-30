@@ -1,7 +1,6 @@
 """Tests para POST /scan/contribute — flujo contributivo Open Food Facts (Fase 2)."""
 
 import httpx
-import pytest
 from sqlalchemy import select
 
 from app.models.off_contribution import OFFContribution
@@ -10,6 +9,7 @@ from tests.conftest import TEST_SETTINGS
 # ─────────────────────────────────────────────
 # Helpers de mock (extienden el patrón de test_services_external.py)
 # ─────────────────────────────────────────────
+
 
 class _FakeResponse:
     def __init__(self, status_code: int, payload: dict | None = None):
@@ -51,10 +51,13 @@ class _FakeAsyncClient:
 # Fixtures de autenticación
 # ─────────────────────────────────────────────
 
+
 async def _register_and_login(client) -> dict:
     """Registra un usuario de test y devuelve las cookies de sesión."""
     await client.post("/auth/register", json={"email": "contrib@test.com", "password": "test1234"})
-    resp = await client.post("/auth/login", json={"email": "contrib@test.com", "password": "test1234"})
+    resp = await client.post(
+        "/auth/login", json={"email": "contrib@test.com", "password": "test1234"}
+    )
     assert resp.status_code == 200
     return resp.cookies
 
@@ -62,6 +65,7 @@ async def _register_and_login(client) -> dict:
 # ─────────────────────────────────────────────
 # Tests de autenticación y validación
 # ─────────────────────────────────────────────
+
 
 async def test_contribute_requires_auth(client):
     resp = await client.post(
@@ -106,6 +110,7 @@ async def test_contribute_barcode_too_short_rejected(client):
 # Tests de feature flag
 # ─────────────────────────────────────────────
 
+
 async def test_contribute_feature_flag_off_creates_failed_row(client, db_session, monkeypatch):
     """Con off_contrib_enabled=False el row se crea en FAILED sin llamar a OFF."""
     # off_contrib_enabled=False por defecto en TEST_SETTINGS
@@ -114,7 +119,11 @@ async def test_contribute_feature_flag_off_creates_failed_row(client, db_session
     cookies = await _register_and_login(client)
     resp = await client.post(
         "/scan/contribute",
-        json={"barcode": "photo:abc123abc123abc1", "ingredients": ["azúcar", "agua"], "consent": True},
+        json={
+            "barcode": "photo:abc123abc123abc1",
+            "ingredients": ["azúcar", "agua"],
+            "consent": True,
+        },
         cookies=cookies,
     )
     assert resp.status_code == 202
@@ -136,25 +145,22 @@ async def test_contribute_feature_flag_off_creates_failed_row(client, db_session
 # Tests de happy path (feature flag ON)
 # ─────────────────────────────────────────────
 
+
 async def test_contribute_happy_path(client, db_session, monkeypatch):
     """Con off_contrib_enabled=True y OFF respondiendo 200, el row llega a SUBMITTED."""
-    monkeypatch.setattr(
-        TEST_SETTINGS, "off_contrib_enabled", True
-    )
-    monkeypatch.setattr(
-        TEST_SETTINGS, "off_contributor_user", "bioshield_app"
-    )
-    monkeypatch.setattr(
-        TEST_SETTINGS, "off_contributor_password", "test_password"
-    )
-    monkeypatch.setattr(
-        httpx, "AsyncClient", lambda *a, **kw: _FakeAsyncClient(_FakeResponse(200))
-    )
+    monkeypatch.setattr(TEST_SETTINGS, "off_contrib_enabled", True)
+    monkeypatch.setattr(TEST_SETTINGS, "off_contributor_user", "bioshield_app")
+    monkeypatch.setattr(TEST_SETTINGS, "off_contributor_password", "test_password")
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: _FakeAsyncClient(_FakeResponse(200)))
 
     cookies = await _register_and_login(client)
     resp = await client.post(
         "/scan/contribute",
-        json={"barcode": "photo:happypath000001", "ingredients": ["azúcar", "agua", "sal"], "consent": True},
+        json={
+            "barcode": "photo:happypath000001",
+            "ingredients": ["azúcar", "agua", "sal"],
+            "consent": True,
+        },
         cookies=cookies,
     )
     assert resp.status_code == 202
@@ -175,6 +181,7 @@ async def test_contribute_happy_path(client, db_session, monkeypatch):
 async def test_contribute_with_image_sets_image_submitted(client, db_session, monkeypatch):
     """Cuando se incluye image_base64, image_submitted=True en el row."""
     import base64
+
     monkeypatch.setattr(TEST_SETTINGS, "off_contrib_enabled", True)
     monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: _FakeAsyncClient(_FakeResponse(200)))
 
@@ -203,12 +210,11 @@ async def test_contribute_with_image_sets_image_submitted(client, db_session, mo
 # Tests de error en OFF
 # ─────────────────────────────────────────────
 
+
 async def test_contribute_off_5xx_creates_failed_row(client, db_session, monkeypatch):
     """Si OFF responde 5xx, el row queda en FAILED con off_error poblado."""
     monkeypatch.setattr(TEST_SETTINGS, "off_contrib_enabled", True)
-    monkeypatch.setattr(
-        httpx, "AsyncClient", lambda *a, **kw: _FakeAsyncClient(_FakeResponse(500))
-    )
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: _FakeAsyncClient(_FakeResponse(500)))
 
     cookies = await _register_and_login(client)
     resp = await client.post(
@@ -230,12 +236,17 @@ async def test_contribute_off_5xx_creates_failed_row(client, db_session, monkeyp
 # Tests de integridad del row
 # ─────────────────────────────────────────────
 
+
 async def test_contribute_row_stores_ingredients_text(client, db_session):
     """ingredients_text debe ser la lista de ingredientes unida por coma."""
     cookies = await _register_and_login(client)
     resp = await client.post(
         "/scan/contribute",
-        json={"barcode": "photo:checktext00001", "ingredients": ["lecitina", "sorbitol", "agua"], "consent": True},
+        json={
+            "barcode": "photo:checktext00001",
+            "ingredients": ["lecitina", "sorbitol", "agua"],
+            "consent": True,
+        },
         cookies=cookies,
     )
     assert resp.status_code == 202

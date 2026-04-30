@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from app.schemas.models import (
     IngredientConflict,

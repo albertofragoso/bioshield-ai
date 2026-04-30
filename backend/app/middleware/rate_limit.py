@@ -23,9 +23,11 @@ def _get_user_or_ip(request: Request) -> str:
     # here we just need the sub claim as a stable key — decode without raising.
     try:
         from jose import jwt as _jwt
+
         token = request.cookies.get("access_token")
         if token:
             from app.config import get_settings
+
             settings = get_settings()
             payload = _jwt.decode(
                 token,

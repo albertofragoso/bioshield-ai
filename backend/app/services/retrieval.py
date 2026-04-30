@@ -78,9 +78,7 @@ async def hybrid_search(
     bm25, bm25_corpus = _build_bm25_corpus(db)
     bm25_norm = _bm25_scores(bm25, query)
     bm25_by_entity = {
-        ing.entity_id: bm25_norm[i]
-        for i, ing in enumerate(bm25_corpus)
-        if ing.entity_id
+        ing.entity_id: bm25_norm[i] for i, ing in enumerate(bm25_corpus) if ing.entity_id
     }
 
     try:
@@ -96,7 +94,11 @@ async def hybrid_search(
     for hit in vector_hits:
         bm25_score = bm25_by_entity.get(hit.entity_id, 0.0)
         score = _VECTOR_WEIGHT * hit.similarity + _BM25_WEIGHT * bm25_score
-        fused.append(RankedHit(entity_id=hit.entity_id, document=hit.document, metadata=hit.metadata, score=score))
+        fused.append(
+            RankedHit(
+                entity_id=hit.entity_id, document=hit.document, metadata=hit.metadata, score=score
+            )
+        )
         seen.add(hit.entity_id)
 
     # Include BM25-only matches not in vector hits (for recall)

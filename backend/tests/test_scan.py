@@ -85,6 +85,7 @@ def _off_payload(barcode: str, ingredients: list[str], name: str = "Test Product
 # /scan/barcode — basic contract
 # ─────────────────────────────────────────────
 
+
 async def test_barcode_requires_auth(client):
     response = await client.post(BARCODE_URL, json={"barcode": "7501234567890"})
     assert response.status_code == 401
@@ -131,6 +132,7 @@ async def test_barcode_success_returns_scan_response(client, monkeypatch):
 # /scan/barcode — persistence
 # ─────────────────────────────────────────────
 
+
 async def test_barcode_persists_product_and_scan_history(client, db_session, monkeypatch):
     await _register(client)
 
@@ -172,6 +174,7 @@ async def test_barcode_repeat_does_not_duplicate_product(client, db_session, mon
 # Semaphore logic
 # ─────────────────────────────────────────────
 
+
 async def test_barcode_banned_ingredient_returns_red(client, db_session, monkeypatch):
     await _register(client)
     source = _seed_source(db_session, name="FDA")
@@ -212,7 +215,10 @@ async def test_barcode_restricted_returns_yellow(client, db_session, monkeypatch
     await _register(client)
     source = _seed_source(db_session, name="EFSA")
     ing = _seed_ingredient(
-        db_session, canonical_name="Titanium Dioxide", synonyms=["titanium dioxide"], e_number="E171"
+        db_session,
+        canonical_name="Titanium Dioxide",
+        synonyms=["titanium dioxide"],
+        e_number="E171",
     )
     _seed_reg_status(db_session, ing, source, "Restricted")
     db_session.commit()
@@ -241,7 +247,9 @@ async def test_barcode_with_biomarkers_detects_orange(client, db_session, monkey
         "reference_source": "canonical",
         "classification": "high",
     }
-    await client.post(UPLOAD_URL, json={"biomarkers": [ldl_biomarker], "lab_name": None, "test_date": None})
+    await client.post(
+        UPLOAD_URL, json={"biomarkers": [ldl_biomarker], "lab_name": None, "test_date": None}
+    )
 
     # Seed an ingredient whose name triggers the LDL rule
     source = _seed_source(db_session, name="FDA")
@@ -281,9 +289,8 @@ async def test_barcode_unresolved_ingredients_return_gray(client, db_session, mo
 # Regulatory status aggregation
 # ─────────────────────────────────────────────
 
-async def test_barcode_aggregates_worst_status_across_sources(
-    client, db_session, monkeypatch
-):
+
+async def test_barcode_aggregates_worst_status_across_sources(client, db_session, monkeypatch):
     """If FDA says Approved but EFSA says Banned, result is RED."""
     await _register(client)
     fda = _seed_source(db_session, name="FDA")
@@ -305,6 +312,7 @@ async def test_barcode_aggregates_worst_status_across_sources(
 # ─────────────────────────────────────────────
 # /scan/photo
 # ─────────────────────────────────────────────
+
 
 async def test_photo_requires_auth(client):
     image_b64 = base64.b64encode(b"fake").decode()

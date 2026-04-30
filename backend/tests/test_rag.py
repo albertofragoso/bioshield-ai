@@ -8,7 +8,7 @@ Gemini are mocked; real API keys are never needed in the test suite.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from sqlalchemy import select
 
@@ -28,6 +28,7 @@ from app.services.rag import build_embedding_template
 # ─────────────────────────────────────────────
 # rag.py helpers
 # ─────────────────────────────────────────────
+
 
 def test_embedding_template_shape():
     template = build_embedding_template(
@@ -51,6 +52,7 @@ def test_embedding_template_handles_missing_fields():
 # ─────────────────────────────────────────────
 # ingestion/common upsert helpers
 # ─────────────────────────────────────────────
+
 
 def test_upsert_ingredient_creates_then_updates(db_session):
     rec = IngestionRecord(
@@ -86,9 +88,7 @@ def test_upsert_regulatory_status_keyed_by_source(db_session):
     ing = upsert_ingredient(
         db_session, IngestionRecord(canonical_name="Aspartame", cas_number="22839-47-0")
     )
-    rec = IngestionRecord(
-        canonical_name="Aspartame", cas_number="22839-47-0", status="APPROVED"
-    )
+    rec = IngestionRecord(canonical_name="Aspartame", cas_number="22839-47-0", status="APPROVED")
     first = upsert_regulatory_status(db_session, ing, source, rec)
     assert first.status == "APPROVED"
 
@@ -108,7 +108,14 @@ def test_upsert_regulatory_status_keyed_by_source(db_session):
 # entity_resolution.py
 # ─────────────────────────────────────────────
 
-def _seed_ingredient(db, canonical: str, cas: str | None = None, e: str | None = None, synonyms: list[str] | None = None):
+
+def _seed_ingredient(
+    db,
+    canonical: str,
+    cas: str | None = None,
+    e: str | None = None,
+    synonyms: list[str] | None = None,
+):
     ing = Ingredient(
         canonical_name=canonical,
         cas_number=cas,
@@ -155,6 +162,7 @@ def test_resolve_below_threshold_returns_none(db_session):
 # conflicts.py
 # ─────────────────────────────────────────────
 
+
 def test_detect_regulatory_conflict_high(db_session):
     fda = get_or_create_source(
         db_session, "FDA_EAFUS", "US", "v1", "sha256:a", "Public Domain", "XLSX"
@@ -167,12 +175,18 @@ def test_detect_regulatory_conflict_high(db_session):
         IngestionRecord(canonical_name="Titanium Dioxide", cas_number="13463-67-7"),
     )
     upsert_regulatory_status(
-        db_session, ing, fda,
+        db_session,
+        ing,
+        fda,
         IngestionRecord(canonical_name="Titanium Dioxide", status="APPROVED"),
     )
     upsert_regulatory_status(
-        db_session, ing, efsa,
-        IngestionRecord(canonical_name="Titanium Dioxide", status="BANNED", hazard_note="Genotoxicity"),
+        db_session,
+        ing,
+        efsa,
+        IngestionRecord(
+            canonical_name="Titanium Dioxide", status="BANNED", hazard_note="Genotoxicity"
+        ),
     )
 
     conflicts = detect_conflicts(ing, db_session)
@@ -190,7 +204,9 @@ def test_detect_scientific_conflict_medium(db_session):
         db_session, IngestionRecord(canonical_name="Aspartame", cas_number="22839-47-0")
     )
     upsert_regulatory_status(
-        db_session, ing, efsa,
+        db_session,
+        ing,
+        efsa,
         IngestionRecord(
             canonical_name="Aspartame",
             status="APPROVED",
@@ -212,7 +228,9 @@ def test_detect_temporal_conflict_low(db_session):
     )
     stale = datetime.now(UTC) - timedelta(days=900)
     upsert_regulatory_status(
-        db_session, ing, fda,
+        db_session,
+        ing,
+        fda,
         IngestionRecord(canonical_name="BHA", status="APPROVED", evaluated_at=stale),
     )
     conflicts = detect_conflicts(ing, db_session)
@@ -229,7 +247,9 @@ def test_no_conflict_single_approval(db_session):
         db_session, IngestionRecord(canonical_name="Salt", cas_number="7647-14-5")
     )
     upsert_regulatory_status(
-        db_session, ing, fda,
+        db_session,
+        ing,
+        fda,
         IngestionRecord(
             canonical_name="Salt",
             status="APPROVED",
@@ -246,6 +266,7 @@ def test_no_conflict_single_approval(db_session):
 # ─────────────────────────────────────────────
 # ingestion/common.py — guard fix en index_record
 # ─────────────────────────────────────────────
+
 
 async def test_index_record_runs_with_local_embeddings(db_session):
     """Con use_local_embeddings=True, index_record NO hace early return aunque la API key sea 'test-key'."""
@@ -280,7 +301,9 @@ async def test_index_record_runs_with_local_embeddings(db_session):
         await index_record(ingredient, rec, "FDA_EAFUS", settings)
 
     # Si el guard hubiera hecho early return, upsert_record nunca se habría llamado
-    assert len(captured_upserts) == 1, "upsert_record debe llamarse cuando use_local_embeddings=True"
+    assert len(captured_upserts) == 1, (
+        "upsert_record debe llamarse cuando use_local_embeddings=True"
+    )
 
 
 async def test_hybrid_search_bm25_fallback(db_session, monkeypatch):
@@ -296,6 +319,7 @@ async def test_hybrid_search_bm25_fallback(db_session, monkeypatch):
     monkeypatch.setattr(retrieval, "embed_text", _fail_embed)
 
     from tests.conftest import TEST_SETTINGS
+
     results = await retrieval.hybrid_search("titanium dioxide", db_session, TEST_SETTINGS)
     assert results
     # Top hit should be Titanium Dioxide; degraded flag present

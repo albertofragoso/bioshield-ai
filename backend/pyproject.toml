@@ -16,6 +16,7 @@ ignore = [
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
+explicit_package_bases = true
 exclude = ["tests/", "alembic/", "scripts/"]
 
 # Relaxed for a codebase not originally written with mypy

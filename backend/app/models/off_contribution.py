@@ -40,7 +40,7 @@ class OFFContribution(Base):
     consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    user: Mapped["User"] = relationship(foreign_keys=[user_id])  # type: ignore[name-defined]
+    user: Mapped["User"] = relationship(foreign_keys=[user_id])  # type: ignore[name-defined]  # noqa: F821
 
     __table_args__ = (
         Index("idx_off_contrib_user", "user_id"),

@@ -21,9 +21,7 @@ _KEY_LEN = 32  # AES-256
 def _load_key(aes_key: str) -> bytes:
     key_bytes = aes_key.encode("utf-8")
     if len(key_bytes) != _KEY_LEN:
-        raise ValueError(
-            f"AES_KEY must be exactly {_KEY_LEN} bytes (got {len(key_bytes)})"
-        )
+        raise ValueError(f"AES_KEY must be exactly {_KEY_LEN} bytes (got {len(key_bytes)})")
     return key_bytes
 
 

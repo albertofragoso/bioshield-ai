@@ -14,7 +14,6 @@ Extending it is a data-curation task, not a code change.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
@@ -295,10 +294,14 @@ async def find_ingredient_matches(
         bm, ingr_names, severity, kind, direction = match
 
         name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
-        name_val = name.value if hasattr(name, "value") else str(name)
+        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
 
         rule = next(
-            (r for r in BIOMARKER_RULES if r.biomarker.value == name_val and r.direction == direction),
+            (
+                r
+                for r in BIOMARKER_RULES
+                if r.biomarker.value == name_val and r.direction == direction
+            ),
             None,
         )
 
@@ -308,8 +311,7 @@ async def find_ingredient_matches(
 
         # Solo texto canónico de la regla — sin valores del usuario
         query_text = (
-            f"{rule.biomarker.value.replace('_', ' ')} {rule.direction}: "
-            f"{', '.join(rule.keywords)}"
+            f"{rule.biomarker.value.replace('_', ' ')} {rule.direction}: {', '.join(rule.keywords)}"
         )
 
         try:
@@ -332,7 +334,9 @@ async def find_ingredient_matches(
                             additional.append(match_str)
                             semantic_score = max(semantic_score, hit.similarity)
 
-            enriched.append((bm, list(ingr_names) + additional, severity, kind, direction, semantic_score))
+            enriched.append(
+                (bm, list(ingr_names) + additional, severity, kind, direction, semantic_score)
+            )
 
         except Exception as exc:
             logger.warning("Semantic enrichment skipped for %s: %s", name_val, exc)
@@ -358,7 +362,7 @@ def detect_biomarker_conflicts(
     ):
         name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
         value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", None)
-        name_val = name.value if hasattr(name, "value") else str(name)
+        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
         for ingr in ingr_names:
             alerts.append(
                 PersonalizedAlert(

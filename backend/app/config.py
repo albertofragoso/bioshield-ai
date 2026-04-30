@@ -47,9 +47,9 @@ class Settings(BaseSettings):
     off_write_base_url: str = "https://world.openfoodfacts.org/cgi"
     off_app_name: str = "BioShieldAI"
     off_app_version: str = "1.0"
-    off_contributor_user: str = ""       # cuenta registrada en world.openfoodfacts.org
-    off_contributor_password: str = ""   # password de la cuenta contributora
-    off_contrib_enabled: bool = False    # feature flag — False en dev por defecto
+    off_contributor_user: str = ""  # cuenta registrada en world.openfoodfacts.org
+    off_contributor_password: str = ""  # password de la cuenta contributora
+    off_contrib_enabled: bool = False  # feature flag — False en dev por defecto
     off_contrib_timeout_seconds: int = 15
     off_contrib_sync_for_tests: bool = False  # ejecutar background task sincrónicamente en pytest
 

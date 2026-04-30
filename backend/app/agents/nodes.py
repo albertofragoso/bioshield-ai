@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Literal, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.agents.state import ScanState
 from app.config import Settings
 from app.models import Biomarker
 from app.schemas.models import (
+    CanonicalBiomarker,
     ConflictSeverity,
     IngredientConflict,
     IngredientResult,
@@ -268,14 +270,17 @@ def make_personalize_node(settings: Settings):
                 if isinstance(bm, dict)
                 else getattr(bm, "reference_range_high", None)
             )
-            name_val = name.value if hasattr(name, "value") else str(name)
+            name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
             class_val = (
-                classification.value if hasattr(classification, "value") else str(classification)
+                classification.value
+                if (classification is not None and hasattr(classification, "value"))
+                else str(classification)
             )
+            float_value = float(value or 0.0)
 
             copy = await gemini_service.generate_personalized_insight(
                 biomarker_name=name_val,
-                biomarker_value=float(value),
+                biomarker_value=float_value,
                 biomarker_unit=str(unit),
                 classification=class_val,
                 severity=severity.value,
@@ -284,21 +289,24 @@ def make_personalize_node(settings: Settings):
                 settings=settings,
             )
             return PersonalizedInsight(
-                biomarker_name=name_val,
-                biomarker_value=float(value),
+                biomarker_name=cast(CanonicalBiomarker, name_val),
+                biomarker_value=float_value,
                 biomarker_unit=str(unit),
-                classification=class_val,
+                classification=cast(Literal["low", "normal", "high"], class_val),
                 affecting_ingredients=ingr_names,
                 severity=severity,
-                kind=kind,
-                impact_direction=direction,
+                kind=cast(Literal["alert", "watch"], kind),
+                impact_direction=cast(Literal["raises", "lowers"], direction),
                 reference_range_low=ref_low,
                 reference_range_high=ref_high,
                 friendly_title=copy.friendly_title,
                 friendly_biomarker_label=copy.friendly_biomarker_label,
                 friendly_explanation=copy.friendly_explanation,
                 friendly_recommendation=copy.friendly_recommendation,
-                avatar_variant=_SEVERITY_TO_AVATAR.get(severity.value, "yellow"),
+                avatar_variant=cast(
+                    Literal["yellow", "orange", "red"],
+                    _SEVERITY_TO_AVATAR.get(severity.value, "yellow"),
+                ),
             )
 
         insights = await asyncio.gather(*[_build_insight(*m) for m in matches])

@@ -14,9 +14,7 @@ from app.agents.prompts import (
     RECONCILER_PROMPT,
 )
 
-_DOCS_PROMPTS = (
-    Path(__file__).resolve().parents[2] / "docs" / "prompts.md"
-)
+_DOCS_PROMPTS = Path(__file__).resolve().parents[2] / "docs" / "prompts.md"
 
 
 def _extract_fenced_block(markdown: str, after_heading: str) -> str:

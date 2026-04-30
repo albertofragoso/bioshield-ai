@@ -2,7 +2,11 @@
 
 import hashlib
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from app.models import RefreshToken
 
 import bcrypt
 from fastapi import HTTPException, status
@@ -16,6 +20,7 @@ from app.config import Settings
 # Password
 # ─────────────────────────────────────────────
 
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
@@ -27,6 +32,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 # ─────────────────────────────────────────────
 # JWT
 # ─────────────────────────────────────────────
+
 
 def _create_token(
     user_id: str,
@@ -83,6 +89,7 @@ def decode_refresh_token(token: str, settings: Settings) -> str:
 # Refresh token DB management
 # ─────────────────────────────────────────────
 
+
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
@@ -93,12 +100,10 @@ def store_refresh_token(
     token: str,
     family_id: str,
     settings: Settings,
-) -> "RefreshToken":  # noqa: F821 — avoids circular import at module level
+) -> "RefreshToken":
     from app.models import RefreshToken
 
-    expires_at = datetime.now(UTC) + timedelta(
-        days=settings.jwt_refresh_token_expire_days
-    )
+    expires_at = datetime.now(UTC) + timedelta(days=settings.jwt_refresh_token_expire_days)
     record = RefreshToken(
         user_id=user_id,
         token_hash=hash_token(token),

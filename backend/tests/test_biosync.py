@@ -54,6 +54,7 @@ async def _register(client, email: str = _EMAIL) -> None:
 # POST /biosync/upload
 # ─────────────────────────────────────────────
 
+
 async def test_upload_requires_auth(client):
     response = await client.post(UPLOAD_URL, json=_upload_body())
     assert response.status_code == 401
@@ -61,7 +62,12 @@ async def test_upload_requires_auth(client):
 
 async def test_upload_success(client, db_session):
     await _register(client)
-    body = _upload_body([_biomarker("glucose", value=95), _biomarker("ldl", "Colesterol LDL", 120, classification="high")])
+    body = _upload_body(
+        [
+            _biomarker("glucose", value=95),
+            _biomarker("ldl", "Colesterol LDL", 120, classification="high"),
+        ]
+    )
     response = await client.post(UPLOAD_URL, json=body)
     assert response.status_code == 201
     resp_body = response.json()
@@ -97,7 +103,9 @@ async def test_upload_roundtrip_decrypts(client, db_session):
 async def test_upload_replaces_existing(client, db_session):
     await _register(client)
     await client.post(UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=95)]))
-    await client.post(UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=110, classification="high")]))
+    await client.post(
+        UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=110, classification="high")])
+    )
 
     biomarkers = db_session.scalars(select(Biomarker)).all()
     assert len(biomarkers) == 1
@@ -134,6 +142,7 @@ async def test_upload_sets_180d_expiry(client, db_session):
 # GET /biosync/status
 # ─────────────────────────────────────────────
 
+
 async def test_status_requires_auth(client):
     response = await client.get(STATUS_URL)
     assert response.status_code == 401
@@ -169,6 +178,7 @@ async def test_status_does_not_leak_decrypted_data(client):
 # DELETE /biosync/data
 # ─────────────────────────────────────────────
 
+
 async def test_delete_requires_auth(client):
     response = await client.delete(DELETE_URL)
     assert response.status_code == 401
@@ -194,6 +204,7 @@ async def test_delete_removes_data(client, db_session):
 # ─────────────────────────────────────────────
 # TTL maintenance job
 # ─────────────────────────────────────────────
+
 
 async def test_expire_biomarkers_removes_past_due(client, db_session):
     await _register(client)
@@ -224,9 +235,12 @@ async def test_expire_biomarkers_keeps_active(client, db_session):
 # Isolation: user A cannot see user B data
 # ─────────────────────────────────────────────
 
+
 async def test_user_isolation(client, db_session):
     await _register(client, email="alice@bioshield.ai")
-    await client.post(UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=150, classification="high")]))
+    await client.post(
+        UPLOAD_URL, json=_upload_body([_biomarker("glucose", value=150, classification="high")])
+    )
 
     # Log out (delete client cookies) and register bob
     client.cookies.clear()
