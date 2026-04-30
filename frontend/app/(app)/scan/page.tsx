@@ -242,8 +242,6 @@ export default function ScanPage() {
                   onRetry={() => setPhotoStatus("idle")}
                 />
               )}
-
-              {/* [FASE 2] OFFContributeToggle — pendiente de implementar */}
             </div>
           )}
         </TabsContent>
