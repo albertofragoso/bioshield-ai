@@ -9,6 +9,7 @@ import type {
   BiomarkerUploadRequest,
   IngredientConflict,
   IngredientResult,
+  OFFContributeResponse,
   PersonalizedInsight,
   ScanHistoryEntry,
   ScanResponse,
@@ -174,8 +175,8 @@ export const makeMixedHistory = (): ScanHistoryEntry[] => [
 ];
 
 export const makeOFFContributeResponse = (
-  overrides: Partial<import("../../frontend/lib/api/types").OFFContributeResponse> = {},
-): import("../../frontend/lib/api/types").OFFContributeResponse => ({
+  overrides: Partial<OFFContributeResponse> = {},
+): OFFContributeResponse => ({
   contribution_id: "contrib-00000000-0001",
   status: "PENDING",
   message: "Contribution received and queued",
