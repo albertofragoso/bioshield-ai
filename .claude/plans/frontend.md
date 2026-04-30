@@ -859,7 +859,7 @@ Plan de emergencia de componentes, en el orden en que las pantallas pendientes l
 |---|---|---|---|
 | `BarcodeScanner` | `/scan` tab barcode | — (único consumer) | video + overlay recortado + laser `animate-scan-line` + `@zxing/browser` |
 | `PhotoCapture` | `/scan` tab foto | — (único consumer) | dropzone `rgba(74,222,128,.3)` + `capture="environment"` + base64 encoding <10MB |
-| `OFFContributeToggle` **[FASE 2]** | `/scan` tab foto | — | shadcn Switch + Tooltip + copy ODbL + `POST /scan/contribute` |
+| `OFFContributeToggle` ✅ | `/scan/[id]` resultado (solo `source === "photo"`) | — | 5 estados (off/on/loading/success/error) + `useMutation` + `POST /scan/contribute` |
 | `SemaphoreHero` | `/scan/[id]` | Nunca por ahora — un solo consumer | círculo 120px color semáforo + icono Lucide + avatar PNG lateral + `animate-pulse-glow` |
 | `IngredientAccordion` | `/scan/[id]` | — | shadcn Accordion + badge status + barra confidence + badge "N conflictos" |
 | `ConflictRow` | `/scan/[id]` (dentro de IngredientAccordion) | — | severity badge HIGH/MEDIUM/LOW + summary + sources chips |
@@ -877,7 +877,7 @@ Plan de emergencia de componentes, en el orden en que las pantallas pendientes l
 | `FilterTabs` (por semáforo) | `/history` | Si Dashboard añade filtros | shadcn Tabs + count badges `rgba(color,.2)` |
 | `PasswordStrengthBar` | `/register` ✅ inline | Solo si otra pantalla introduce fuerza de password | 3 tramos rojo `#F87171` / ámbar `#F59E0B` / verde `#4ADE80` |
 
-Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle. Resultado (7.4) → SemaphoreHero, IngredientAccordion, ConflictRow, BiomarkerAlert. Biosync (7.5) → BiomarkerField, BiomarkerCSVUpload, PrivacyCard. Dashboard (7.7) → SemaphoreBadge (extracción inmediata al llegar a History). Historial (7.8) → HistoryRow, DayGroupHeader, FilterTabs.
+Orden de aparición esperado: Scanner (7.3) → BarcodeScanner, PhotoCapture. Resultado (7.4) → SemaphoreHero, IngredientAccordion, ConflictRow, OFFContributeToggle ✅. Biosync (7.5) → BiomarkerField, BiomarkerCSVUpload, PrivacyCard. Dashboard (7.7) → SemaphoreBadge (extracción inmediata al llegar a History). Historial (7.8) → HistoryRow, DayGroupHeader, FilterTabs.
 
 ### 7.1 · App Router + Tailwind + TanStack Query + Zustand
 
@@ -924,7 +924,7 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - `frontend/app/(app)/scan/page.tsx` ✅ — spec: Fase C — Pantalla 4.
 - `frontend/components/scanner/BarcodeScanner.tsx` ✅ — @zxing/browser con controls.stop() cleanup, overlay recortado, laser scan-line, flash detección 300ms.
 - `frontend/components/scanner/PhotoCapture.tsx` ✅ — dropzone + capture="environment" (mobile) + base64 + validación 10MB.
-- `frontend/components/scanner/OFFContributeToggle.tsx` — marcador [FASE 2], pendiente. Comentado en scan/page.tsx.
+- `frontend/components/scanner/OFFContributeToggle.tsx` ✅ — 5 estados (off/on/loading/success/error); `useMutation` autónomo; renderizado solo en `/scan/[id]` cuando `source === "photo"`.
 - `frontend/lib/api/scan.ts` ✅ — ya existía con `scanBarcode`, `scanPhoto`, `contributeToOff`.
 - `frontend/app/(app)/scan/[id]/page.tsx` ✅ — placeholder que lee del cache de TanStack Query; implementación completa en 7.4.
 
@@ -937,18 +937,11 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - **Navegación post-foto:** `router.push(\`/scan/${encodeURIComponent(data.product_barcode)}?via=photo\`)` — `encodeURIComponent` hace explícito el path segment.
 - **Error type `error_process`:** estado para 400/5xx del servidor (mensaje: "El servidor no pudo procesar la imagen. Intenta de nuevo."), diferenciado de `error_read` (422) y `error_net` (network).
 
-**Dependencia extra (Fase 2):**
-- Ejecutar `pnpm dlx shadcn@latest add switch tooltip` (para el toggle OFF + info icon tooltip).
-
 **Checks de éxito:**
 - Barcode real (Nutella 3017620422003) → navega a `/scan/[id]` con semaphore="YELLOW".
 - Foto de etiqueta MX (usar `backend/test_images/*.jpeg` como fixtures) → pipeline completo.
 - 404 en barcode muestra modal que cambia a photo tab.
 - Permiso cámara denegado → fallback a input manual sin romper.
-- [FASE 2] Toggle "Contribuir a OFF" visible solo en photo tab, off por defecto.
-- [FASE 2] Con toggle on + scan photo exitoso → fetch `POST /scan/contribute` con `consent: true` → toast success "Gracias por contribuir".
-- [FASE 2] Con toggle off → no se dispara `/scan/contribute` bajo ninguna circunstancia.
-- [FASE 2] Si `/scan/contribute` retorna 5xx → toast warning no bloqueante; resultado sigue visible.
 
 ### 7.4 · Semáforo visual con detalles de conflict ✅ IMPLEMENTADO
 
@@ -981,6 +974,7 @@ Orden de aparición esperado: Scanner (7.3) → componentes scanner + OFF toggle
 - Foto scan: `progress.png` → loading → navega a `/scan/photo-abc123` → resultado visible inmediatamente (desde cache TanStack Query).
 - Foto scan en sesión nueva (refresh / link directo): `getScanResult("photo-abc123")` → `GET /scan/result/photo-abc123` → resultado recuperado desde DB.
 - Nombre del producto visible en foto scan si Gemini lo extrae de la etiqueta (`product_name` en `ProductExtraction`).
+- OFFContributeToggle ✅: visible en foto scan, ausente en barcode scan; flujo off→on→ENVIAR→banner "Contribución enviada"; error 5xx → banner "Reintentar" no bloqueante.
 
 ### 7.5 · Biosync UI ✅ REESCRITA (flujo PDF)
 
@@ -1063,24 +1057,61 @@ Pulido de estados globales — el scaffolding (`app/error.tsx`, `ErrorPage.tsx`,
 
 Después de implementar, validar con estos casos en navegador real (Chrome + Safari mobile) apuntando a `docker compose up`:
 
-1. **Happy path barcode:**
-   - Register → Login → `/scan` → barcode tab → escanear `3017620422003` (Nutella) → `/scan/[id]` muestra semaphore YELLOW con ingredientes + conflicts.
-2. **Happy path photo:**
-   - `/scan` → photo tab → subir `backend/test_images/1.jpeg` → semaphore computado → detalle correcto.
-3. **Orange biomarker match:**
-   - `/biosync` → manual → `{ ldl: 150 }` → upload OK.
-   - `/scan/barcode` de un producto con grasas trans → semaphore ORANGE con alerta "Tu LDL está en 150 y este producto contiene grasas trans".
-4. **Cache TanStack Query:**
-   - Escanear mismo barcode 2 veces en <5min → network devtools confirma cache hit.
-5. **Refresh 401:**
-   - En dev tools: borrar cookie `access_token` (dejar `refresh_token`) → hacer scan → frontend llama `/auth/refresh` automáticamente → scan procede sin redirect.
-6. **Logout:**
-   - Menu dropdown → logout → cookies borradas → redirect `/login` → `/scan` directo redirige de vuelta a `/login`.
-7. **Accesibilidad:**
-   - VoiceOver macOS lee semáforo correctamente.
-   - Navegar flujo completo solo con teclado (Tab/Enter/Escape).
-8. **Rate limit:**
-   - 11 requests a `/auth/login` en <60s → frontend muestra toast "Demasiados intentos. Espera 60s.".
+### Auth
+1. **Login happy path:** credenciales válidas → cookies seteadas → redirect `/`.
+2. **Login 401:** AuthAlert "Credenciales inválidas".
+3. **Login 429 rate limit:** intentos en <60s → AuthAlert "Demasiados intentos. Espera 60s.".
+4. **Register happy path:** registro → auto-login → `/`.
+5. **Register 409:** email duplicado → AuthAlert "Este correo ya está registrado".
+6. **Refresh 401:** `apiFetch` recibe 401 → POST `/auth/refresh` → reintento → success.
+7. **Session expired:** refresh falla → `SessionExpiredDialog` → "entrar de nuevo" → `/login`.
+8. **Middleware redirect:** `/scan` sin cookie `access_token` → redirect a `/login`.
+9. **Logout:** `salir` → cookies borradas + Zustand limpio + redirect `/login`.
+
+### Scan — barcode
+10. **Happy path Nutella:** manual input `3017620422003` → `/scan/[barcode]` → semaphore YELLOW + ingredientes con E-numbers.
+11. **404 producto desconocido:** "No encontramos este producto" + botón "Intentar con foto →" cambia a tab Photo.
+12. **Cache TanStack Query:** mismo barcode 2× en <5min → 1 sola llamada de red.
+13. **Backend 500:** ErrorPage global.
+
+### Scan — photo
+14. **Happy path photo + product_name:** subir PNG → AI loader con `SCAN_PHASES` → `/scan/photo-{uuid}` con `product_name` extraído.
+15. **Persistencia photo scan:** refresh en `/scan/photo-{uuid}` → `getScanResult()` rehidrata el resultado.
+16. **Photo 422 inválido:** alerta "Imagen inválida".
+17. **Photo 413 demasiado grande:** alerta "Imagen demasiado grande".
+
+### Scan result — semáforo, ingredientes, Para Ti
+18. **5 colores parametrizado:** GRAY/BLUE/YELLOW/ORANGE/RED renderizan hero correcto + ARIA `aria-label="Semáforo: <label>"`.
+18b. **OFF toggle — default off:** `source === "photo"` → toggle desactivado; botón "ENVIAR" ausente del DOM.
+18c. **OFF toggle — happy path:** activar toggle → ENVIAR → spinner → banner "Contribución enviada". ✅
+18d. **OFF toggle — error + reintentar:** POST 500 → banner error + botón "Reintentar" presente. ✅
+18e. **OFF toggle — ausente en barcode:** `source === "barcode"` → componente ausente del DOM. ✅
+19. **Accordion expand:** abrir ingrediente → CAS/E-number/regulatory_status visibles en mono.
+20. **Para Ti — Alertas/Vigilar:** tabs con counts; carousel con `aria-label="Ir al insight {N}"`.
+21. **BGE-M3 semantic re-ranking:** `affecting_ingredients` con 2+ ingredientes renderiza pills múltiples + impact arrows.
+22. **BiomarkerEmptyState:** sin biomarcadores → CTA "Ir a Biosync →".
+23. **BiomarkerClearState:** con biomarcadores pero sin `personalized_insights` → mensaje de ningún conflicto.
+
+### Biosync — PDF flow
+24. **Happy path PDF:** subir PDF → AI loader con `BIOSYNC_PHASES` → review state editable → "Confirmar y guardar" → toast + redirect `/`.
+25. **Edit en review:** modificar valor antes de confirmar → upload usa el valor editado.
+26. **Re-upload con datos activos:** banner "Ya tienes biomarcadores activos. Expiran el ..." visible.
+27. **Delete dialog:** "Eliminar biomarcadores" → confirm → status pasa a empty.
+28. **PDF 413:** archivo >10MB → toast "PDF demasiado grande".
+29. **PDF 422:** archivo inválido → toast "Archivo inválido".
+
+### Dashboard
+30. **Dashboard con datos:** biosync card "Biomarcadores activos" + 5 recent scans.
+31. **Dashboard vacío:** sin scans + sin biomarkers → empty state + "Subir →".
+32. **Biomarker expiry < 30d:** badge ámbar con días restantes.
+
+### History
+33. **Day grouping:** scans agrupados por `Hoy` / `Ayer` / `Hace N días` / `mes año`.
+34. **Filter pills + counts:** click en `RED` filtra a solo rojos; counts coinciden.
+35. **Search por product_name:** input filtra correctamente; vacío muestra "Sin resultados para este filtro.".
+36. **Empty inicial:** sin scans → "Sin escaneos aún".
+
+**Cambios vs. plan original:** caso 3 (form manual biosync) eliminado; reemplazado por #24 (PDF flow). Casos 14/15 nuevos (persistencia photo + product_name). Caso 21 nuevo (semantic re-ranking). Casos 18/20/22/23 nuevos (semáforo + Para Ti carousel). Casos 30–36 nuevos (dashboard + history).
 
 ---
 
@@ -1121,7 +1152,7 @@ Después de implementar, validar con estos casos en navegador real (Chrome + Saf
 | C — Specs por pantalla | ✅ redactadas en este plan | — |
 | D.7.0 — Componentes compartidos | on-demand con cada pantalla | — |
 | D.7.1 / 7.2 / 7.2b / 7.2c — Infra + Auth + Globals | ✅ done | — |
-| D.7.3 — Scanner UI + OFF toggle [Fase 2] | ✅ done | — |
+| D.7.3 — Scanner UI | ✅ done | — |
 | D.7.4 — Resultado scan + semáforo + ingredients | ✅ done | — |
 | D.7.5 — Biosync UI (reescrita: flujo PDF + AvatarGlow) | ✅ done | — |
 | D.7.6 — Cache TanStack Query | ✅ done (embebido en 7.3) | — |
