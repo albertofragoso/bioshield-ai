@@ -21,6 +21,12 @@ mediante búsqueda semántica, y cruza hallazgos con biomarcadores de sangre del
 - Los datos médicos se encriptan con AES-256 antes de persistir.
 - Los datos de biomarkers expiran en 180 días; un cron job elimina registros donde expires_at < NOW().
 
+## Tests E2E (Playwright)
+- Todos los specs viven en `tests/specs/{feature}/` en la raíz del repo.
+- El config de Playwright apunta a `./tests` — nunca crear carpetas `e2e/` dentro de `frontend/` u otros subdirectorios.
+- Features actuales: `auth/`, `scan/`, `biosync/`, `dashboard/`, `history/`.
+- Al agregar tests de una feature nueva, crear `tests/specs/{feature}/` si no existe.
+
 ## Documentación de referencia
 - Arquitectura y schema DB: docs/architecture.md
 - Estrategia de embeddings: docs/embedding-strategy.md

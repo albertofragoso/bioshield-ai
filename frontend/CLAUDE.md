@@ -72,6 +72,11 @@ frontend/
 └── CLAUDE.md                        # Este archivo
 ```
 
+## Tests E2E
+
+- Los specs Playwright viven en `tests/specs/{feature}/` en la **raíz del repo**, no dentro de `frontend/`.
+- No crear carpetas `e2e/` ni `__tests__/` dentro del directorio `frontend/`.
+
 ## Documentación de referencia
 
 - **Plan Fase 7 (este sprint):** `.claude/plans/unified-sniffing-feather.md`
@@ -106,8 +111,8 @@ docker compose up --build
 
 ## Variables de entorno
 
-| Variable | Descripción | Default dev |
-|---|---|---|
+| Variable              | Descripción                  | Default dev             |
+| --------------------- | ---------------------------- | ----------------------- |
 | `NEXT_PUBLIC_API_URL` | URL base del backend FastAPI | `http://localhost:8000` |
 
 Ver `.env.local.example` para referencia completa.
