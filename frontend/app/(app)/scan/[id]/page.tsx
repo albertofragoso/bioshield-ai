@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/accordion";
 import { AvatarGlow } from "@/components/AvatarGlow";
 import { PhotoLoadingState } from "@/components/scanner/PhotoLoadingState";
+import { OFFContributeToggle } from "@/components/scanner/OFFContributeToggle";
 import type {
   ConflictSeverity,
   IngredientConflict,
@@ -306,6 +307,13 @@ function ScanResultInner() {
           )}
         </div>
       </div>
+
+      {/* ── OFF Contribute — foto scans only ── */}
+      {data.source === "photo" && (
+        <div className="pt-2" style={{ borderTop: "1px solid rgba(74,222,128,.08)" }}>
+          <OFFContributeToggle scanData={data} />
+        </div>
+      )}
 
       {/* ── Row 2: Para Ti — fila dedicada ── */}
       <div className="pt-2" style={{ borderTop: "1px solid rgba(74,222,128,.08)" }}>
