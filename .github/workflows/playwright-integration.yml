@@ -1,0 +1,40 @@
+name: E2E Integration (nightly)
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm playwright install chromium --with-deps
+
+      - name: Run integration smoke tests
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: pnpm playwright test --project=integration-setup --project=integration --project=integration-teardown --workers=1
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: integration-report
+          path: playwright-report/
+          retention-days: 7
