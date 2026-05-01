@@ -10,6 +10,7 @@ __pycache__/
 # Databases
 *.db
 *.sqlite3
+!tests/fixtures/chroma-seed/chroma.sqlite3
 *.db-journal
 *.db-wal
 
@@ -34,6 +35,7 @@ backend/data/golden/*.json
 
 # Misc
 *.pdf
+!tests/fixtures/biosync-test.pdf
 cookies.txt
 
 # Playwright
