@@ -3,5 +3,4 @@ node_modules
 .git
 *.md
 .env*
-!.env.production
 temp
