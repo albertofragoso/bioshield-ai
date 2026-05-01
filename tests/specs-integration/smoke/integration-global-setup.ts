@@ -8,6 +8,8 @@ const TEST_EMAIL = 'integration-test@bioshield.test';
 const TEST_PASSWORD = 'Integration!2026';
 
 test('setup: start docker stack and seed test user', async ({ browser }) => {
+  test.setTimeout(300_000); // 5 min — docker pull + build + alembic migrations
+
   // 1. Start the full Docker stack
   execSync(
     'docker compose -f docker-compose.integration.yml up -d --wait',

@@ -10,7 +10,10 @@ const VALID_SEMAPHORES = ['RED', 'ORANGE', 'YELLOW', 'GRAY'];
 // All requests use context.request to inherit the storageState cookies
 // from tests/fixtures/integration-auth.json (set in playwright.config.ts)
 
-test('1 — auth state is valid', async ({ context }) => {
+test.describe('BioShield integration smoke', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test('1 — auth state is valid', async ({ context }) => {
   const res = await context.request.get(`${BACKEND}/scan/ping`);
   expect(res.status()).toBe(200);
   const body = await res.json();
@@ -33,6 +36,10 @@ test('2 — scan barcode Nutella → semáforo válido', async ({ context }) => 
 
 test('3 — biosync: extract → upload → status', async ({ context }) => {
   const pdfPath = path.join(process.cwd(), 'tests/fixtures/biosync-test.pdf');
+  if (!fs.existsSync(pdfPath)) {
+    test.skip(true, 'biosync-test.pdf fixture missing — run: python scripts/create_biosync_pdf.py');
+    return;
+  }
   const pdfBuffer = fs.readFileSync(pdfPath);
 
   // 3a. Extract biomarkers from PDF
@@ -89,11 +96,12 @@ test('5 — historial de scans', async ({ context }) => {
 });
 
 test('6 — logout revoca la sesión', async ({ context }) => {
-  // Logout
-  const logoutRes = await context.request.post(`${BACKEND}/auth/logout`);
-  expect(logoutRes.status()).toBe(204);
+    // Logout
+    const logoutRes = await context.request.post(`${BACKEND}/auth/logout`);
+    expect(logoutRes.status()).toBe(204);
 
-  // Any auth-required endpoint must now return 401
-  const verifyRes = await context.request.get(`${BACKEND}/scan/ping`);
-  expect(verifyRes.status()).toBe(401);
+    // Any auth-required endpoint must now return 401
+    const verifyRes = await context.request.get(`${BACKEND}/scan/ping`);
+    expect(verifyRes.status()).toBe(401);
+  });
 });
