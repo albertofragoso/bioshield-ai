@@ -424,9 +424,11 @@ def detect_biomarker_conflicts(
     ingredients: list[IngredientResult],
     biomarkers: list | None,
 ) -> list[PersonalizedAlert]:
-    """Return legacy PersonalizedAlert list for ORANGE semaphore detection.
+    """Return PersonalizedAlert list for ORANGE semaphore detection.
 
     Thin wrapper around _find_matches_keywords — sync, no semantic path.
+    Deduplicates by ingredient: when multiple rules fire on the same ingredient,
+    only the highest-severity alert is kept.
     """
     if not biomarkers:
         return []
@@ -446,7 +448,14 @@ def detect_biomarker_conflicts(
                     severity=severity,
                 )
             )
-    return alerts
+
+    # Per-ingredient dedup: keep only highest-severity alert
+    seen: dict[str, PersonalizedAlert] = {}
+    for alert in alerts:
+        prev = seen.get(alert.ingredient)
+        if prev is None or _SEVERITY_RANK[alert.severity] > _SEVERITY_RANK[prev.severity]:
+            seen[alert.ingredient] = alert
+    return list(seen.values())
 
 
 def compute_semaphore(
