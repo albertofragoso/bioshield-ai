@@ -14,7 +14,7 @@ Complementa a `data-sources.md` (fuentes) y `architecture.md` (tabla `ingredient
 | **Primaria** | `BAAI/bge-m3` (sentence-transformers, local) | 1024 | `USE_LOCAL_EMBEDDINGS=true` (default) |
 | **Fallback API** | `gemini-embedding-001` (Gemini API) | 768 | `USE_LOCAL_EMBEDDINGS=false` |
 
-**Nota importante:** las dimensiones difieren (1024 vs 768). Cambiar entre modelos requiere re-indexar la colección Chroma completa — no es hot-swappable. Ver §Migración en `docs/runbooks/embeddings-fallback.md`.
+**Nota importante:** las dimensiones difieren (1024 vs 768). Cambiar entre modelos requiere re-indexar la colección Chroma completa — no es hot-swappable. Ver §Migración en `docs/runbooks/embeddings-fallback.md`. Además, regenerar el snapshot de ChromaDB usado en los tests de integración E2E: ver `tests/fixtures/chroma-seed/README.md`.
 
 **Gemini API** sigue siendo necesaria para Vision (OCR de etiquetas) y generación de insights personalizados, pero ya **no** para embeddings cuando `USE_LOCAL_EMBEDDINGS=true`.
 
