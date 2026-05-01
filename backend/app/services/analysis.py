@@ -51,6 +51,41 @@ _STATUS_RANK = {
     RegulatoryStatus.APPROVED: 1,
 }
 
+_NEGATION_TERMS = ("free", "without", "sin", "no ", "zero", "libre", "free of")
+
+
+def _has_negation(text: str, keyword: str) -> bool:
+    """Return True if a negation word appears in the 15 chars before `keyword` in `text`."""
+    idx = text.find(keyword)
+    if idx < 0:
+        return False
+    window = text[max(0, idx - 15) : idx]
+    return any(neg in window for neg in _NEGATION_TERMS)
+
+
+_LIPID_RAISING_KEYWORDS = (
+    "trans fat",
+    "grasas trans",
+    "aceite hidrogenado",
+    "hydrogenated",
+    "saturated fat",
+    "palm oil",
+    "aceite de palma",
+)
+
+_INDUSTRIAL_HYDROGENATED_EXCLUDES = (
+    "petroleum",
+    "resin",
+    "polymer",
+    "copolymer",
+    "homopolymer",
+    "mw:",
+    "decene",
+    "dodecene",
+    "octene",
+    "hexene",
+)
+
 
 @dataclass(frozen=True)
 class BiomarkerRule:
@@ -59,6 +94,7 @@ class BiomarkerRule:
     keywords: tuple[str, ...]  # substrings to look for in ingredient names (lowercase)
     severity: ConflictSeverity
     message: str
+    excludes: tuple[str, ...] = ()  # substrings that disqualify a keyword match
     # Firing logic (derived from direction):
     #   raises → alert when classification=="high", watch when "normal"
     #   lowers → alert when classification=="low",  watch when "normal"
