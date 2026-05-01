@@ -45,6 +45,29 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
 
+    {
+      name: 'integration-setup',
+      testMatch: /integration-global-setup\.ts/,
+    },
+
+    {
+      name: 'integration',
+      dependencies: ['integration-setup'],
+      teardown: 'integration-teardown',
+      testMatch: /specs-integration\/smoke\/smoke\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3001',
+        storageState: 'tests/fixtures/integration-auth.json',
+      },
+      retries: 0,
+    },
+
+    {
+      name: 'integration-teardown',
+      testMatch: /integration-global-teardown\.ts/,
+    },
+
     /* Test against mobile viewports. */
     // {
     //   name: 'Mobile Chrome',
