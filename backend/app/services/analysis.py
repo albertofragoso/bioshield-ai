@@ -55,11 +55,12 @@ _NEGATION_TERMS = ("free", "without", "sin", "no ", "zero", "libre", "free of")
 
 
 def _has_negation(text: str, keyword: str) -> bool:
-    """Return True if a negation word appears in the 15 chars before `keyword` in `text`."""
+    """Return True if a negation word appears within 15 chars before or after `keyword` in `text`."""
     idx = text.find(keyword)
     if idx < 0:
         return False
-    window = text[max(0, idx - 15) : idx]
+    end = idx + len(keyword)
+    window = text[max(0, idx - 15) : end + 15]
     return any(neg in window for neg in _NEGATION_TERMS)
 
 
@@ -285,8 +286,15 @@ def _find_matches_keywords(
             matched_ingr: list[str] = []
             for ing in ingredients:
                 ing_names = " ".join(filter(None, (ing.name, ing.canonical_name))).lower()
-                if any(kw in ing_names for kw in rule.keywords):
+                for kw in rule.keywords:
+                    if kw not in ing_names:
+                        continue
+                    if _has_negation(ing_names, kw):
+                        continue
+                    if any(ex in ing_names for ex in rule.excludes):
+                        continue
                     matched_ingr.append(ing.canonical_name or ing.name)
+                    break  # un keyword match es suficiente por ingrediente
 
             if matched_ingr:
                 matches.append((bm, matched_ingr, rule.severity, kind, rule.direction))
