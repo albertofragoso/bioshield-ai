@@ -43,4 +43,5 @@ cookies.txt
 /playwright/.cache/
 /playwright/.auth/
 tests/fixtures/files/oversized.pdf
+tests/fixtures/integration-auth.json
 .superpowers/
