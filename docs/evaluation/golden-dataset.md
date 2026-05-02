@@ -292,6 +292,8 @@ Indica un problema específico de cobertura (pocos ingredientes relacionados con
 
 7. ~~**Solapamiento GLUCOSE/HBA1C**~~ **(mitigado)**: dextrose/glucose syrup y fructose/corn syrup ya no se solapan entre ambos biomarcadores — los keyword sets están separados: dextrose/glucose syrup → GLUCOSE (spike agudo); fructose/corn syrup → HBA1C (carga crónica).
 
+8. **Nota sobre `avg_confidence`:** Al eliminar falsos positivos de Capa 1 (confianza ~0.95), la proporción de near-misses de Capa 2 (confianza 0.65–0.72) aumenta en el mix, lo que puede reducir `avg_confidence` aun cuando la calidad del ground truth mejora. No es una regresión — es un artefacto de medición causado por el desplazamiento en la distribución de capas.
+
 ---
 
 ## 9. Integración con CI/CD
