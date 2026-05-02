@@ -44,7 +44,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import Ingredient
 from app.models.base import get_engine
-from app.services.analysis import BIOMARKER_RULES, BiomarkerRule
+from app.services.analysis import BIOMARKER_RULES, BiomarkerRule, _has_negation
 from app.services.embeddings import embed_text
 from app.services.rag import collection_size, get_collection, query_by_embedding
 
@@ -80,16 +80,27 @@ def _keyword_relevance(rule: BiomarkerRule, ingredient: Ingredient) -> tuple[int
       5 — exact keyword in canonical_name
       4 — exact keyword in a synonym
       0 — no match
+
+    Applies the same negation and excludes guards as the production matcher so
+    Layer 1 ground truth is free of the false positives PR 1 fixed in analysis.py.
     """
     name_lower = (ingredient.canonical_name or "").lower()
+
+    # Guard: excludes on canonical name (same as production)
+    if any(ex in name_lower for ex in rule.excludes):
+        return 0, None
+
     for kw in rule.keywords:
-        if kw in name_lower:
+        if kw in name_lower and not _has_negation(name_lower, kw):
             return 5, kw
 
     synonyms: list[str] = ingredient.synonyms or []
     for synonym in synonyms:
+        syn_lower = synonym.lower()
+        if any(ex in syn_lower for ex in rule.excludes):
+            continue
         for kw in rule.keywords:
-            if kw in synonym.lower():
+            if kw in syn_lower and not _has_negation(syn_lower, kw):
                 return 4, kw
 
     return 0, None
