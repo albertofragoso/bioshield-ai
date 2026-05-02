@@ -30,6 +30,9 @@ CAPA 1 — Domain Knowledge (confidence 0.95)
 │  Lógica: keyword match exacto en canonical_name o synonyms
 │  Relevance: 5 (name match) | 4 (synonym match)
 │  Cobertura: ~100% de los ingredientes con nombre relevante
+│  Nota: replica los mismos dos guards del matcher de producción:
+│    - detección de negaciones via _has_negation (ventana ±15 chars)
+│    - exclusión de falsos positivos industriales via rule.excludes
 │
 ├─► CAPA 2 — Embedding Retrieval (confidence 0.80–0.90)
 │
@@ -231,6 +234,7 @@ backend/data/golden/
 | Se hizo re-seed de ChromaDB (nuevos ingredientes) | Re-construir Capa 2 (`--layers 2 3`) |
 | Evaluación muestra regresión > 5% en NDCG@5 | Investigar antes de re-construir |
 | Rutina trimestral | Re-construir completo |
+| Se modificaron `keywords`, `excludes`, o `negation logic` en reglas existentes | Re-construir (los scores de relevancia de Capa 1 cambian) |
 
 ```bash
 # Re-construir solo capas 2 y 3 (reutiliza Capa 1 del JSON existente)
@@ -283,6 +287,10 @@ Indica un problema específico de cobertura (pocos ingredientes relacionados con
 4. **Variantes de Gemini (Capa 3)**: solo validan si las variantes *recuperan* los mismos ingredientes, no si las variantes son clínicamente correctas. Una variante incorrecta que casualmente recupere los mismos ingredientes sería aceptada.
 
 5. **No mide PHI exposure**: el golden dataset no verifica que los valores de biomarcadores del usuario nunca se embedden. Ese control está en `analysis.py::find_ingredient_matches` (solo se embeddea el texto estático de la regla).
+
+6. ~~**Falsos positivos industriales**~~ **(mitigado)**: términos como "hydrogenated" en polímeros petroquímicos ya no generan matches gracias al guard `rule.excludes` (lista de subcadenas descalificadoras como "petroleum", "resin", "copolymer").
+
+7. ~~**Solapamiento GLUCOSE/HBA1C**~~ **(mitigado)**: dextrose/glucose syrup y fructose/corn syrup ya no se solapan entre ambos biomarcadores — los keyword sets están separados: dextrose/glucose syrup → GLUCOSE (spike agudo); fructose/corn syrup → HBA1C (carga crónica).
 
 ---
 

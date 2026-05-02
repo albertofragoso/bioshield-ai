@@ -51,6 +51,50 @@ _STATUS_RANK = {
     RegulatoryStatus.APPROVED: 1,
 }
 
+_NEGATION_TERMS = ("free", "without", "sin", "no ", "zero", "libre", "free of")
+
+
+def _has_negation(text: str, keyword: str) -> bool:
+    """Return True only if every occurrence of `keyword` in `text` has a negation
+    term within 15 chars. Returns False as soon as one non-negated occurrence is found."""
+    start = 0
+    found_any = False
+    while True:
+        idx = text.find(keyword, start)
+        if idx < 0:
+            break
+        found_any = True
+        end = idx + len(keyword)
+        window = text[max(0, idx - 15) : end + 15]
+        if not any(neg in window for neg in _NEGATION_TERMS):
+            return False  # non-negated occurrence found — do not suppress
+        start = end
+    return found_any  # True only if found occurrences AND all were negated
+
+
+_LIPID_RAISING_KEYWORDS = (
+    "trans fat",
+    "grasas trans",
+    "aceite hidrogenado",
+    "hydrogenated",
+    "saturated fat",
+    "palm oil",
+    "aceite de palma",
+)
+
+_INDUSTRIAL_HYDROGENATED_EXCLUDES = (
+    "petroleum",
+    "resin",
+    "polymer",
+    "copolymer",
+    "homopolymer",
+    "mw:",
+    "decene",
+    "dodecene",
+    "octene",
+    "hexene",
+)
+
 
 @dataclass(frozen=True)
 class BiomarkerRule:
@@ -59,6 +103,7 @@ class BiomarkerRule:
     keywords: tuple[str, ...]  # substrings to look for in ingredient names (lowercase)
     severity: ConflictSeverity
     message: str
+    excludes: tuple[str, ...] = ()  # substrings that disqualify a keyword match
     # Firing logic (derived from direction):
     #   raises → alert when classification=="high", watch when "normal"
     #   lowers → alert when classification=="low",  watch when "normal"
@@ -69,22 +114,16 @@ BIOMARKER_RULES: tuple[BiomarkerRule, ...] = (
     BiomarkerRule(
         biomarker=CanonicalBiomarker.LDL,
         direction="raises",
-        keywords=(
-            "trans fat",
-            "grasas trans",
-            "aceite hidrogenado",
-            "hydrogenated",
-            "saturated fat",
-            "palm oil",
-            "aceite de palma",
-        ),
+        keywords=_LIPID_RAISING_KEYWORDS,
+        excludes=_INDUSTRIAL_HYDROGENATED_EXCLUDES,
         severity=ConflictSeverity.HIGH,
         message="LDL con grasa trans/saturada",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.TOTAL_CHOLESTEROL,
         direction="raises",
-        keywords=("trans fat", "hydrogenated", "aceite hidrogenado", "palm oil", "saturated fat"),
+        keywords=_LIPID_RAISING_KEYWORDS,
+        excludes=_INDUSTRIAL_HYDROGENATED_EXCLUDES,
         severity=ConflictSeverity.HIGH,
         message="Colesterol total con grasa trans/saturada",
     ),
@@ -92,6 +131,7 @@ BIOMARKER_RULES: tuple[BiomarkerRule, ...] = (
         biomarker=CanonicalBiomarker.HDL,
         direction="lowers",
         keywords=("trans fat", "grasas trans", "hydrogenated", "aceite hidrogenado"),
+        excludes=_INDUSTRIAL_HYDROGENATED_EXCLUDES,
         severity=ConflictSeverity.MEDIUM,
         message="HDL con grasas trans",
     ),
@@ -99,32 +139,33 @@ BIOMARKER_RULES: tuple[BiomarkerRule, ...] = (
         biomarker=CanonicalBiomarker.GLUCOSE,
         direction="raises",
         keywords=(
-            "jarabe de maíz",
-            "high fructose",
-            "corn syrup",
-            "dextrosa",
             "dextrose",
-            "azúcar añadida",
-            "added sugar",
-            "fructose",
+            "dextrosa",
+            "maltose",
+            "maltosa",
+            "refined sugar",
+            "white sugar",
+            "azúcar refinada",
+            "glucose syrup",
+            "jarabe de glucosa",
         ),
         severity=ConflictSeverity.HIGH,
-        message="Glucosa con azúcares añadidos",
+        message="Glucosa con azúcares de absorción rápida",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.HBA1C,
         direction="raises",
         keywords=(
-            "jarabe de maíz",
             "high fructose",
             "corn syrup",
-            "dextrosa",
-            "dextrose",
-            "added sugar",
+            "jarabe de maíz",
             "fructose",
+            "fructosa",
+            "added sugar",
+            "azúcar añadida",
         ),
         severity=ConflictSeverity.HIGH,
-        message="HbA1c con azúcares añadidos",
+        message="HbA1c con azúcares de carga crónica",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.TRIGLYCERIDES,
@@ -136,21 +177,56 @@ BIOMARKER_RULES: tuple[BiomarkerRule, ...] = (
     BiomarkerRule(
         biomarker=CanonicalBiomarker.SODIUM,
         direction="raises",
-        keywords=("sodio", "sodium", "msg", "glutamato monosódico", "sal", "salt"),
+        keywords=(
+            "sodium chloride",
+            "cloruro de sodio",
+            "monosodium glutamate",
+            "glutamato monosódico",
+            "msg",
+            "added salt",
+            "sal de mesa",
+            "table salt",
+            "sodium",
+            "sodio",
+        ),
+        excludes=(
+            "potassium salt",
+            "calcium salt",
+            "magnesium salt",
+            "fatty acid salt",
+            "sodium bicarbonate",
+            "sodium carbonate",
+            "sodium silicate",
+        ),
         severity=ConflictSeverity.MEDIUM,
         message="Sodio con ingredientes salinos",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.URIC_ACID,
         direction="raises",
-        keywords=("jarabe de maíz", "high fructose", "corn syrup", "fructose", "fructosa"),
+        keywords=(
+            "high fructose",
+            "corn syrup",
+            "fructose",
+            "fructosa",
+            "jarabe de maíz",
+        ),
         severity=ConflictSeverity.MEDIUM,
         message="Ácido úrico con fructosa",
     ),
     BiomarkerRule(
         biomarker=CanonicalBiomarker.POTASSIUM,
         direction="raises",
-        keywords=("potassium chloride", "cloruro de potasio"),
+        keywords=(
+            "potassium chloride",
+            "cloruro de potasio",
+            "potassium",
+            "potasio",
+            "potásico",
+            "kcl",
+            "dipotassium",
+            "potassic",
+        ),
         severity=ConflictSeverity.LOW,
         message="Potasio con aditivos de potasio",
     ),
@@ -249,8 +325,15 @@ def _find_matches_keywords(
             matched_ingr: list[str] = []
             for ing in ingredients:
                 ing_names = " ".join(filter(None, (ing.name, ing.canonical_name))).lower()
-                if any(kw in ing_names for kw in rule.keywords):
+                for kw in rule.keywords:
+                    if kw not in ing_names:
+                        continue
+                    if _has_negation(ing_names, kw):
+                        continue
+                    if any(ex in ing_names for ex in rule.excludes):
+                        continue
                     matched_ingr.append(ing.canonical_name or ing.name)
+                    break  # un keyword match es suficiente por ingrediente
 
             if matched_ingr:
                 matches.append((bm, matched_ingr, rule.severity, kind, rule.direction))
@@ -349,9 +432,11 @@ def detect_biomarker_conflicts(
     ingredients: list[IngredientResult],
     biomarkers: list | None,
 ) -> list[PersonalizedAlert]:
-    """Return legacy PersonalizedAlert list for ORANGE semaphore detection.
+    """Return PersonalizedAlert list for ORANGE semaphore detection.
 
     Thin wrapper around _find_matches_keywords — sync, no semantic path.
+    Deduplicates by ingredient: when multiple rules fire on the same ingredient,
+    only the highest-severity alert is kept.
     """
     if not biomarkers:
         return []
@@ -371,7 +456,14 @@ def detect_biomarker_conflicts(
                     severity=severity,
                 )
             )
-    return alerts
+
+    # Per-ingredient dedup: keep only highest-severity alert
+    seen: dict[str, PersonalizedAlert] = {}
+    for alert in alerts:
+        prev = seen.get(alert.ingredient)
+        if prev is None or _SEVERITY_RANK[alert.severity] > _SEVERITY_RANK[prev.severity]:
+            seen[alert.ingredient] = alert
+    return list(seen.values())
 
 
 def compute_semaphore(

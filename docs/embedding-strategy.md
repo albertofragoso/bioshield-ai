@@ -154,6 +154,8 @@ El re-ranking semántico de `find_ingredient_matches` embeddea el texto canónic
 
 **Garantía de privacidad:** los valores reales del biomarcador del usuario (ej. `ldl=160`) NUNCA se embeddean. Solo se embeddea el texto canónico de la regla (`"ldl raises: trans fat, hydrogenated..."`), que es código estático sin PHI.
 
+**Construcción del query text:** el texto usado para generar el embedding de la regla se construye exclusivamente a partir de `rule.keywords`. `rule.excludes` no forma parte del query text de embedding — solo filtra en la capa de keyword matching. Incluir las exclusiones en el embedding introduciría sesgo semántico hacia los términos industriales que precisamente se quiere ignorar.
+
 ---
 
 ## 9. Métricas de calidad (propuestas)
