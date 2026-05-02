@@ -1,0 +1,3187 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-05-02T02:08:13.642403+00:00",
+    "bge_model": "BAAI/bge-m3",
+    "chromadb_size": 4637,
+    "total_queries": 9,
+    "total_judgments": 295,
+    "avg_confidence": 0.824,
+    "layers_built": [
+      "layer1_domain_knowledge",
+      "layer2_embedding_retrieval",
+      "layer3_gemini_variations"
+    ]
+  },
+  "queries": [
+    {
+      "query_id": "ldl_raises_000",
+      "biomarker": "ldl",
+      "direction": "raises",
+      "severity": "HIGH",
+      "query_text": "ldl raises: trans fat, grasas trans, aceite hidrogenado, hydrogenated, saturated fat, palm oil, aceite de palma",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "near_misses": 19
+      },
+      "layer3_variations": [
+        {
+          "variation_text": "Foods that elevate bad cholesterol",
+          "l1_overlap": 0.5,
+          "top_hits": [
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+              "similarity": 0.7764
+            },
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+              "similarity": 0.7764
+            },
+            {
+              "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+              "name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+              "similarity": 0.7558
+            },
+            {
+              "entity_id": "NAME:fatty_acids_(chain_length_c7_to_c18)_and_their_salts_and_esters",
+              "name": "Fatty acids (chain length C7 to C18) and their salts and esters",
+              "similarity": 0.7455
+            },
+            {
+              "entity_id": "E:E319",
+              "name": "TBHQ",
+              "similarity": 0.7432
+            }
+          ]
+        },
+        {
+          "variation_text": "Ingredients that worsen cholesterol profile",
+          "l1_overlap": 0.5,
+          "top_hits": [
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+              "similarity": 0.7555
+            },
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+              "similarity": 0.7549
+            },
+            {
+              "entity_id": "NAME:fatty_alcohols_blends_(lauryl_myristyl_alcohol_(c12-c14)_and_cetyl_stearyl_alcohol_(c16-c18))",
+              "name": "Fatty alcohols blends (Lauryl myristyl alcohol (C12-C14) and Cetyl stearyl alcohol (C16-C18))",
+              "similarity": 0.7412
+            },
+            {
+              "entity_id": "NAME:essential_oil_from_thyme_and_star_anise,_crushed_dried_spices_and_crushed_dried_herbs_(biostrong_510)",
+              "name": "Essential oil from thyme and star anise, crushed dried spices and crushed dried herbs (BIOSTRONG 510)",
+              "similarity": 0.7383
+            },
+            {
+              "entity_id": "E:E319",
+              "name": "TBHQ",
+              "similarity": 0.735
+            }
+          ]
+        }
+      ],
+      "judgments": [
+        {
+          "ingredient_id": "322f5f01-ace1-42ef-b332-c9329a8d26c8",
+          "ingredient_name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+          "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "hydrogenated"
+        },
+        {
+          "ingredient_id": "ecffa326-7e31-48c8-a241-1af7ccabd711",
+          "ingredient_name": "Syrups, hydrolysed starch, hydrogenated",
+          "entity_id": "CAS:68425-17-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "hydrogenated"
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "relevance": 3,
+          "confidence": 0.703,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7812
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "relevance": 3,
+          "confidence": 0.698,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7759
+        },
+        {
+          "ingredient_id": "NAME:waxes,_paraffinic,_refined,_derived_from_petroleum_based_or_synthetic_hydrocarbon_feedstocks",
+          "ingredient_name": "Waxes, paraffinic, refined, derived from petroleum based or synthetic hydrocarbon feedstocks",
+          "entity_id": "NAME:waxes,_paraffinic,_refined,_derived_from_petroleum_based_or_synthetic_hydrocarbon_feedstocks",
+          "relevance": 3,
+          "confidence": 0.694,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7711
+        },
+        {
+          "ingredient_id": "CAS:8002-26-4",
+          "ingredient_name": "Tall oil crude",
+          "entity_id": "CAS:8002-26-4",
+          "relevance": 3,
+          "confidence": 0.69,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7666
+        },
+        {
+          "ingredient_id": "NAME:acids,_c2-c24,_aliphatic,_linear,_monocarboxylic,_from_natural_oils_and_fats,_lithium_salt",
+          "ingredient_name": "Acids, C2-C24, aliphatic, linear, monocarboxylic, from natural oils and fats, lithium salt",
+          "entity_id": "NAME:acids,_c2-c24,_aliphatic,_linear,_monocarboxylic,_from_natural_oils_and_fats,_lithium_salt",
+          "relevance": 3,
+          "confidence": 0.689,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7652
+        },
+        {
+          "ingredient_id": "NAME:fatty_acids,_c16-18_saturated,_hexaesters_with_dipentaerythritol",
+          "ingredient_name": "Fatty acids, C16-18 saturated, hexaesters with dipentaerythritol",
+          "entity_id": "NAME:fatty_acids,_c16-18_saturated,_hexaesters_with_dipentaerythritol",
+          "relevance": 3,
+          "confidence": 0.685,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7606
+        },
+        {
+          "ingredient_id": "NAME:tall_oil_pitch",
+          "ingredient_name": "Tall oil pitch",
+          "entity_id": "NAME:tall_oil_pitch",
+          "relevance": 3,
+          "confidence": 0.685,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7606
+        },
+        {
+          "ingredient_id": "NAME:mineral_oil_saturated_hydrocarbons",
+          "ingredient_name": "Mineral oil saturated hydrocarbons",
+          "entity_id": "NAME:mineral_oil_saturated_hydrocarbons",
+          "relevance": 3,
+          "confidence": 0.683,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7588
+        },
+        {
+          "ingredient_id": "NAME:acid_oils_and_fatty_acids_distillates",
+          "ingredient_name": "Acid oils and fatty acids distillates",
+          "entity_id": "NAME:acid_oils_and_fatty_acids_distillates",
+          "relevance": 3,
+          "confidence": 0.682,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7574
+        },
+        {
+          "ingredient_id": "CAS:8001-25-0",
+          "ingredient_name": "Olive leaf dry extract from O. europaea L.",
+          "entity_id": "CAS:8001-25-0",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.757
+        },
+        {
+          "ingredient_id": "CAS:868-18-8",
+          "ingredient_name": "L(+)-Tartaric acid, disodium salt",
+          "entity_id": "CAS:868-18-8",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.757
+        },
+        {
+          "ingredient_id": "NAME:n,n-bis(2-hydroxyethyl)stearylamine_partially_esterified_with_saturated_c16/c18_fatty_acids",
+          "ingredient_name": "N,N-bis(2-hydroxyethyl)stearylamine partially esterified with saturated C16/C18 fatty acids",
+          "entity_id": "NAME:n,n-bis(2-hydroxyethyl)stearylamine_partially_esterified_with_saturated_c16/c18_fatty_acids",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7567
+        },
+        {
+          "ingredient_id": "NAME:disodium_edta,_tannin-rich_extract_of_castanea_sativa,_thyme_and_oregano_oil_preparation",
+          "ingredient_name": "Disodium EDTA, tannin-rich extract of Castanea sativa, thyme and oregano oil preparation",
+          "entity_id": "NAME:disodium_edta,_tannin-rich_extract_of_castanea_sativa,_thyme_and_oregano_oil_preparation",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7564
+        },
+        {
+          "ingredient_id": "CAS:10352-88-2",
+          "ingredient_name": "trans-2-Heptenoic acid",
+          "entity_id": "CAS:10352-88-2",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7563
+        },
+        {
+          "ingredient_id": "NAME:petroleum_hydrocarbon_resins_(hydrogenated)",
+          "ingredient_name": "Petroleum Hydrocarbon Resins (hydrogenated)",
+          "entity_id": "NAME:petroleum_hydrocarbon_resins_(hydrogenated)",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7553
+        },
+        {
+          "ingredient_id": "E:E319",
+          "ingredient_name": "TBHQ",
+          "entity_id": "E:E319",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7549
+        },
+        {
+          "ingredient_id": "CAS:616-09-1",
+          "ingredient_name": "Propyl lactate",
+          "entity_id": "CAS:616-09-1",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7547
+        },
+        {
+          "ingredient_id": "CAS:8002-13-9",
+          "ingredient_name": "Rapeseed oil",
+          "entity_id": "CAS:8002-13-9",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7541
+        },
+        {
+          "ingredient_id": "CAS:56-85-9",
+          "ingredient_name": "L-Glutamine",
+          "entity_id": "CAS:56-85-9",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.754
+        }
+      ]
+    },
+    {
+      "query_id": "total_cholesterol_raises_001",
+      "biomarker": "total_cholesterol",
+      "direction": "raises",
+      "severity": "HIGH",
+      "query_text": "total_cholesterol raises: trans fat, grasas trans, aceite hidrogenado, hydrogenated, saturated fat, palm oil, aceite de palma",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "near_misses": 19
+      },
+      "layer3_variations": [
+        {
+          "variation_text": "Foods that elevate blood cholesterol",
+          "l1_overlap": 0.5,
+          "top_hits": [
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+              "similarity": 0.7732
+            },
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+              "similarity": 0.7722
+            },
+            {
+              "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+              "name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+              "similarity": 0.7563
+            },
+            {
+              "entity_id": "CAS:90989-74-5",
+              "name": "Blood meal",
+              "similarity": 0.7538
+            },
+            {
+              "entity_id": "E:E319",
+              "name": "TBHQ",
+              "similarity": 0.7458
+            }
+          ]
+        },
+        {
+          "variation_text": "Dietary choices impacting overall cholesterol levels",
+          "l1_overlap": 0.5,
+          "top_hits": [
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+              "similarity": 0.7397
+            },
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+              "similarity": 0.7372
+            },
+            {
+              "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+              "name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+              "similarity": 0.7198
+            },
+            {
+              "entity_id": "NAME:fatty_acids_(chain_length_c7_to_c18)_and_their_salts_and_esters",
+              "name": "Fatty acids (chain length C7 to C18) and their salts and esters",
+              "similarity": 0.7169
+            },
+            {
+              "entity_id": "E:E319",
+              "name": "TBHQ",
+              "similarity": 0.7099
+            }
+          ]
+        }
+      ],
+      "judgments": [
+        {
+          "ingredient_id": "322f5f01-ace1-42ef-b332-c9329a8d26c8",
+          "ingredient_name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+          "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "hydrogenated"
+        },
+        {
+          "ingredient_id": "ecffa326-7e31-48c8-a241-1af7ccabd711",
+          "ingredient_name": "Syrups, hydrolysed starch, hydrogenated",
+          "entity_id": "CAS:68425-17-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "hydrogenated"
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "relevance": 3,
+          "confidence": 0.712,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7911
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "relevance": 3,
+          "confidence": 0.71,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.789
+        },
+        {
+          "ingredient_id": "NAME:mineral_oil_saturated_hydrocarbons",
+          "ingredient_name": "Mineral oil saturated hydrocarbons",
+          "entity_id": "NAME:mineral_oil_saturated_hydrocarbons",
+          "relevance": 3,
+          "confidence": 0.693,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7705
+        },
+        {
+          "ingredient_id": "CAS:8002-26-4",
+          "ingredient_name": "Tall oil crude",
+          "entity_id": "CAS:8002-26-4",
+          "relevance": 3,
+          "confidence": 0.693,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7695
+        },
+        {
+          "ingredient_id": "NAME:waxes,_paraffinic,_refined,_derived_from_petroleum_based_or_synthetic_hydrocarbon_feedstocks",
+          "ingredient_name": "Waxes, paraffinic, refined, derived from petroleum based or synthetic hydrocarbon feedstocks",
+          "entity_id": "NAME:waxes,_paraffinic,_refined,_derived_from_petroleum_based_or_synthetic_hydrocarbon_feedstocks",
+          "relevance": 3,
+          "confidence": 0.692,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7692
+        },
+        {
+          "ingredient_id": "NAME:tall_oil_pitch",
+          "ingredient_name": "Tall oil pitch",
+          "entity_id": "NAME:tall_oil_pitch",
+          "relevance": 3,
+          "confidence": 0.692,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7691
+        },
+        {
+          "ingredient_id": "NAME:fatty_acids_(chain_length_c7_to_c18)_and_their_salts_and_esters",
+          "ingredient_name": "Fatty acids (chain length C7 to C18) and their salts and esters",
+          "entity_id": "NAME:fatty_acids_(chain_length_c7_to_c18)_and_their_salts_and_esters",
+          "relevance": 3,
+          "confidence": 0.687,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7628
+        },
+        {
+          "ingredient_id": "NAME:fatty_acids,_c16-18_saturated,_hexaesters_with_dipentaerythritol",
+          "ingredient_name": "Fatty acids, C16-18 saturated, hexaesters with dipentaerythritol",
+          "entity_id": "NAME:fatty_acids,_c16-18_saturated,_hexaesters_with_dipentaerythritol",
+          "relevance": 3,
+          "confidence": 0.686,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7621
+        },
+        {
+          "ingredient_id": "NAME:n,n-bis(2-hydroxyethyl)stearylamine_partially_esterified_with_saturated_c16/c18_fatty_acids",
+          "ingredient_name": "N,N-bis(2-hydroxyethyl)stearylamine partially esterified with saturated C16/C18 fatty acids",
+          "entity_id": "NAME:n,n-bis(2-hydroxyethyl)stearylamine_partially_esterified_with_saturated_c16/c18_fatty_acids",
+          "relevance": 3,
+          "confidence": 0.683,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7592
+        },
+        {
+          "ingredient_id": "NAME:acids,_c2-c24,_aliphatic,_linear,_monocarboxylic,_from_natural_oils_and_fats,_lithium_salt",
+          "ingredient_name": "Acids, C2-C24, aliphatic, linear, monocarboxylic, from natural oils and fats, lithium salt",
+          "entity_id": "NAME:acids,_c2-c24,_aliphatic,_linear,_monocarboxylic,_from_natural_oils_and_fats,_lithium_salt",
+          "relevance": 3,
+          "confidence": 0.682,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7577
+        },
+        {
+          "ingredient_id": "CAS:112-62-9",
+          "ingredient_name": "Methyl oleate",
+          "entity_id": "CAS:112-62-9",
+          "relevance": 3,
+          "confidence": 0.682,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7574
+        },
+        {
+          "ingredient_id": "E:E319",
+          "ingredient_name": "TBHQ",
+          "entity_id": "E:E319",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7557
+        },
+        {
+          "ingredient_id": "E:E471",
+          "ingredient_name": "Mono- and Diglycerides of Fatty Acids",
+          "entity_id": "E:E471",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7556
+        },
+        {
+          "ingredient_id": "CAS:111-62-6",
+          "ingredient_name": "Ethyl oleate",
+          "entity_id": "CAS:111-62-6",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7552
+        },
+        {
+          "ingredient_id": "NAME:phthalic_acid,_mixed_esters_with_ethyl_glycolate_and_alcohols,_aliphatic,_monohydroxylic,_(c1-c4)",
+          "ingredient_name": "Phthalic acid, mixed esters with ethyl glycolate and alcohols, aliphatic, monohydroxylic, (C1-C4)",
+          "entity_id": "NAME:phthalic_acid,_mixed_esters_with_ethyl_glycolate_and_alcohols,_aliphatic,_monohydroxylic,_(c1-c4)",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7543
+        },
+        {
+          "ingredient_id": "NAME:glycerol_esters_of_tall_oil_rosin_(getor)",
+          "ingredient_name": "Glycerol esters of tall oil rosin (GETOR)",
+          "entity_id": "NAME:glycerol_esters_of_tall_oil_rosin_(getor)",
+          "relevance": 3,
+          "confidence": 0.678,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7531
+        },
+        {
+          "ingredient_id": "NAME:acid_oils_and_fatty_acids_distillates",
+          "ingredient_name": "Acid oils and fatty acids distillates",
+          "entity_id": "NAME:acid_oils_and_fatty_acids_distillates",
+          "relevance": 3,
+          "confidence": 0.678,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7529
+        },
+        {
+          "ingredient_id": "NAME:petroleum_hydrocarbon_resins_(hydrogenated)",
+          "ingredient_name": "Petroleum Hydrocarbon Resins (hydrogenated)",
+          "entity_id": "NAME:petroleum_hydrocarbon_resins_(hydrogenated)",
+          "relevance": 3,
+          "confidence": 0.677,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7522
+        },
+        {
+          "ingredient_id": "CAS:112-80-1",
+          "ingredient_name": "Oleic acid",
+          "entity_id": "CAS:112-80-1",
+          "relevance": 3,
+          "confidence": 0.677,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7521
+        }
+      ]
+    },
+    {
+      "query_id": "hdl_lowers_002",
+      "biomarker": "hdl",
+      "direction": "lowers",
+      "severity": "MEDIUM",
+      "query_text": "hdl lowers: trans fat, grasas trans, hydrogenated, aceite hidrogenado",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "near_misses": 19
+      },
+      "layer3_variations": [
+        {
+          "variation_text": "Unhealthy fats reducing good cholesterol",
+          "l1_overlap": 0.5,
+          "top_hits": [
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+              "similarity": 0.7574
+            },
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+              "similarity": 0.7572
+            },
+            {
+              "entity_id": "NAME:fatty_acids_(chain_length_c7_to_c18)_and_their_salts_and_esters",
+              "name": "Fatty acids (chain length C7 to C18) and their salts and esters",
+              "similarity": 0.7425
+            },
+            {
+              "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+              "name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+              "similarity": 0.7376
+            },
+            {
+              "entity_id": "E:E319",
+              "name": "TBHQ",
+              "similarity": 0.7349
+            }
+          ]
+        },
+        {
+          "variation_text": "Dietary components that decrease good cholesterol",
+          "l1_overlap": 0.5,
+          "top_hits": [
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+              "similarity": 0.7251
+            },
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+              "similarity": 0.7242
+            },
+            {
+              "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+              "name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+              "similarity": 0.7136
+            },
+            {
+              "entity_id": "NAME:essential_oil_from_thyme_and_star_anise,_crushed_dried_spices_and_crushed_dried_herbs_(biostrong_510)",
+              "name": "Essential oil from thyme and star anise, crushed dried spices and crushed dried herbs (BIOSTRONG 510)",
+              "similarity": 0.7125
+            },
+            {
+              "entity_id": "NAME:polyesters_of_1,4:3,6-dianhydrosorbitol,_ethylene_glycol,_1,4-bis(hydroxymethyl)cyclohexane_and_terephthalic_acid_(1,4:3,6-dianhydrosorbitol_at_levels_of_up_to_40_mole%_of_the_diol_component)",
+              "name": "Polyesters of 1,4:3,6-dianhydrosorbitol, ethylene glycol, 1,4-bis(hydroxymethyl)cyclohexane and terephthalic acid (1,4:3,6-dianhydrosorbitol at levels of up to 40 mole% of the diol component)",
+              "similarity": 0.7095
+            }
+          ]
+        }
+      ],
+      "judgments": [
+        {
+          "ingredient_id": "322f5f01-ace1-42ef-b332-c9329a8d26c8",
+          "ingredient_name": "Animal, marine and vegetable and hydrogenated oils and fats (other than cashew shell nut and crude tall oil)",
+          "entity_id": "NAME:animal,_marine_and_vegetable_and_hydrogenated_oils_and_fats_(other_than_cashew_shell_nut_and_crude_tall_oil)",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "hydrogenated"
+        },
+        {
+          "ingredient_id": "ecffa326-7e31-48c8-a241-1af7ccabd711",
+          "ingredient_name": "Syrups, hydrolysed starch, hydrogenated",
+          "entity_id": "CAS:68425-17-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "hydrogenated"
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "relevance": 3,
+          "confidence": 0.697,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.774
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "relevance": 3,
+          "confidence": 0.693,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7694
+        },
+        {
+          "ingredient_id": "NAME:acids,_c2-c24,_aliphatic,_linear,_monocarboxylic,_from_natural_oils_and_fats,_lithium_salt",
+          "ingredient_name": "Acids, C2-C24, aliphatic, linear, monocarboxylic, from natural oils and fats, lithium salt",
+          "entity_id": "NAME:acids,_c2-c24,_aliphatic,_linear,_monocarboxylic,_from_natural_oils_and_fats,_lithium_salt",
+          "relevance": 3,
+          "confidence": 0.687,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7634
+        },
+        {
+          "ingredient_id": "E:E319",
+          "ingredient_name": "TBHQ",
+          "entity_id": "E:E319",
+          "relevance": 3,
+          "confidence": 0.685,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.761
+        },
+        {
+          "ingredient_id": "NAME:waxes,_paraffinic,_refined,_derived_from_petroleum_based_or_synthetic_hydrocarbon_feedstocks",
+          "ingredient_name": "Waxes, paraffinic, refined, derived from petroleum based or synthetic hydrocarbon feedstocks",
+          "entity_id": "NAME:waxes,_paraffinic,_refined,_derived_from_petroleum_based_or_synthetic_hydrocarbon_feedstocks",
+          "relevance": 3,
+          "confidence": 0.682,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7574
+        },
+        {
+          "ingredient_id": "CAS:35822-46-9",
+          "ingredient_name": "1,2,3,4,6,7,8-HpCDD",
+          "entity_id": "CAS:35822-46-9",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7572
+        },
+        {
+          "ingredient_id": "NAME:fatty_acids,_c16-18_saturated,_hexaesters_with_dipentaerythritol",
+          "ingredient_name": "Fatty acids, C16-18 saturated, hexaesters with dipentaerythritol",
+          "entity_id": "NAME:fatty_acids,_c16-18_saturated,_hexaesters_with_dipentaerythritol",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7559
+        },
+        {
+          "ingredient_id": "NAME:petroleum_hydrocarbon_resins_(hydrogenated)",
+          "ingredient_name": "Petroleum Hydrocarbon Resins (hydrogenated)",
+          "entity_id": "NAME:petroleum_hydrocarbon_resins_(hydrogenated)",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7541
+        },
+        {
+          "ingredient_id": "CAS:10352-88-2",
+          "ingredient_name": "trans-2-Heptenoic acid",
+          "entity_id": "CAS:10352-88-2",
+          "relevance": 3,
+          "confidence": 0.677,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7528
+        },
+        {
+          "ingredient_id": "CAS:57117-44-9",
+          "ingredient_name": "1,2,3,6,7,8-HxCDF",
+          "entity_id": "CAS:57117-44-9",
+          "relevance": 3,
+          "confidence": 0.675,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7501
+        },
+        {
+          "ingredient_id": "NAME:hydrogenated_homopolymers_and/or_copolymers_made_of_1-hexene_and/or_1-octene_and/or_1-decene_and/or_1-dodecene_and/or_1-tetradecene_(mw:_440-12000)",
+          "ingredient_name": "Hydrogenated homopolymers and/or copolymers made of 1-hexene and/or 1-octene and/or 1-decene and/or 1-dodecene and/or 1-tetradecene (Mw: 440-12000)",
+          "entity_id": "NAME:hydrogenated_homopolymers_and/or_copolymers_made_of_1-hexene_and/or_1-octene_and/or_1-decene_and/or_1-dodecene_and/or_1-tetradecene_(mw:_440-12000)",
+          "relevance": 3,
+          "confidence": 0.674,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7493
+        },
+        {
+          "ingredient_id": "NAME:n,n-bis(2-hydroxyethyl)stearylamine_partially_esterified_with_saturated_c16/c18_fatty_acids",
+          "ingredient_name": "N,N-bis(2-hydroxyethyl)stearylamine partially esterified with saturated C16/C18 fatty acids",
+          "entity_id": "NAME:n,n-bis(2-hydroxyethyl)stearylamine_partially_esterified_with_saturated_c16/c18_fatty_acids",
+          "relevance": 3,
+          "confidence": 0.674,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7489
+        },
+        {
+          "ingredient_id": "CAS:7722-84-1",
+          "ingredient_name": "Hydrogen peroxide",
+          "entity_id": "CAS:7722-84-1",
+          "relevance": 3,
+          "confidence": 0.673,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7482
+        },
+        {
+          "ingredient_id": "NAME:mineral_oil_saturated_hydrocarbons",
+          "ingredient_name": "Mineral oil saturated hydrocarbons",
+          "entity_id": "NAME:mineral_oil_saturated_hydrocarbons",
+          "relevance": 3,
+          "confidence": 0.673,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7476
+        },
+        {
+          "ingredient_id": "CAS:72918-21-9",
+          "ingredient_name": "1,2,3,7,8,9-HxCDF",
+          "entity_id": "CAS:72918-21-9",
+          "relevance": 3,
+          "confidence": 0.673,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7476
+        },
+        {
+          "ingredient_id": "CAS:27829-72-7",
+          "ingredient_name": "Ethyl trans-2-hexenoate",
+          "entity_id": "CAS:27829-72-7",
+          "relevance": 3,
+          "confidence": 0.673,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7476
+        },
+        {
+          "ingredient_id": "NAME:hydrolysed_proteins",
+          "ingredient_name": "Hydrolysed proteins",
+          "entity_id": "NAME:hydrolysed_proteins",
+          "relevance": 3,
+          "confidence": 0.673,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7475
+        },
+        {
+          "ingredient_id": "CAS:67562-39-4",
+          "ingredient_name": "1,2,3,4,6,7,8-HpCDF",
+          "entity_id": "CAS:67562-39-4",
+          "relevance": 3,
+          "confidence": 0.673,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7475
+        },
+        {
+          "ingredient_id": "NAME:fatty_acids_(chain_length_c7_to_c18)_and_their_salts_and_esters",
+          "ingredient_name": "Fatty acids (chain length C7 to C18) and their salts and esters",
+          "entity_id": "NAME:fatty_acids_(chain_length_c7_to_c18)_and_their_salts_and_esters",
+          "relevance": 3,
+          "confidence": 0.672,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7468
+        }
+      ]
+    },
+    {
+      "query_id": "glucose_raises_003",
+      "biomarker": "glucose",
+      "direction": "raises",
+      "severity": "HIGH",
+      "query_text": "glucose raises: dextrose, dextrosa, maltose, maltosa, refined sugar, white sugar, azúcar refinada, glucose syrup, jarabe de glucosa",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 0,
+        "false_positives": 0,
+        "near_misses": 20
+      },
+      "layer3_variations": [],
+      "judgments": [
+        {
+          "ingredient_id": "CAS:56038-13-2",
+          "ingredient_name": "Sucralose",
+          "entity_id": "CAS:56038-13-2",
+          "relevance": 3,
+          "confidence": 0.727,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.8076
+        },
+        {
+          "ingredient_id": "NAME:sucroglycerides",
+          "ingredient_name": "Sucroglycerides",
+          "entity_id": "NAME:sucroglycerides",
+          "relevance": 3,
+          "confidence": 0.706,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7844
+        },
+        {
+          "ingredient_id": "CAS:110-94-1",
+          "ingredient_name": "Glutaric acid",
+          "entity_id": "CAS:110-94-1",
+          "relevance": 3,
+          "confidence": 0.703,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7812
+        },
+        {
+          "ingredient_id": "CAS:9050-36-6",
+          "ingredient_name": "Maltodextrin",
+          "entity_id": "CAS:9050-36-6",
+          "relevance": 3,
+          "confidence": 0.702,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7799
+        },
+        {
+          "ingredient_id": "CAS:9004-67-5",
+          "ingredient_name": "Methyl cellulose",
+          "entity_id": "CAS:9004-67-5",
+          "relevance": 3,
+          "confidence": 0.701,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.779
+        },
+        {
+          "ingredient_id": "CAS:126-13-6",
+          "ingredient_name": "Sucrose acetate isobutyrate",
+          "entity_id": "CAS:126-13-6",
+          "relevance": 3,
+          "confidence": 0.698,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7753
+        },
+        {
+          "ingredient_id": "CAS:126-14-7",
+          "ingredient_name": "Sucrose octaacetate",
+          "entity_id": "CAS:126-14-7",
+          "relevance": 3,
+          "confidence": 0.698,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7751
+        },
+        {
+          "ingredient_id": "CAS:56-81-5",
+          "ingredient_name": "Glycerine",
+          "entity_id": "CAS:56-81-5",
+          "relevance": 3,
+          "confidence": 0.697,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7742
+        },
+        {
+          "ingredient_id": "NAME:glycerol",
+          "ingredient_name": "Glycerol",
+          "entity_id": "NAME:glycerol",
+          "relevance": 3,
+          "confidence": 0.696,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7731
+        },
+        {
+          "ingredient_id": "NAME:high-fructose_corn_syrup",
+          "ingredient_name": "High-Fructose Corn Syrup",
+          "entity_id": "NAME:high-fructose_corn_syrup",
+          "relevance": 3,
+          "confidence": 0.696,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.773
+        },
+        {
+          "ingredient_id": "CAS:3891-59-6",
+          "ingredient_name": "Glucose pentaacetate",
+          "entity_id": "CAS:3891-59-6",
+          "relevance": 3,
+          "confidence": 0.695,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7727
+        },
+        {
+          "ingredient_id": "CAS:56-40-6",
+          "ingredient_name": "Glycine",
+          "entity_id": "CAS:56-40-6",
+          "relevance": 3,
+          "confidence": 0.695,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7723
+        },
+        {
+          "ingredient_id": "CAS:1181972-37-1",
+          "ingredient_name": "(6S)-5-Methyltetrahydrofolic acid, glucosamine salt",
+          "entity_id": "CAS:1181972-37-1",
+          "relevance": 3,
+          "confidence": 0.695,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7721
+        },
+        {
+          "ingredient_id": "CAS:706-14-9",
+          "ingredient_name": "Decano-1,4-lactone",
+          "entity_id": "CAS:706-14-9",
+          "relevance": 3,
+          "confidence": 0.694,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7715
+        },
+        {
+          "ingredient_id": "CAS:56180-94-0",
+          "ingredient_name": "Acarbose",
+          "entity_id": "CAS:56180-94-0",
+          "relevance": 3,
+          "confidence": 0.694,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7714
+        },
+        {
+          "ingredient_id": "CAS:51981-21-6",
+          "ingredient_name": "L-Glutamic acid, N,N-diacetic acid, tetrasodium salt",
+          "entity_id": "CAS:51981-21-6",
+          "relevance": 3,
+          "confidence": 0.694,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7714
+        },
+        {
+          "ingredient_id": "CAS:527-09-3",
+          "ingredient_name": "Copper gluconate",
+          "entity_id": "CAS:527-09-3",
+          "relevance": 3,
+          "confidence": 0.694,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7713
+        },
+        {
+          "ingredient_id": "NAME:yeast_beta-glucans",
+          "ingredient_name": "Yeast beta-glucans",
+          "entity_id": "NAME:yeast_beta-glucans",
+          "relevance": 3,
+          "confidence": 0.693,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7704
+        },
+        {
+          "ingredient_id": "NAME:sucrose_esters_of_fatty_acids",
+          "ingredient_name": "Sucrose esters of fatty acids",
+          "entity_id": "NAME:sucrose_esters_of_fatty_acids",
+          "relevance": 3,
+          "confidence": 0.693,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7701
+        },
+        {
+          "ingredient_id": "NAME:glucuronide_conjugate_of_sedaxane_metabolite_(cscd658906)",
+          "ingredient_name": "Glucuronide conjugate of Sedaxane metabolite (CSCD658906)",
+          "entity_id": "NAME:glucuronide_conjugate_of_sedaxane_metabolite_(cscd658906)",
+          "relevance": 3,
+          "confidence": 0.693,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7698
+        }
+      ]
+    },
+    {
+      "query_id": "hba1c_raises_004",
+      "biomarker": "hba1c",
+      "direction": "raises",
+      "severity": "HIGH",
+      "query_text": "hba1c raises: high fructose, corn syrup, jarabe de maíz, fructose, fructosa, added sugar, azúcar añadida",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "near_misses": 19
+      },
+      "layer3_variations": [
+        {
+          "variation_text": "Dietary components that elevate blood sugar",
+          "l1_overlap": 1.0,
+          "top_hits": [
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+              "similarity": 0.7567
+            },
+            {
+              "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+              "name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+              "similarity": 0.7538
+            },
+            {
+              "entity_id": "CAS:56038-13-2",
+              "name": "Sucralose",
+              "similarity": 0.7526
+            },
+            {
+              "entity_id": "NAME:sucroglycerides",
+              "name": "Sucroglycerides",
+              "similarity": 0.7517
+            },
+            {
+              "entity_id": "NAME:high-fructose_corn_syrup",
+              "name": "High-Fructose Corn Syrup",
+              "similarity": 0.7381
+            }
+          ]
+        }
+      ],
+      "judgments": [
+        {
+          "ingredient_id": "a80e448c-6839-40d1-9a6c-c4e59f117dc1",
+          "ingredient_name": "High-Fructose Corn Syrup",
+          "entity_id": "NAME:high-fructose_corn_syrup",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "corn syrup"
+        },
+        {
+          "ingredient_id": "CAS:56038-13-2",
+          "ingredient_name": "Sucralose",
+          "entity_id": "CAS:56038-13-2",
+          "relevance": 3,
+          "confidence": 0.704,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7828
+        },
+        {
+          "ingredient_id": "CAS:68425-17-2",
+          "ingredient_name": "Syrups, hydrolysed starch, hydrogenated",
+          "entity_id": "CAS:68425-17-2",
+          "relevance": 3,
+          "confidence": 0.691,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7678
+        },
+        {
+          "ingredient_id": "CAS:9004-65-3",
+          "ingredient_name": "Hydroxypropyl methyl cellulose",
+          "entity_id": "CAS:9004-65-3",
+          "relevance": 3,
+          "confidence": 0.689,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.766
+        },
+        {
+          "ingredient_id": "CAS:9004-64-2",
+          "ingredient_name": "Hydroxypropyl cellulose",
+          "entity_id": "CAS:9004-64-2",
+          "relevance": 3,
+          "confidence": 0.688,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7648
+        },
+        {
+          "ingredient_id": "NAME:soybean_hemicellulose",
+          "ingredient_name": "Soybean hemicellulose",
+          "entity_id": "NAME:soybean_hemicellulose",
+          "relevance": 3,
+          "confidence": 0.688,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7643
+        },
+        {
+          "ingredient_id": "E:E300",
+          "ingredient_name": "Ascorbic Acid",
+          "entity_id": "E:E300",
+          "relevance": 3,
+          "confidence": 0.682,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7577
+        },
+        {
+          "ingredient_id": "CAS:9004-67-5",
+          "ingredient_name": "Methyl cellulose",
+          "entity_id": "CAS:9004-67-5",
+          "relevance": 3,
+          "confidence": 0.682,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7576
+        },
+        {
+          "ingredient_id": "NAME:enzymatically_hydrolysed_carboxy_methyl_cellulose",
+          "ingredient_name": "Enzymatically hydrolysed carboxy methyl cellulose",
+          "entity_id": "NAME:enzymatically_hydrolysed_carboxy_methyl_cellulose",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7568
+        },
+        {
+          "ingredient_id": "NAME:hydrogenated_homopolymers_and/or_copolymers_made_of_1-hexene_and/or_1-octene_and/or_1-decene_and/or_1-dodecene_and/or_1-tetradecene_(mw:_440-12000)",
+          "ingredient_name": "Hydrogenated homopolymers and/or copolymers made of 1-hexene and/or 1-octene and/or 1-decene and/or 1-dodecene and/or 1-tetradecene (Mw: 440-12000)",
+          "entity_id": "NAME:hydrogenated_homopolymers_and/or_copolymers_made_of_1-hexene_and/or_1-octene_and/or_1-decene_and/or_1-dodecene_and/or_1-tetradecene_(mw:_440-12000)",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.756
+        },
+        {
+          "ingredient_id": "CAS:72918-21-9",
+          "ingredient_name": "1,2,3,7,8,9-HxCDF",
+          "entity_id": "CAS:72918-21-9",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7554
+        },
+        {
+          "ingredient_id": "CAS:110-94-1",
+          "ingredient_name": "Glutaric acid",
+          "entity_id": "CAS:110-94-1",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7554
+        },
+        {
+          "ingredient_id": "CAS:5077-67-8",
+          "ingredient_name": "1-Hydroxybutan-2-one",
+          "entity_id": "CAS:5077-67-8",
+          "relevance": 3,
+          "confidence": 0.68,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7551
+        },
+        {
+          "ingredient_id": "CAS:126-13-6",
+          "ingredient_name": "Sucrose acetate isobutyrate",
+          "entity_id": "CAS:126-13-6",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7549
+        },
+        {
+          "ingredient_id": "CAS:55673-89-7",
+          "ingredient_name": "1,2,3,4,7,8,9-HpCDF",
+          "entity_id": "CAS:55673-89-7",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7549
+        },
+        {
+          "ingredient_id": "NAME:4-(tert-butylamino)-6-hydroxy-1-methyl-1,3,5-triazin-2(1h)-one",
+          "ingredient_name": "4-(Tert-butylamino)-6-hydroxy-1-methyl-1,3,5-triazin-2(1H)-one",
+          "entity_id": "NAME:4-(tert-butylamino)-6-hydroxy-1-methyl-1,3,5-triazin-2(1h)-one",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7549
+        },
+        {
+          "ingredient_id": "NAME:2-carbamoyl-3,5,6-trichloro-4-cyanobenzene-1-sulfonic_acid",
+          "ingredient_name": "2-Carbamoyl-3,5,6-trichloro-4-cyanobenzene-1-sulfonic acid",
+          "entity_id": "NAME:2-carbamoyl-3,5,6-trichloro-4-cyanobenzene-1-sulfonic_acid",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7547
+        },
+        {
+          "ingredient_id": "CAS:6046-93-1",
+          "ingredient_name": "Cupric acetate, monohydrate",
+          "entity_id": "CAS:6046-93-1",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7543
+        },
+        {
+          "ingredient_id": "CAS:67562-39-4",
+          "ingredient_name": "1,2,3,4,6,7,8-HpCDF",
+          "entity_id": "CAS:67562-39-4",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7542
+        },
+        {
+          "ingredient_id": "CAS:56180-94-0",
+          "ingredient_name": "Acarbose",
+          "entity_id": "CAS:56180-94-0",
+          "relevance": 3,
+          "confidence": 0.678,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7536
+        }
+      ]
+    },
+    {
+      "query_id": "triglycerides_raises_005",
+      "biomarker": "triglycerides",
+      "direction": "raises",
+      "severity": "MEDIUM",
+      "query_text": "triglycerides raises: fructose, fructosa, jarabe, syrup, added sugar",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 2,
+        "false_positives": 0,
+        "near_misses": 18
+      },
+      "layer3_variations": [],
+      "judgments": [
+        {
+          "ingredient_id": "a80e448c-6839-40d1-9a6c-c4e59f117dc1",
+          "ingredient_name": "High-Fructose Corn Syrup",
+          "entity_id": "NAME:high-fructose_corn_syrup",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "fructose"
+        },
+        {
+          "ingredient_id": "adee0b8c-52a0-4324-b14a-10a3152fa1af",
+          "ingredient_name": "Maltitol Syrup",
+          "entity_id": "NAME:maltitol_syrup",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "syrup"
+        },
+        {
+          "ingredient_id": "ecffa326-7e31-48c8-a241-1af7ccabd711",
+          "ingredient_name": "Syrups, hydrolysed starch, hydrogenated",
+          "entity_id": "CAS:68425-17-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "syrup"
+        },
+        {
+          "ingredient_id": "CAS:56038-13-2",
+          "ingredient_name": "Sucralose",
+          "entity_id": "CAS:56038-13-2",
+          "relevance": 3,
+          "confidence": 0.689,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7659
+        },
+        {
+          "ingredient_id": "NAME:sucroglycerides",
+          "ingredient_name": "Sucroglycerides",
+          "entity_id": "NAME:sucroglycerides",
+          "relevance": 3,
+          "confidence": 0.688,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7644
+        },
+        {
+          "ingredient_id": "NAME:selenite_triglycerides",
+          "ingredient_name": "Selenite triglycerides",
+          "entity_id": "NAME:selenite_triglycerides",
+          "relevance": 3,
+          "confidence": 0.672,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.747
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with branched alcohols, aliphatic, monohydric, saturated, primary (C3-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_branched_alcohols,_aliphatic,_monohydric,_saturated,_primary_(c3-c22)",
+          "relevance": 3,
+          "confidence": 0.671,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7459
+        },
+        {
+          "ingredient_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "ingredient_name": "Acids, fatty (C8-C22) from animal or vegetable fats and oils, esters with alcohols, linear, aliphatic, monohydric, saturated, primary (C1-C22)",
+          "entity_id": "NAME:acids,_fatty_(c8-c22)_from_animal_or_vegetable_fats_and_oils,_esters_with_alcohols,_linear,_aliphatic,_monohydric,_saturated,_primary_(c1-c22)",
+          "relevance": 3,
+          "confidence": 0.669,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7434
+        },
+        {
+          "ingredient_id": "NAME:n-(6-chloro-7-hydroxy-5-methoxy_[1,2,4]_triazolo[1,5-a]pyrimidin-2-yl)-2-methoxy-4-(trifluoromethyl)_pyridine_-3-sulfonamide",
+          "ingredient_name": "N-(6-chloro-7-hydroxy-5-methoxy [1,2,4] triazolo[1,5-a]pyrimidin-2-yl)-2-methoxy-4-(trifluoromethyl) pyridine -3-sulfonamide",
+          "entity_id": "NAME:n-(6-chloro-7-hydroxy-5-methoxy_[1,2,4]_triazolo[1,5-a]pyrimidin-2-yl)-2-methoxy-4-(trifluoromethyl)_pyridine_-3-sulfonamide",
+          "relevance": 3,
+          "confidence": 0.666,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7403
+        },
+        {
+          "ingredient_id": "CAS:110-94-1",
+          "ingredient_name": "Glutaric acid",
+          "entity_id": "CAS:110-94-1",
+          "relevance": 3,
+          "confidence": 0.666,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7399
+        },
+        {
+          "ingredient_id": "NAME:sucrose_esters_of_fatty_acids",
+          "ingredient_name": "Sucrose esters of fatty acids",
+          "entity_id": "NAME:sucrose_esters_of_fatty_acids",
+          "relevance": 3,
+          "confidence": 0.665,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7385
+        },
+        {
+          "ingredient_id": "NAME:trimethylolpropane,_mixed_triesters_and_diesters_with_n-octanoic_and_n-decanoic_acids",
+          "ingredient_name": "Trimethylolpropane, mixed triesters and diesters with n-octanoic and n-decanoic acids",
+          "entity_id": "NAME:trimethylolpropane,_mixed_triesters_and_diesters_with_n-octanoic_and_n-decanoic_acids",
+          "relevance": 3,
+          "confidence": 0.663,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7366
+        },
+        {
+          "ingredient_id": "NAME:3-(difluoromethyl)-1-(b-dglucopyranosyloxy)-n-(3',4',5'-trifluorobiphenyl-2-yl)-1h-pyrazole-4-carboxamide",
+          "ingredient_name": "3-(Difluoromethyl)-1-(b-Dglucopyranosyloxy)-N-(3',4',5'-trifluorobiphenyl-2-yl)-1H-pyrazole-4-carboxamide",
+          "entity_id": "NAME:3-(difluoromethyl)-1-(b-dglucopyranosyloxy)-n-(3',4',5'-trifluorobiphenyl-2-yl)-1h-pyrazole-4-carboxamide",
+          "relevance": 3,
+          "confidence": 0.661,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7349
+        },
+        {
+          "ingredient_id": "E:E300",
+          "ingredient_name": "Ascorbic Acid",
+          "entity_id": "E:E300",
+          "relevance": 3,
+          "confidence": 0.661,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7342
+        },
+        {
+          "ingredient_id": "CAS:33922-73-5",
+          "ingredient_name": "Allyl propyl trisulfide",
+          "entity_id": "CAS:33922-73-5",
+          "relevance": 3,
+          "confidence": 0.661,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.734
+        },
+        {
+          "ingredient_id": "NAME:tetrahydro-1,3,4,6-tetrakis(hydroxymethyl)imidazo-[4,5-_d]imidazol-2,5(1h,3h)-dione_as_non_defined_process_mixture_with_tri-,_di-,_mono-_and_non-hydroxymethylated_derivatives",
+          "ingredient_name": "Tetrahydro-1,3,4,6-tetrakis(hydroxymethyl)imidazo-[4,5- d]imidazol-2,5(1H,3H)-dione as non defined process mixture with tri-, di-, mono- and non-hydroxymethylated derivatives",
+          "entity_id": "NAME:tetrahydro-1,3,4,6-tetrakis(hydroxymethyl)imidazo-[4,5-_d]imidazol-2,5(1h,3h)-dione_as_non_defined_process_mixture_with_tri-,_di-,_mono-_and_non-hydroxymethylated_derivatives",
+          "relevance": 3,
+          "confidence": 0.66,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7332
+        },
+        {
+          "ingredient_id": "NAME:3-[(3-(3-tert-butyl-4-hydroxy-5-methylphenyl)prop-2-enoyloxy)-1,1-dimethylethyl]-9-[(3-_(3-tert-butyl-4-hydroxy-5-methylphenyl)propionyloxy)-1,1-dimethylethyl]-2,4,8,10-tetraoxaspiro[5,5]-undecane",
+          "ingredient_name": "3-[(3-(3-Tert-butyl-4-hydroxy-5-methylphenyl)prop-2-enoyloxy)-1,1-dimethylethyl]-9-[(3- (3-tert-butyl-4-hydroxy-5-methylphenyl)propionyloxy)-1,1-dimethylethyl]-2,4,8,10-tetraoxaspiro[5,5]-undecane",
+          "entity_id": "NAME:3-[(3-(3-tert-butyl-4-hydroxy-5-methylphenyl)prop-2-enoyloxy)-1,1-dimethylethyl]-9-[(3-_(3-tert-butyl-4-hydroxy-5-methylphenyl)propionyloxy)-1,1-dimethylethyl]-2,4,8,10-tetraoxaspiro[5,5]-undecane",
+          "relevance": 3,
+          "confidence": 0.66,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7329
+        },
+        {
+          "ingredient_id": "CAS:41814-78-2",
+          "ingredient_name": "Tricyclazole",
+          "entity_id": "CAS:41814-78-2",
+          "relevance": 3,
+          "confidence": 0.659,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7326
+        },
+        {
+          "ingredient_id": "CAS:614-33-5",
+          "ingredient_name": "Glyceryl tribenzoate",
+          "entity_id": "CAS:614-33-5",
+          "relevance": 3,
+          "confidence": 0.659,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7321
+        },
+        {
+          "ingredient_id": "CAS:139-45-7",
+          "ingredient_name": "Glyceryl tripropionate",
+          "entity_id": "CAS:139-45-7",
+          "relevance": 3,
+          "confidence": 0.659,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7319
+        },
+        {
+          "ingredient_id": "CAS:141517-21-7",
+          "ingredient_name": "Trifloxystrobin",
+          "entity_id": "CAS:141517-21-7",
+          "relevance": 3,
+          "confidence": 0.658,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7316
+        }
+      ]
+    },
+    {
+      "query_id": "sodium_raises_006",
+      "biomarker": "sodium",
+      "direction": "raises",
+      "severity": "MEDIUM",
+      "query_text": "sodium raises: sodium chloride, cloruro de sodio, monosodium glutamate, glutamato monosódico, msg, added salt, sal de mesa, table salt, sodium, sodio",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 18,
+        "false_positives": 0,
+        "near_misses": 2
+      },
+      "layer3_variations": [],
+      "judgments": [
+        {
+          "ingredient_id": "994bbea6-d0f4-4d50-94fd-9e7b1e2289b6",
+          "ingredient_name": "Monosodium Glutamate",
+          "entity_id": "CAS:142-47-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "monosodium glutamate"
+        },
+        {
+          "ingredient_id": "af9b98ef-f0b8-49c7-a837-ef395f853726",
+          "ingredient_name": "Sodium nitrite",
+          "entity_id": "CAS:7632-00-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "69e3979e-adad-4ff9-adfc-f408b85c0c74",
+          "ingredient_name": "Sodium benzoate",
+          "entity_id": "CAS:532-32-1",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "1ad100b1-b79f-4cf7-9630-07a76662ded4",
+          "ingredient_name": "Sodium Phosphate",
+          "entity_id": "CAS:7601-54-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "c16c3acb-0fc5-4d66-86d6-b5159c0011be",
+          "ingredient_name": "Disodium Guanylate",
+          "entity_id": "CAS:1309-68-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "e8fad535-731c-468f-8073-e92aa0ad7bc8",
+          "ingredient_name": "1,2-Benzisothiazol-3(2H)-one 1,1-dioxide sodium salt",
+          "entity_id": "CAS:128-44-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "b457ed41-9b9b-4257-af63-00ca64e2fb29",
+          "ingredient_name": "3'-Sialyllactose sodium salt",
+          "entity_id": "CAS:128596-80-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "54560c78-7b39-4b23-aca3-635fe0a55fcd",
+          "ingredient_name": "5,7-dihydroxy-2-(4-hydroxy-3-methoxyphenyl)-2,3-dihydro-4H-chromen-4-one sodium salt",
+          "entity_id": "CAS:462631-45-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "a144f6fa-e0a5-4575-a702-a7b2922c6054",
+          "ingredient_name": "6'-Sialyllactose sodium salt",
+          "entity_id": "CAS:157574-76-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "f19c594c-52a7-4783-88b6-411f3ac68116",
+          "ingredient_name": "Acrylic acid, sodium salt",
+          "entity_id": "CAS:7446-81-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "c5fc4272-1512-4b5c-9355-eff42ea6c301",
+          "ingredient_name": "Acrylic acid, sodium salt, co-polymer with acrylic acid, methyl ester, methacrylic acid, 2- hydroxypropylester, and acrylic acid crosslinked",
+          "entity_id": "CAS:117675-55-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "1bcac0ca-5d77-42ef-9670-319f0d8fd4e6",
+          "ingredient_name": "Aluminium sodium sulphate",
+          "entity_id": "CAS:10102-71-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "b3f8a06f-eefd-4146-9f4f-de792bf8ed7a",
+          "ingredient_name": "Asulam Sodium",
+          "entity_id": "CAS:2302-17-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "649a4da4-7903-4327-8684-23f2b282b4ba",
+          "ingredient_name": "Bispyribac-sodium",
+          "entity_id": "CAS:125401-92-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "2b390a70-cb80-49af-a445-376a5494c2de",
+          "ingredient_name": "Calcium disodium EDTA",
+          "entity_id": "CAS:62-33-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "d25d0a84-1e2b-430a-8880-605f96402f3d",
+          "ingredient_name": "Cis-endo-bicyclo[2.2.1]heptane-2,3-dicarboxylic acid, disodium salt",
+          "entity_id": "NAME:cis-endo-bicyclo[2.2.1]heptane-2,3-dicarboxylic_acid,_disodium_salt",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "8a9b4cb3-fde1-49f0-ba27-e864dc59c98b",
+          "ingredient_name": "Sodium aluminosilicate synthetic crystalline",
+          "entity_id": "CAS:12173-10-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "60cf793c-1905-4c6f-8b26-711ff1af9666",
+          "ingredient_name": "Copolymer of maleic anhydride and styrene, sodium salt",
+          "entity_id": "CAS:25736-61-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "963e785b-4c96-4545-b5eb-2ccea3d95c1e",
+          "ingredient_name": "Cross-linked sodium carboxy methyl cellulose",
+          "entity_id": "CAS:74811-65-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "3715dc68-b5a6-4951-8eb4-56f803ae87d5",
+          "ingredient_name": "DL-Methionine sodium salt",
+          "entity_id": "CAS:41863-30-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "652f7fc2-cd90-40b4-8739-f443c1ea9be1",
+          "ingredient_name": "Disodium 5'-guanylate",
+          "entity_id": "CAS:5550-12-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "9c81dd40-d90d-4603-a340-1563dcbab098",
+          "ingredient_name": "Disodium 5'-ribonucleotides",
+          "entity_id": "NAME:disodium_5'-ribonucleotides",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "27a1ea02-dc57-48c5-aaa8-106ec4991dfd",
+          "ingredient_name": "Disodium EDTA, tannin-rich extract of Castanea sativa, thyme and oregano oil preparation",
+          "entity_id": "NAME:disodium_edta,_tannin-rich_extract_of_castanea_sativa,_thyme_and_oregano_oil_preparation",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "ab58c692-66e2-4611-8542-a7b78eb6b690",
+          "ingredient_name": "Disodium phosphonate",
+          "entity_id": "CAS:13708-85-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "dd2af944-ea8e-40ba-8c86-81c25f8900f1",
+          "ingredient_name": "Disodium pyrophosphate",
+          "entity_id": "CAS:7758-16-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "35df842e-69f0-4a83-9591-8a5b36bbe86d",
+          "ingredient_name": "Ferric sodium EDTA anhydrous",
+          "entity_id": "CAS:15708-41-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "2bb465bf-0678-48d5-9597-a5124738e78b",
+          "ingredient_name": "Ferric sodium EDTA trihydrate",
+          "entity_id": "CAS:18154-32-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "3d2b520c-70cb-4406-a6db-3b8f3edc6d95",
+          "ingredient_name": "Flupyrsulfuron-methyl-sodium",
+          "entity_id": "CAS:144740-54-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "e0fe8292-6c01-429c-95f5-7cc2a5cd9e43",
+          "ingredient_name": "Iodosulfuron-methyl-sodium",
+          "entity_id": "CAS:144550-36-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "508f300c-8525-4161-b47b-d7175b5d47ef",
+          "ingredient_name": "L(+)-Tartaric acid, disodium salt",
+          "entity_id": "CAS:868-18-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "b914448d-502d-4f08-b9dd-608df99165c7",
+          "ingredient_name": "L-Glutamic acid, N,N-diacetic acid, tetrasodium salt",
+          "entity_id": "CAS:51981-21-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "d4e8389c-6ca3-45db-a311-d8239d2f052c",
+          "ingredient_name": "Lasalocid sodium",
+          "entity_id": "CAS:25999-20-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "dc3bb83e-eac9-44d5-90d7-b8c046859153",
+          "ingredient_name": "Menadione Sodium Bisulphite",
+          "entity_id": "CAS:130-37-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "7378ae0e-a243-4f8b-9416-c8d7ef4b0adc",
+          "ingredient_name": "Metam-sodium",
+          "entity_id": "NAME:metam-sodium",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "f0049fc1-539d-472e-b0c5-be35afb47636",
+          "ingredient_name": "Monosodium L-glutamate",
+          "entity_id": "CAS:6106-04-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "9fa6b497-92ea-48b3-bfe7-59b9cd0eba11",
+          "ingredient_name": "Monosodium phosphate",
+          "entity_id": "CAS:89140-32-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "b7b01695-e418-473d-9bfb-c7f678e5af18",
+          "ingredient_name": "Monosodium tartrate (E 335(i))",
+          "entity_id": "CAS:6131-98-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "93524b1f-b686-4153-8122-cab00a076631",
+          "ingredient_name": "Patent Blue V (sodium salt)",
+          "entity_id": "CAS:20262-76-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "ffa727da-1900-4d3b-8e83-ecf49cce4557",
+          "ingredient_name": "Perlite (sodium potassium aluminium silicate)",
+          "entity_id": "CAS:130885-09-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "64d00c62-919a-46b4-9819-b607d3d77add",
+          "ingredient_name": "Polyacrylic acid, sodium salt",
+          "entity_id": "CAS:9003-04-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "7e6901f8-3ecf-4d9b-ad00-1c291279ec65",
+          "ingredient_name": "Polyacrylic acid, sodium salt, crosslinked (FCM substance No 1015)",
+          "entity_id": "NAME:polyacrylic_acid,_sodium_salt,_crosslinked_(fcm_substance_no_1015)",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "e018f891-f864-4fd8-80b8-fe4c56ee03df",
+          "ingredient_name": "Polyethylene glycol (EO =1-50) monoalkylether (linear and branched, C8-C20) sulphate, sodium salt",
+          "entity_id": "NAME:polyethylene_glycol_(eo_=1-50)_monoalkylether_(linear_and_branched,_c8-c20)_sulphate,_sodium_salt",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "8320146b-c3e6-47e3-a507-2c8e5a4b42ca",
+          "ingredient_name": "Potassium sodium tartrate (E 337)",
+          "entity_id": "CAS:304-59-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "93336113-a32e-43d7-b9eb-c2cf878894f3",
+          "ingredient_name": "Propoxycarbazone-sodium",
+          "entity_id": "CAS:145026-81-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "7a4b1d68-09ad-432d-ab00-22367f6c3601",
+          "ingredient_name": "Pyrroloquinoline quinone disodium salt",
+          "entity_id": "CAS:122628-50-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "99380ab4-2d0b-4fb7-b376-0b7c708f7a4e",
+          "ingredient_name": "Riboflavin-5'-phosphate sodium",
+          "entity_id": "CAS:130-40-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "122ca800-8cc2-4638-8a01-11a46ad1a96c",
+          "ingredient_name": "Salinomycin sodium",
+          "entity_id": "CAS:55721-31-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "c18b3106-c886-4311-a007-4e877e50edca",
+          "ingredient_name": "Semduramicin sodium",
+          "entity_id": "CAS:119068-77-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "b23f310a-7f3b-4ec8-ac56-dc83948134b3",
+          "ingredient_name": "Silicic acid, magnesium-sodium-fluoride salt",
+          "entity_id": "NAME:silicic_acid,_magnesium-sodium-fluoride_salt",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "445ea0be-45b7-4906-9905-f59690fb2991",
+          "ingredient_name": "Silver containing glass (silver-magnesium-aluminiumsodium-phosphate-silicate-borate), silver content less than 0.5%",
+          "entity_id": "NAME:silver_containing_glass_(silver-magnesium-aluminiumsodium-phosphate-silicate-borate),_silver_content_less_than_0.5%",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "365ede18-811d-40c7-8a22-64e0154aa779",
+          "ingredient_name": "Silver containing glass (silver-magnesium-sodiumphosphate), silver content less than 3 %",
+          "entity_id": "NAME:silver_containing_glass_(silver-magnesium-sodiumphosphate),_silver_content_less_than_3_%",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "8c8cae5c-9070-4ec7-b32c-c51a20b9779d",
+          "ingredient_name": "Silver sodium hydrogen zirconium phosphate",
+          "entity_id": "NAME:silver_sodium_hydrogen_zirconium_phosphate",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "ce55d7ce-dd19-4805-9ec2-9c4a69d5718c",
+          "ingredient_name": "Silver zeolite A (silver zinc sodium ammonium alumino silicate), silver content 2- 5 %",
+          "entity_id": "NAME:silver_zeolite_a_(silver_zinc_sodium_ammonium_alumino_silicate),_silver_content_2-_5_%",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "f9cc7876-69e1-46b3-b277-e724d13f5f34",
+          "ingredient_name": "Silver zinc zeolite A (silver-zinc sodium magnesium alumino silicate calcium phosphate), silver content 0.34 - 0.54 %",
+          "entity_id": "NAME:silver_zinc_zeolite_a_(silver-zinc_sodium_magnesium_alumino_silicate_calcium_phosphate),_silver_content_0.34_-_0.54_%",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "21011006-9519-4720-b482-c11248800c89",
+          "ingredient_name": "Sodium 1-naphthylacetate",
+          "entity_id": "CAS:61-31-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "4bf9b89b-ba1b-447b-b8cc-80476cf41759",
+          "ingredient_name": "Sodium 2,4-dicarbamoyl-3,5,6-trichlorobenzene-1-sulfonate",
+          "entity_id": "NAME:sodium_2,4-dicarbamoyl-3,5,6-trichlorobenzene-1-sulfonate",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "fdc3a364-4155-4e83-a5ed-1e3e5bd6c587",
+          "ingredient_name": "Sodium 2-(4-methoxyphenoxy)propionate",
+          "entity_id": "CAS:13794-15-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "6e10dab7-2a75-4fb5-813e-6b74ce835994",
+          "ingredient_name": "Sodium 5-nitroguaiacolate",
+          "entity_id": "CAS:67233-85-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "01e69367-3149-4544-8d19-56543025a2a1",
+          "ingredient_name": "Sodium N,N-dimethylglycine",
+          "entity_id": "CAS:18319-88-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "93ab94b7-a21d-4aef-9cff-c534d1ff46a7",
+          "ingredient_name": "Sodium aluminium phosphate",
+          "entity_id": "CAS:7785-88-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "184cbc29-3a25-495a-9d57-be097c37f80d",
+          "ingredient_name": "Sodium aluminium silicate",
+          "entity_id": "CAS:12003-51-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "16c7e4a0-482e-40bc-bc8e-65c5f3ba2b50",
+          "ingredient_name": "Sodium aluminosilicate synthetic amorphous",
+          "entity_id": "CAS:1344-00-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "fc297055-c7e9-4cb7-a455-8ce1343c24a0",
+          "ingredient_name": "Sodium ascorbate",
+          "entity_id": "CAS:134-03-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "a799a082-9b7b-46c0-9382-60af4761d580",
+          "ingredient_name": "Sodium ascorbyl phosphate",
+          "entity_id": "CAS:66170-10-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "6341c690-13dd-4798-bdb2-a3f02a14f2c3",
+          "ingredient_name": "Sodium bisulphate",
+          "entity_id": "CAS:7681-38-1",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "1ae966f3-1ced-42d7-a324-e9bda6086795",
+          "ingredient_name": "Sodium calcium ascorbyl phosphate",
+          "entity_id": "NAME:sodium_calcium_ascorbyl_phosphate",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "76cbbedd-f6f9-4f35-be3a-27922963ff88",
+          "ingredient_name": "Sodium carboxymethyl cellulose",
+          "entity_id": "CAS:9004-32-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "dd3322d0-0972-4ef8-9659-9cb08bf21c89",
+          "ingredient_name": "Sodium chloride",
+          "entity_id": "CAS:7647-14-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium chloride"
+        },
+        {
+          "ingredient_id": "86bb3632-875e-4f42-8f5b-9ab07dd5276f",
+          "ingredient_name": "Sodium chlorite",
+          "entity_id": "CAS:7758-19-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "aade227f-c3d2-42f3-a43a-1bda021f62f1",
+          "ingredient_name": "Sodium diacetate",
+          "entity_id": "CAS:126-96-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "1228c4b8-b9d0-4f53-8979-e5d55a989d21",
+          "ingredient_name": "Sodium erythorbate",
+          "entity_id": "CAS:6381-77-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "38ff27b5-97d3-42c1-8647-76f997349d36",
+          "ingredient_name": "Sodium ferrocyanide",
+          "entity_id": "CAS:13601-19-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "495f508c-97fe-42ee-b2c6-51acff6d0d07",
+          "ingredient_name": "Sodium formate",
+          "entity_id": "CAS:141-53-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "629f3822-ee79-4f37-8764-e8ba0141cfe5",
+          "ingredient_name": "Sodium hyaluronate",
+          "entity_id": "CAS:9067-32-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "87abca44-00cc-485c-a1e0-645758f979e6",
+          "ingredient_name": "Sodium hydrogen phosphonate",
+          "entity_id": "E:237-707-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "4a35328e-948c-4c02-a97c-6863cd19e36c",
+          "ingredient_name": "Sodium hydroxide",
+          "entity_id": "CAS:1310-73-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "423ae16d-133b-4979-9458-e17a2515c770",
+          "ingredient_name": "Sodium hypochlorite",
+          "entity_id": "CAS:7681-52-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "5d0def91-60ad-43d4-8484-02ec302c1da4",
+          "ingredient_name": "Sodium lactate",
+          "entity_id": "CAS:72-17-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "12249645-487f-477d-82c8-65120cc341f7",
+          "ingredient_name": "Sodium metabisulfite",
+          "entity_id": "CAS:7681-57-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "2dfee168-6457-4140-9d57-ac915070a416",
+          "ingredient_name": "Sodium molybdate dihydrate",
+          "entity_id": "E:231–551–7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "4b6c1f72-c458-4b5b-97b1-cad916dd6868",
+          "ingredient_name": "Sodium monofluorophosphate",
+          "entity_id": "CAS:10163-15-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "b428b33d-76a5-4fa8-a540-cae9602c21cf",
+          "ingredient_name": "Sodium nitrate",
+          "entity_id": "CAS:7631-99-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "29f6b57b-c77f-4120-b18e-ce14a9430b97",
+          "ingredient_name": "Sodium o-nitrophenolate",
+          "entity_id": "CAS:824-39-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "e84602fd-74c2-445d-858d-b37aa0df2f42",
+          "ingredient_name": "Sodium p-nitrophenolate",
+          "entity_id": "CAS:824-78-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "67539fc4-3b41-4cad-aee1-a2fb92b9fcbe",
+          "ingredient_name": "Sodium propionate",
+          "entity_id": "CAS:137-40-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "096098a5-8816-48cc-b7ee-6259b49b11b6",
+          "ingredient_name": "Sodium selenate",
+          "entity_id": "CAS:13410-01-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "7208a20d-3067-4a0c-957a-87bea73ba36e",
+          "ingredient_name": "Sodium selenite",
+          "entity_id": "CAS:10102-18-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "ac13e274-1cc3-4f3e-a2b0-282faa07a16f",
+          "ingredient_name": "Sodium silver thiosulfate (in solution with a ratio of at least 1 to 8 silver to thiosulfate ions)",
+          "entity_id": "NAME:sodium_silver_thiosulfate_(in_solution_with_a_ratio_of_at_least_1_to_8_silver_to_thiosulfate_ions)",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "7c351e8e-4ab0-4d51-940a-486374a63dff",
+          "ingredient_name": "Sodium stearoyl-2-lactylate",
+          "entity_id": "CAS:25383-99-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "d3c7b41e-b08d-4833-af28-69776dfc30a2",
+          "ingredient_name": "Sodium sulphate",
+          "entity_id": "E:231-820-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "cde6315a-e964-4016-b806-a75a717240fe",
+          "ingredient_name": "Sodium tetraborate",
+          "entity_id": "CAS:1330-43-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "fcf87fc4-084f-4864-bd40-76202ac960cf",
+          "ingredient_name": "Starch sodium octenyl succinate",
+          "entity_id": "NAME:starch_sodium_octenyl_succinate",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "e8485eb5-c2b7-4188-a97a-07aa7cd4262f",
+          "ingredient_name": "Succinic acid, disodium salt",
+          "entity_id": "CAS:150-90-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "021527f4-2bc7-485c-8b7c-2ec899998b98",
+          "ingredient_name": "Triethanolamine-perchlorate, sodium salt dimer",
+          "entity_id": "CAS:156157-97-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "34e2ef2c-65fc-4035-9743-543029dd02a9",
+          "ingredient_name": "Trisodium phosphate",
+          "entity_id": "E:231-509-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "d941ce68-fce6-4ca4-a46d-54553aaa3cfb",
+          "ingredient_name": "sodium 2-{2-hydroxy-5-[(methylsulfonyl)methyl]phenyl}-2-methylpropanoate",
+          "entity_id": "NAME:sodium_2-{2-hydroxy-5-[(methylsulfonyl)methyl]phenyl}-2-methylpropanoate",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "c6ce3f9e-8bdc-48b5-a274-909f3800435f",
+          "ingredient_name": "Sodium Benzoate",
+          "entity_id": "E:E211",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "90f60e80-b524-43a3-b811-39ed54b73b6a",
+          "ingredient_name": "Sodium Sulfite",
+          "entity_id": "E:E221",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "6f147e2d-7d20-4044-a20f-8093565ddac3",
+          "ingredient_name": "Sodium Bisulfite",
+          "entity_id": "E:E222",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "419dc375-0823-4495-8390-58de79128e73",
+          "ingredient_name": "Sodium Nitrite",
+          "entity_id": "E:E250",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "0134f81c-d747-4740-bb70-9c9976701915",
+          "ingredient_name": "Sodium Nitrate",
+          "entity_id": "E:E251",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "372be003-dd7f-4026-b56c-a87f52f4a27d",
+          "ingredient_name": "Sodium Ascorbate",
+          "entity_id": "E:E301",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "0d52f458-0f0b-45ab-ad2b-d62ab87460a5",
+          "ingredient_name": "Sodium Citrate",
+          "entity_id": "E:E331",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "fef9469a-8b63-45b1-b03b-849408c78f0f",
+          "ingredient_name": "Disodium Ribonucleotides",
+          "entity_id": "E:E635",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "sodium"
+        },
+        {
+          "ingredient_id": "CAS:46728-75-0",
+          "ingredient_name": "5-Sulphoisophthalic acid, monolithium salt",
+          "entity_id": "CAS:46728-75-0",
+          "relevance": 3,
+          "confidence": 0.72,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7995
+        },
+        {
+          "ingredient_id": "CAS:7492-55-9",
+          "ingredient_name": "Calcium sorbate",
+          "entity_id": "CAS:7492-55-9",
+          "relevance": 3,
+          "confidence": 0.718,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7975
+        }
+      ]
+    },
+    {
+      "query_id": "uric_acid_raises_007",
+      "biomarker": "uric_acid",
+      "direction": "raises",
+      "severity": "MEDIUM",
+      "query_text": "uric_acid raises: high fructose, corn syrup, fructose, fructosa, jarabe de maíz",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 1,
+        "false_positives": 0,
+        "near_misses": 19
+      },
+      "layer3_variations": [],
+      "judgments": [
+        {
+          "ingredient_id": "a80e448c-6839-40d1-9a6c-c4e59f117dc1",
+          "ingredient_name": "High-Fructose Corn Syrup",
+          "entity_id": "NAME:high-fructose_corn_syrup",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "corn syrup"
+        },
+        {
+          "ingredient_id": "CAS:56038-13-2",
+          "ingredient_name": "Sucralose",
+          "entity_id": "CAS:56038-13-2",
+          "relevance": 3,
+          "confidence": 0.697,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7748
+        },
+        {
+          "ingredient_id": "CAS:110-94-1",
+          "ingredient_name": "Glutaric acid",
+          "entity_id": "CAS:110-94-1",
+          "relevance": 3,
+          "confidence": 0.688,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7645
+        },
+        {
+          "ingredient_id": "CAS:68425-17-2",
+          "ingredient_name": "Syrups, hydrolysed starch, hydrogenated",
+          "entity_id": "CAS:68425-17-2",
+          "relevance": 3,
+          "confidence": 0.687,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7629
+        },
+        {
+          "ingredient_id": "CAS:57-13-6",
+          "ingredient_name": "Urea",
+          "entity_id": "CAS:57-13-6",
+          "relevance": 3,
+          "confidence": 0.685,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7614
+        },
+        {
+          "ingredient_id": "E:E300",
+          "ingredient_name": "Ascorbic Acid",
+          "entity_id": "E:E300",
+          "relevance": 3,
+          "confidence": 0.685,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7607
+        },
+        {
+          "ingredient_id": "CAS:6046-93-1",
+          "ingredient_name": "Cupric acetate, monohydrate",
+          "entity_id": "CAS:6046-93-1",
+          "relevance": 3,
+          "confidence": 0.684,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7598
+        },
+        {
+          "ingredient_id": "CAS:112-86-7",
+          "ingredient_name": "Erucic acid",
+          "entity_id": "CAS:112-86-7",
+          "relevance": 3,
+          "confidence": 0.683,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7593
+        },
+        {
+          "ingredient_id": "CAS:7664-93-9",
+          "ingredient_name": "Sulphuric acid",
+          "entity_id": "CAS:7664-93-9",
+          "relevance": 3,
+          "confidence": 0.683,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7591
+        },
+        {
+          "ingredient_id": "CAS:50-81-7",
+          "ingredient_name": "Ascorbic acid",
+          "entity_id": "CAS:50-81-7",
+          "relevance": 3,
+          "confidence": 0.681,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7568
+        },
+        {
+          "ingredient_id": "CAS:77-92-9",
+          "ingredient_name": "Citric acid",
+          "entity_id": "CAS:77-92-9",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7547
+        },
+        {
+          "ingredient_id": "CAS:88-14-2",
+          "ingredient_name": "2-Furoic acid",
+          "entity_id": "CAS:88-14-2",
+          "relevance": 3,
+          "confidence": 0.679,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7539
+        },
+        {
+          "ingredient_id": "NAME:sucroglycerides",
+          "ingredient_name": "Sucroglycerides",
+          "entity_id": "NAME:sucroglycerides",
+          "relevance": 3,
+          "confidence": 0.678,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.753
+        },
+        {
+          "ingredient_id": "NAME:sucrose_esters_of_fatty_acids",
+          "ingredient_name": "Sucrose esters of fatty acids",
+          "entity_id": "NAME:sucrose_esters_of_fatty_acids",
+          "relevance": 3,
+          "confidence": 0.677,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7526
+        },
+        {
+          "ingredient_id": "CAS:127-17-3",
+          "ingredient_name": "Pyruvic acid",
+          "entity_id": "CAS:127-17-3",
+          "relevance": 3,
+          "confidence": 0.677,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7518
+        },
+        {
+          "ingredient_id": "CAS:126-13-6",
+          "ingredient_name": "Sucrose acetate isobutyrate",
+          "entity_id": "CAS:126-13-6",
+          "relevance": 3,
+          "confidence": 0.676,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7509
+        },
+        {
+          "ingredient_id": "CAS:10125-13-0",
+          "ingredient_name": "Cupric chloride, dihydrate",
+          "entity_id": "CAS:10125-13-0",
+          "relevance": 3,
+          "confidence": 0.676,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7507
+        },
+        {
+          "ingredient_id": "NAME:phthalic_acid,_diesters_with_hexadecanol_and/or_octadecanol",
+          "ingredient_name": "Phthalic acid, diesters with hexadecanol and/or octadecanol",
+          "entity_id": "NAME:phthalic_acid,_diesters_with_hexadecanol_and/or_octadecanol",
+          "relevance": 3,
+          "confidence": 0.676,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7506
+        },
+        {
+          "ingredient_id": "NAME:cupric_chelate_of_amino_acids,_hydrate",
+          "ingredient_name": "Cupric chelate of amino acids, hydrate",
+          "entity_id": "NAME:cupric_chelate_of_amino_acids,_hydrate",
+          "relevance": 3,
+          "confidence": 0.675,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7506
+        },
+        {
+          "ingredient_id": "E:E220",
+          "ingredient_name": "Sulfur Dioxide",
+          "entity_id": "E:E220",
+          "relevance": 3,
+          "confidence": 0.675,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7502
+        }
+      ]
+    },
+    {
+      "query_id": "potassium_raises_008",
+      "biomarker": "potassium",
+      "direction": "raises",
+      "severity": "LOW",
+      "query_text": "potassium raises: potassium chloride, cloruro de potasio, potassium, potasio, potásico, kcl, dipotassium, potassic",
+      "layer": "layer1_domain_knowledge",
+      "layer2_retrieval_stats": {
+        "true_positives": 15,
+        "false_positives": 0,
+        "near_misses": 5
+      },
+      "layer3_variations": [],
+      "judgments": [
+        {
+          "ingredient_id": "87105b31-c612-4d77-a1e5-723d7870deb1",
+          "ingredient_name": "Potassium sorbate",
+          "entity_id": "CAS:24634-61-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "7cc751ea-9719-4e67-8863-275430b66fce",
+          "ingredient_name": "Acesulfame potassium",
+          "entity_id": "CAS:55589-62-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "fde06f33-0f27-417f-b2f9-b9abc418dd87",
+          "ingredient_name": "Potassium Bromate",
+          "entity_id": "CAS:7758-01-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "950c70c6-8a2a-4e07-b4c6-c33d6777d963",
+          "ingredient_name": "Aluminium potassium sulphate dodecahydrate",
+          "entity_id": "CAS:7784-24-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "18385b3a-c007-4a93-8fc7-018e02f65a69",
+          "ingredient_name": "Cis-norbixin di-potassium salt",
+          "entity_id": "CAS:33261-80-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "c7847ee8-4956-4a55-a1fa-45d57823c6a7",
+          "ingredient_name": "Dipotassium tartrate (E 336(ii))",
+          "entity_id": "CAS:921-53-9",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "9ce0f0ca-7b36-4ab8-b6cc-c22710f6cc8e",
+          "ingredient_name": "Magnesium potassium citrate",
+          "entity_id": "CAS:137590-34-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "2aa6981b-0322-4a63-b081-e65214491e02",
+          "ingredient_name": "Maleic hydrazide potassium salt",
+          "entity_id": "E:249-000-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "ed918682-8656-4474-b8ac-472020ea475b",
+          "ingredient_name": "Monomethyl silanetriol (potassium salt)",
+          "entity_id": "CAS:31795-24-1",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "3cd8415b-5f3a-436d-92e3-792ca0bc53ce",
+          "ingredient_name": "Monopotassium L-glutamate",
+          "entity_id": "CAS:19473-49-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "ffa727da-1900-4d3b-8e83-ecf49cce4557",
+          "ingredient_name": "Perlite (sodium potassium aluminium silicate)",
+          "entity_id": "CAS:130885-09-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "1c1ff5cb-46ed-44d6-b488-4f85dcf04eff",
+          "ingredient_name": "Picloram potassium salt",
+          "entity_id": "CAS:2545-60-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "52e39882-c19f-47d9-a257-d1b6fce1ece1",
+          "ingredient_name": "Potassium 2-(1'-ethoxy)ethoxypropanoate",
+          "entity_id": "NAME:potassium_2-(1'-ethoxy)ethoxypropanoate",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "af827550-a96b-4345-bea9-2d14081bf60a",
+          "ingredient_name": "Potassium L-aspartate",
+          "entity_id": "CAS:1115-63-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "55d0045c-c70e-41eb-8141-c97ce596f91d",
+          "ingredient_name": "Potassium L-pidolate",
+          "entity_id": "CAS:4810-50-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "64aad122-6c69-4bc1-b44a-aac1baa704e1",
+          "ingredient_name": "Potassium acid tartrate",
+          "entity_id": "CAS:868-14-4",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "de47c7a7-a60c-4e4a-a0bd-3f7c23731792",
+          "ingredient_name": "Potassium aluminium silicate",
+          "entity_id": "CAS:1327-44-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "37b728f6-ce5e-45d6-90f1-ffc0f385e98e",
+          "ingredient_name": "Potassium benzoate",
+          "entity_id": "CAS:582-25-2",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "82b6986b-c280-4b82-97ed-0a82eea287b7",
+          "ingredient_name": "Potassium chloride",
+          "entity_id": "CAS:7447-40-7",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium chloride"
+        },
+        {
+          "ingredient_id": "8f2b4665-34c1-4632-ab57-4bfeb77f5554",
+          "ingredient_name": "Potassium diformate",
+          "entity_id": "CAS:20642-05-1",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "c3fb7482-3247-40b9-b99d-63a3dc7ac50d",
+          "ingredient_name": "Potassium ferrocyanide",
+          "entity_id": "CAS:13943-58-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "4ce84e37-9f0f-480b-ab16-12ffbf342878",
+          "ingredient_name": "Potassium hydrogen carbonate",
+          "entity_id": "CAS:298-14-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "cd60876a-acce-4410-a039-fed111c9732e",
+          "ingredient_name": "Potassium hydrogen phosphonate",
+          "entity_id": "CAS:13977-65-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "d56b0ea3-2452-4cf6-a912-c399d355232b",
+          "ingredient_name": "Potassium hydrogen sulphate",
+          "entity_id": "NAME:potassium_hydrogen_sulphate",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "f857f236-7c8a-4234-8fba-67cf2297a2b7",
+          "ingredient_name": "Potassium hydroxide",
+          "entity_id": "CAS:1310-58-3",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "76604624-4e6d-44fc-9b22-2247d5454fe0",
+          "ingredient_name": "Potassium iodide",
+          "entity_id": "CAS:7681-11-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "12f0b4ed-3339-44b0-9c4f-88c244e9951b",
+          "ingredient_name": "Potassium malate",
+          "entity_id": "CAS:585-09-1",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "b57525a2-239f-4079-9684-b134de797000",
+          "ingredient_name": "Potassium metabisulfite",
+          "entity_id": "CAS:16731-55-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "2fa63684-0ae3-4a45-9e98-76f46430fa44",
+          "ingredient_name": "Potassium molybdate",
+          "entity_id": "CAS:13446-49-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "1732751a-de39-4176-a0c8-138180b29b71",
+          "ingredient_name": "Potassium nitrate",
+          "entity_id": "CAS:7757-79-1",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "ea8aaf95-a1c8-472d-996c-2bb5577e4c42",
+          "ingredient_name": "Potassium nitrite",
+          "entity_id": "CAS:7758-09-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "28f0bd7e-f1b8-4bbf-80bb-f82cde93dc5c",
+          "ingredient_name": "Potassium polyaspartate",
+          "entity_id": "CAS:64723-18-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "87bfa6ad-25f7-42b0-a903-9fcd87ca38d3",
+          "ingredient_name": "Potassium propionate",
+          "entity_id": "CAS:327-62-8",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "8320146b-c3e6-47e3-a507-2c8e5a4b42ca",
+          "ingredient_name": "Potassium sodium tartrate (E 337)",
+          "entity_id": "CAS:304-59-6",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "b7018ca6-09fe-49ba-8637-8701a808130b",
+          "ingredient_name": "Potassium sulphate",
+          "entity_id": "E:231-915-5",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "4c04e373-c3e8-40fd-847e-8ec90dcfc230",
+          "ingredient_name": "Potassium thiocyanate",
+          "entity_id": "CAS:333-20-0",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "2470eded-3da8-42a7-8fdb-45d6d5cb1b17",
+          "ingredient_name": "Sodium, potassium and calcium salts of fatty acids (E 470a)",
+          "entity_id": "NAME:sodium,_potassium_and_calcium_salts_of_fatty_acids_(e_470a)",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "2e8292a5-3ab4-43f2-85a9-cc862cb12e77",
+          "ingredient_name": "Potassium Benzoate",
+          "entity_id": "E:E212",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "de16b840-52f2-43f1-9553-b9f8782dcf2a",
+          "ingredient_name": "Potassium Carbonate",
+          "entity_id": "E:E501",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "d8e16c2a-6f04-4ead-b504-74b93ff51c38",
+          "ingredient_name": "Acesulfame Potassium",
+          "entity_id": "E:E950",
+          "relevance": 5,
+          "confidence": 0.95,
+          "match_type": "keyword_exact",
+          "matched_keyword": "potassium"
+        },
+        {
+          "ingredient_id": "CAS:10043-52-4",
+          "ingredient_name": "Calcium chloride",
+          "entity_id": "CAS:10043-52-4",
+          "relevance": 3,
+          "confidence": 0.723,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.8032
+        },
+        {
+          "ingredient_id": "CAS:7647-14-5",
+          "ingredient_name": "Sodium chloride",
+          "entity_id": "CAS:7647-14-5",
+          "relevance": 3,
+          "confidence": 0.72,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7998
+        },
+        {
+          "ingredient_id": "CAS:7786-30-3",
+          "ingredient_name": "Magnesium chloride",
+          "entity_id": "CAS:7786-30-3",
+          "relevance": 3,
+          "confidence": 0.72,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7997
+        },
+        {
+          "ingredient_id": "CAS:19455-79-9",
+          "ingredient_name": "Pimelic acid, calcium salt",
+          "entity_id": "CAS:19455-79-9",
+          "relevance": 3,
+          "confidence": 0.716,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7957
+        },
+        {
+          "ingredient_id": "CAS:7778-18-9",
+          "ingredient_name": "Calcium sulphate",
+          "entity_id": "CAS:7778-18-9",
+          "relevance": 3,
+          "confidence": 0.716,
+          "match_type": "semantic_near_miss",
+          "matched_keyword": null,
+          "cosine_similarity": 0.7953
+        }
+      ]
+    }
+  ],
+  "thresholds": {
+    "semantic_similarity": 0.65,
+    "layer2_near_miss_min": 0.72,
+    "layer3_variation_min_overlap": 0.5,
+    "ndcg_at_5_baseline": 0.8356,
+    "mrr_at_10_baseline": 0.6666,
+    "precision_at_3_baseline": 0.9,
+    "recall_at_10_baseline": 0.5145
+  }
+}
