@@ -55,13 +55,21 @@ _NEGATION_TERMS = ("free", "without", "sin", "no ", "zero", "libre", "free of")
 
 
 def _has_negation(text: str, keyword: str) -> bool:
-    """Return True if a negation word appears within 15 chars before or after `keyword` in `text`."""
-    idx = text.find(keyword)
-    if idx < 0:
-        return False
-    end = idx + len(keyword)
-    window = text[max(0, idx - 15) : end + 15]
-    return any(neg in window for neg in _NEGATION_TERMS)
+    """Return True only if every occurrence of `keyword` in `text` has a negation
+    term within 15 chars. Returns False as soon as one non-negated occurrence is found."""
+    start = 0
+    found_any = False
+    while True:
+        idx = text.find(keyword, start)
+        if idx < 0:
+            break
+        found_any = True
+        end = idx + len(keyword)
+        window = text[max(0, idx - 15) : end + 15]
+        if not any(neg in window for neg in _NEGATION_TERMS):
+            return False  # non-negated occurrence found — do not suppress
+        start = end
+    return found_any  # True only if found occurrences AND all were negated
 
 
 _LIPID_RAISING_KEYWORDS = (
