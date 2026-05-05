@@ -338,11 +338,11 @@ export async function mockBiosyncExtractError(page: Page, statusCode: number) {
   });
 }
 
-export async function mockBiosyncUpload(page: Page) {
+export async function mockBiosyncUpload(page: Page, status: any = undefined) {
   await page.route('**/biosync/upload', (route) => {
     route.fulfill({
       status: 201,
-      body: JSON.stringify(makeBiomarkerStatus()),
+      body: JSON.stringify(status || makeBiomarkerStatus()),
     });
   });
 }
