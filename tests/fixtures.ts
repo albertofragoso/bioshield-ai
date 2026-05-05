@@ -55,6 +55,18 @@ async function applyDefaultMocks(page: Page) {
     route.abort();
   });
 
+  // Mock GET /auth/me for session validation
+  await page.route('**/auth/me', (route) => {
+    route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        id: 'test-user-id',
+        email: TEST_EMAIL,
+        created_at: new Date().toISOString(),
+      }),
+    });
+  });
+
   await page.route('**/biosync/status', (route) => {
     route.fulfill({
       status: 404,
