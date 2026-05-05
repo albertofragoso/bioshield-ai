@@ -437,3 +437,45 @@ export function makeOrangeBiomarkerScan(overrides = {}) {
     ...overrides,
   });
 }
+
+// ============ Additional Missing Mocks ============
+export async function mockScanResultGet(page: Page, scanResponse: any) {
+  const barcode = scanResponse.product_barcode;
+  await page.route(`**/scan/result/${barcode}`, (route) => {
+    route.fulfill({
+      status: 200,
+      body: JSON.stringify(scanResponse),
+    });
+  });
+}
+
+export async function mockContributeOff(page: Page) {
+  await page.route('**/scan/contribute', (route) => {
+    route.fulfill({
+      status: 202,
+      body: JSON.stringify({
+        contribution_id: 'contrib-123',
+        status: 'PENDING',
+        message: 'Contribución enviada',
+      }),
+    });
+  });
+}
+
+export async function mockContributeOffError(page: Page, statusCode: number = 500) {
+  await page.route('**/scan/contribute', (route) => {
+    route.fulfill({
+      status: statusCode,
+      body: JSON.stringify({ detail: 'Error al contribuir' }),
+    });
+  });
+}
+
+export async function mockScanPhotoError(page: Page, statusCode: number = 422) {
+  await page.route('**/scan/photo', (route) => {
+    route.fulfill({
+      status: statusCode,
+      body: JSON.stringify({ detail: 'Error procesando foto' }),
+    });
+  });
+}
