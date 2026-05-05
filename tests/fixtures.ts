@@ -3,6 +3,7 @@ import { test as base, expect, Page } from '@playwright/test';
 // Test credentials
 export const TEST_EMAIL = 'test@example.com';
 export const TEST_PASSWORD = 'TestPassword123!';
+export const NUTELLA_BARCODE = '3017620422003';
 
 // Custom fixture type
 type MockedPageFixture = {
@@ -11,9 +12,30 @@ type MockedPageFixture = {
 
 // Create extended test with mockedPage fixture
 export const test = base.extend<MockedPageFixture>({
-  mockedPage: async ({ page }, use) => {
+  mockedPage: async ({ page, context }, use) => {
     // Setup: apply default mocks to every test
     await applyDefaultMocks(page);
+
+    // Setup auth cookies for authenticated pages
+    await context.addCookies([
+      {
+        name: 'access_token',
+        value: 'test-jwt-token',
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+      {
+        name: 'refresh_token',
+        value: 'test-refresh-token',
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+    ]);
+
     await use(page);
     // Teardown if needed
   },
@@ -107,6 +129,10 @@ export async function mockAuthRegisterFail(page: Page, statusCode: number) {
   });
 }
 
+export async function mockAuthRegisterConflict(page: Page) {
+  await mockAuthRegisterFail(page, 409);
+}
+
 export async function mockAuthLogout(page: Page) {
   await page.route('**/auth/logout', (route) => {
     route.fulfill({
@@ -129,6 +155,8 @@ export async function mockAuthRefresh(page: Page) {
     });
   });
 }
+
+export const mockAuthRefreshSuccess = mockAuthRefresh;
 
 export async function mockAuthRefreshFail(page: Page) {
   await page.route('**/auth/refresh', (route) => {
@@ -197,6 +225,19 @@ export async function mockScanBarcodeNotFound(page: Page) {
     route.fulfill({
       status: 404,
       body: JSON.stringify({ detail: 'Producto no encontrado' }),
+    });
+  });
+}
+
+export async function mockScanBarcodeError(page: Page, statusCode: number) {
+  const messages: Record<number, any> = {
+    404: { detail: 'Producto no encontrado' },
+    500: { detail: 'Error procesando barcode' },
+  };
+  await page.route('**/scan/barcode', (route) => {
+    route.fulfill({
+      status: statusCode,
+      body: JSON.stringify(messages[statusCode] || { detail: 'Error' }),
     });
   });
 }
