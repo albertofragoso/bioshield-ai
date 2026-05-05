@@ -1,275 +1,387 @@
-# PRD v5.0: BioShield AI – Sistema de Transparencia Metabólica & Reality Engineering
+# PRD v6.0: BioShield AI – Sistema de Transparencia Metabólica & Reality Engineering
 
-**Estatus:** Especificación Final de Ingeniería (MVP Listo para Desarrollo)  
+**Estatus:** MVP Completado y Demostrable — Fase 1 (Backend + Frontend) ✅  
+**Última actualización:** 2026-05-05 (sesión cierre Fase 7)  
 **Autor:** Alberto Fragoso  
-**Stack Core:** Next.js (Frontend), FastAPI (Backend), LangGraph, ChromaDB, Gemini 2.5 Flash, Open Food Facts API.  
+**Stack Core:** Next.js 15 (Frontend), FastAPI (Backend), LangGraph, ChromaDB, Gemini 2.5 Flash, BGE-M3, Open Food Facts API.  
 **Licencia:** MIT License (Software) / ODbL (Datos).
 
 ---
 
 ## 1. Arquitectura Técnica y Despliegue
 
-* **Frontend:** Next.js (React) hosteado en Vercel. Gestión de estado con SWR para cacheo de peticiones por código de barras.
-* **Backend:** FastAPI (Python) hosteado en Render/Railway. Orquestación de agentes con LangGraph.
-* **Modelos:** Gemini 2.5 Flash (Visión y Razonamiento) y `gemini-embedding-001` (Semántica).
+### 1.1 · Frontend
+- **Next.js 15 (App Router)** desplegado en Vercel. TypeScript strict, dark-only design (no light mode).
+- **Gestión de estado:**
+  - **Client:** Zustand para auth (`user`, `isAuthenticated`).
+  - **Server:** TanStack Query v5 para cache de scans por barcode (5 min staleTime), mutations (upload/delete), refetch automático.
+- **UI:** Tailwind CSS v4 + shadcn/ui primitivos (Radix). Design tokens en `globals.css` (semáforo 5 colores dark-adjusted WCAG AA, hex-grid SVG, scanlines, animaciones: wobble, pulse-glow, scan-line, shimmer).
+- **Iconografía:** Lucide React (HelpCircle/CheckCircle/AlertCircle/AlertTriangle/ShieldAlert para semáforo).
+- **Avatares:** 12 PNG (992×1063px, fondo alpha transparente): main, welcome, progress, success, profile, support + semáforo gray/blue/yellow/orange/red.
+- **Scanner:** @zxing/browser (barcode), dropzone con validación <10MB (foto).
+- **Auth:** JWT vía HTTP-only cookies, `credentials: "include"`, refresh automático en 401.
+
+### 1.2 · Backend
+- **FastAPI 0.115.6** hosteado en Render/Railway. Python 3.11+, Pydantic v2, SQLAlchemy 2.0, Alembic.
+- **Orquestación:** LangGraph 0.3.5 — grafo de 7 nodos (identify → extract → resolve → search → biosync → detect → risk).
+- **Base de datos:** SQLite dev / PostgreSQL prod. ORM + migraciones versionadas.
+- **Embeddings:** 
+  - **Primary:** BGE-M3 local (1024-dim, `USE_LOCAL_EMBEDDINGS=true` default) — offline, sin cuota API.
+  - **Fallback:** Gemini `gemini-embedding-001` (768-dim) — cuando BGE-M3 falla.
+- **Vector store:** ChromaDB 0.6.3 con retrieval híbrido (0.7 vector + 0.3 BM25L).
+- **VLM:** Gemini 2.5 Flash (Visión, Structured Outputs, reconciliador).
+- **Rate limiting:** slowapi, por usuario o IP (10–20 req/min según endpoint).
+- **Seguridad:** AES-256-GCM biomarkers en reposo, JWT refresh token rotation, IP logging.
+
+### 1.3 · Integraciones externas
+- **Open Food Facts API:** producto lookup, contribución asíncrona (Fase 2).
+- **Google Gemini API:** OCR etiquetas, parsing PDFs laboratorio, embeddings fallback, copy generación.
+- **Zenodo:** EFSA OpenFoodTox dataset (4595 sustancias).
+- **FDA EAFUS:** fixtures offline (endpoint caído).
+- **Codex GSFA:** fixtures offline (servicio caído).
 
 ---
 
 ## 2. Flujo Principal de Operación (Main Workflow)
 
-1. **Autenticación (Auth):** Validación mediante JWT almacenado en HTTP-only cookies.
-2. **Identificación Híbrida (Scanner Flow):**
-   * El sistema intenta leer el **Barcode**. Si tiene éxito, consulta la API de Open Food Facts (OFF).
-   * **Manejo de Errores (Scanner):** Si la cámara no logra leer el barcode tras 3 segundos de enfoque o el producto no existe en OFF, la UI muestra un botón de acción inmediata: **"Cambiar a modo Foto de Etiqueta"**.
-   * El usuario toma una foto de la lista de ingredientes; el sistema procesa la imagen vía VLM.
-   * **[Fase 2]** Si el usuario activa el toggle "Contribuir a Open Food Facts (ODbL)", el flujo contributivo envía los ingredientes + imagen a OFF (respuesta inmediata al usuario mientras se procesa en segundo plano). Ver §9.6 para detalles de consentimiento y audit.
-3. **Procesamiento Bio-Sync:** El agente accede a los biomarcadores del usuario. Para garantizar la privacidad, los datos desencriptados **existen únicamente en variables locales del proceso de evaluación** y no se persisten en logs ni en almacenamiento temporal tras finalizar la ejecución del grafo.
-4. **Análisis Semántico (Embeddings):** Los ingredientes se vectorizan y comparan contra los índices de la FDA, EFSA y EWG.
+### 2.1 · Escaneo de productos (barcode)
+1. Usuario abre `/scan` tab "Código de barras".
+2. Cámara abre, lector @zxing detecta barcode (0–5s).
+3. `POST /scan/barcode {barcode: "8-14 dígitos"}` → Off API lookup.
+4. **Éxito:** `/scan/[barcode]` con semáforo + ingredientes (cache TanStack Query por 5 min).
+5. **Error 404:** modal "No encontramos este producto. ¿Intentar con foto?" → tab foto automático.
+
+### 2.2 · Escaneo de productos (foto etiqueta)
+1. Usuario abre `/scan` tab "Foto de etiqueta".
+2. Dropzone o captura `capture="environment"` (mobile).
+3. Validación <10MB, conversión base64.
+4. `POST /scan/photo {image_base64}` → Gemini Vision (Structured Outputs) → extrae ingredientes.
+5. **Loading:** `AILoadingState` con 4 anillos orbitales, terminal de log, `SCAN_PHASES`.
+6. **Resultado:** `/scan/photo-{uuid16}` (pseudo-barcode para persistencia).
+7. **[Fase 2]** Si `source === "photo"` y usuario activa toggle: `POST /scan/contribute {barcode, ingredients, image_base64, consent: true}` → 202 Accepted asíncrono.
+
+### 2.3 · Procesamiento Bio-Sync (biomarcadores)
+1. Usuario en `/biosync` sube PDF de laboratorio (<10MB).
+2. `POST /biosync/extract {pdf}` → Gemini Vision procesa PDF multipage → `BiomarkerExtractionResult` (no persiste).
+3. Estado "review": tabla editable con biomarcadores extraídos, clasificación (low/normal/high), rango referencia.
+4. `POST /biosync/upload {biomarkers, lab_name, test_date}` → encripta AES-256, persiste con TTL 180d.
+5. Cron automático expira a través de `expire_biomarkers()`.
+
+### 2.4 · Análisis semántico (resultado semáforo)
+1. Pipeline LangGraph ejecuta 7 nodos:
+   - **identify_product:** OFF lookup, extrae nombre+brand+imagen.
+   - **extract_ingredients:** OCR Gemini si no hay ingredientes.
+   - **resolve_entities:** CAS → E-number → fuzzy match (token_sort_ratio ≥ 0.7).
+   - **search_regulatory:** hybrid search ChromaDB (vector 0.7 + BM25L 0.3) por ingrediente.
+   - **biosync:** desencripta biomarcadores del usuario.
+   - **detect_conflicts:** `BIOMARKER_RULES` (11 reglas: LDL/HDL/glucose/hba1c/triglycerides/sodium/potassium/uric_acid/creatinine/alt/ast).
+   - **personalize:** genera `PersonalizedInsight` en paralelo con `asyncio.gather` (avatar dinámico, friendly copy vía Gemini).
+   - **calculate_risk:** `compute_semaphore()` con prioridad: RED > ORANGE > YELLOW > GRAY > BLUE.
+2. **Prioridad semáforo:** RED si banned, ORANGE si biomarker alert, YELLOW si restricted/under-review/conflicto, GRAY si <50% resueltos, BLUE si clean.
+
+### 2.5 · Dashboard y historial
+1. `/` muestra:
+   - Hero CTA "Escanear producto".
+   - BiosyncCard: status biomarkers activos, badge ámbar si <30d expiry.
+   - RecentScans: últimos 5 con semáforo thumbnail + nombre + fecha relativa.
+2. `/history` lista todos los scans agrupados por día (Hoy/Ayer/Hace N días/Mes Año).
+   - FilterTabs por semáforo (counts dinámicos).
+   - Search por product_name.
+   - Click → `/scan/[id]`.
 
 ---
 
 ## 3. Extracción Estructurada (Structured Outputs)
 
-Para garantizar la integridad del JSON, tanto la extracción de etiquetas como la de estudios de laboratorio se realizan mediante esquemas de **Pydantic**.
+Todos los outputs críticos usan **Pydantic v2 + Gemini Structured Outputs** para garantizar integridad JSON.
 
-### A. Prompt: Extractor de Ingredientes (Visión)
-> "Eres un experto en tecnología de alimentos. Analiza la imagen de la etiqueta proporcionada. Extrae los ingredientes evitando claims de marketing. Corrige errores de lectura del OCR basándote en el contexto químico de los alimentos."
->
-> **Esquema de Salida (Pydantic):**
-> ```python
-> class ProductExtraction(BaseModel):
->     ingredients: List[str]
->     has_additives: bool
->     language: str = "es"
-> ```
+### 3.1 · Extractor de ingredientes (Visión)
+```python
+class ProductExtraction(BaseModel):
+    product_name: str | None
+    ingredients: list[str]
+    has_additives: bool
+    language: str
+```
+**Prompt:** Analyze image of food label. Extract ingredients, avoid marketing claims, correct OCR errors using food chemistry context.
 
-### B. Prompt: Agente Conciliador (RAG Node)
-> "Sintetiza el riesgo del ingrediente '{ingredient}' usando el contexto científico: {rag_context}. Detecta conflictos entre agencias. NO des consejos médicos; redacta como hallazgos de literatura científica."
+### 3.2 · Extractor de biomarcadores (PDF)
+```python
+class ExtractedBiomarker(BaseModel):
+    name: CanonicalBiomarker
+    raw_name: str
+    value: float
+    unit: str
+    unit_normalized: bool
+    reference_range_low: float | None
+    reference_range_high: float | None
+
+class GeminiBiomarkerExtraction(BaseModel):
+    biomarkers: list[ExtractedBiomarker]
+    lab_name: str | None
+    test_date: date | None
+    language: str
+```
+**Prompt:** Extract biomarker values from lab PDF. Normalize units to mg/dL. Extract reference ranges if available.
+
+### 3.3 · Reconciliador de conflictos (RAG Node)
+```python
+class IngredientConflict(BaseModel):
+    conflict_type: Literal["REGULATORY", "SCIENTIFIC", "TEMPORAL"]
+    severity: Literal["HIGH", "MEDIUM", "LOW"]
+    summary: str
+    sources: list[str]
+```
+**Prompt:** Synthesize ingredient risk using scientific context. Detect agency conflicts. Draft as literature findings, not medical advice.
+
+### 3.4 · Insight personalizado
+```python
+class PersonalizedInsightCopy(BaseModel):
+    friendly_title: str
+    friendly_biomarker_label: str
+    friendly_explanation: str
+    friendly_recommendation: str
+```
+**Prompt:** Generate friendly (non-technical) insight. Avoid medical jargon. Include impact direction (raises/lowers) and severity.
 
 ---
 
 ## 4. Gestión de Caché y Latencia
 
-* **MVP (SWR):** Implementación de caché en el cliente basado estrictamente en el **Barcode** (o Hash de la lista de ingredientes). Esto permite que, si un usuario re-escanea un producto en la misma sesión, la respuesta sea instantánea sin consumir cuota de API ni tokens.
-* **Mejora Futura:** Capa de caché geográfica para pre-cargar en el dispositivo los 50 productos más consumidos en la zona específica del usuario (CDMX, etc.).
+| Estrategia | Nivel | Implementación | TTL |
+|---|---|---|---|
+| **Backend API** | `/scan` responses | SQLite/Postgres persistence | Indefinido (JOIN con scan_history) |
+| **Frontend Query** | Barcode results | TanStack Query `["scan", barcode]` | 5 min (staleTime) |
+| **Frontend LRU** | Text embeddings | `@lru_cache(maxsize=256)` en backend | Process lifetime |
+| **Chromadb Index** | Vector search | Persistent client con volumen Docker | Indefinido (índice completo) |
+
+**Mejora Futura (Fase 2):** Caché geográfica pre-cargar top-50 productos por código postal del usuario.
 
 ---
 
 ## 5. Plan de Gestión de Riesgos
 
-| Riesgo | Impacto | Estrategia de Mitigación |
-| :--- | :--- | :--- |
-| **Privacidad de Datos** | Crítico | Encriptación AES-256 en reposo. Uso exclusivo de variables locales en memoria volátil para datos desencriptados (no persistencia en logs). |
-| **Falla de Scanner** | Medio | Flujo de fallback manual: del escaneo de barcode al modo "Foto de Etiqueta" con un solo clic. |
-| **Vendor Lock-in** | Alto | Arquitectura modular que permite sustituir Gemini por modelos locales como **BGE-M3** o **Qwen3-Embedding** en caso de deprecación. |
-| **Sesgo en PDF Parsing** | Alto | Uso de Structured Outputs en Gemini Flash para forzar la validación de tipos de datos en resultados de laboratorio. |
+| Riesgo | Impacto | Estrategia de Mitigación | Estado |
+| :--- | :--- | :--- | :--- |
+| **Privacidad de Datos** | Crítico | AES-256-GCM en reposo. Variables locales solo en memoria volátil. | ✅ Implementado |
+| **Falla de Scanner (barcode)** | Medio | Fallback inmediato a foto con 1 click. Input manual barcode. | ✅ Implementado |
+| **Vendor Lock-in (Gemini)** | Alto | BGE-M3 primary, Gemini fallback. Arquitectura modular para swap. | ✅ Mitigado (BGE-M3 primary) |
+| **Free tier Gemini quota** | Alto | Lock + backoff en embeddings. Mock en tests. Staging con tier pagado. | ⏳ Dev mitigation; prod upgrade path |
+| **HITL threshold (0.7)** | Medio | Sin calibración post-dogfood. Ground truth 200+ pares. | ⏳ Post-MVP |
+| **E2E testing** | Medio | Playwright 36+ casos pendientes. Verificación antes de prod. | ⏳ En progreso |
+| **KMS para AES_KEY** | Crítico | Env var en dev/staging; AWS/GCP Secrets en prod. Path documentado. | ⏳ Pre-prod |
+| **Cookies cross-origin (prod)** | Medio | SameSite=Lax local. Requiere `SameSite=None; Secure` si FE/BE en dominios distintos. | ⏳ Pre-prod staging |
 
 ---
 
 ## 6. Roadmap de Desarrollo
 
-* **Fase 1 (MVP):** Extracción estructurada (Ingredientes/Bio-Sync), LangGraph funcional, Semáforo visual en Next.js y caché por Barcode. **Bloqueante de lanzamiento:** publicación de Política de Privacidad y Términos de Uso (ver §9) antes de abrir registro público.
-* **Fase 2 (Retail Integration):** Conexión con APIs de supermercados (Walmart/Cornershop) para análisis preventivo y caché geográfico.
-* **Fase 3 (Reality Engineering):** RAG Multidimensional con ingesta de sabiduría ancestral y agente de conciliación holístico.
+### Fase 1 — MVP (MVP Cerrado ✅)
+**Estado:** Backend 90 tests passing, Frontend 8 pantallas + design tokens.  
+**Entregables:**
+- ✅ Backend: 11 endpoints (auth, scan barcode/photo, biosync upload/status/delete, health, ping).
+- ✅ LangGraph: 7 nodos, semáforo 5 colores, BIOMARKER_RULES (11 reglas).
+- ✅ Frontend: Dark-only Next.js 15, TanStack Query, Zustand, 8 pantallas (login, register, dashboard, scan, result, biosync, history, globals).
+- ✅ Design tokens: semáforo dark-adjusted WCAG AA, hex-grid + scanlines, 12 avatares PNG, animaciones.
+- ⏳ E2E testing: Playwright pendiente (~4-6h, 36+ casos).
+- ⏳ Legal: Documentos públicos (Privacidad/T&C) pendientes (~2-3h redacción legal).
+
+**Bloqueante de lanzamiento (Fase 2):** Política de Privacidad + Términos de Uso publicados y aceptados por usuario.
+
+### Fase 2 — Retail Integration
+**Objetivo:** conectar con APIs de supermercados para análisis preventivo.
+**Features:**
+- Conectores Walmart / Cornershop / Mercado Libre APIs (requiere credenciales comerciales).
+- Caché geográfico: pre-cargar top-50 productos por CP en Chroma.
+- Recomendaciones de producto basadas en biomarcadores.
+- A/B testing de semáforo UI en producción.
+
+**Dependencias:** Fase 1 shipped, acceso a APIs retail, datos de usuarios reales.
+
+### Fase 3 — Reality Engineering
+**Objetivo:** RAG multidimensional con sabiduría ancestral + agente conciliador holístico.
+**Features:**
+- Ingesta curada: nutrición tradicional (MX, LatAm), estudios etnobotánicos.
+- Agente multi-fuente: pesa evidencia científica vs. tradicional.
+- Insights "holísticos" (energía, digestibilidad, culturalidad).
+
+**Dependencias:** Fuentes de datos curadas, etnógrafo/nutriólogo en equipo.
 
 ---
 
-## 7. El Semáforo Visual (Output Next.js)
+## 7. El Semáforo Visual (Output — Implementado ✅)
 
-* **Gris:** Error de lectura/Datos insuficientes.
-* **Azul:** Ingredientes limpios.
-* **Amarillo:** Aditivos bajo observación (EWG/EFSA).
-* **Naranja:** Conflicto detectado con biomarcadores del usuario (Bio-Sync).
-* **Rojo:** Toxicidad confirmada o ingrediente prohibido.
+### 7.1 · Estados y significados
+| Color | Icono Lucide | Label | Causa | Avatar PNG |
+|---|---|---|---|---|
+| **GRAY** | HelpCircle | Sin datos suficientes | <50% ingredientes resueltos / error OCR | gray.png |
+| **BLUE** | CheckCircle | Seguro | Todos approved, sin conflictos | blue.png |
+| **YELLOW** | AlertCircle | Precaución | Status RESTRICTED/UNDER_REVIEW o conflicto existente | yellow.png |
+| **ORANGE** | AlertTriangle | Riesgo personal | Biomarker match (alto LDL + grasas trans, etc.) | orange.png |
+| **RED** | ShieldAlert | Prohibido | Ingrediente BANNED por cualquier agencia | red.png |
+
+### 7.2 · Diseño visual
+- **Circle:** 120px en hero, color semáforo con glow del mismo color (css `drop-shadow`).
+- **Animation:** `pulse-glow` keyframe (opacity + shadow breathing 2.4s).
+- **Avatar:** PNG 120×120 lateral, `animate-pulse-glow`, `aria-hidden` (información ya en icono + label).
+- **Label:** H1 Space Grotesk bold + descripción 1–2 líneas.
+- **WCAG AA:** todos los colores validados contra fondo oscuro #080C07 (ratios 6.8:1–13.4:1).
+
+### 7.3 · Sección "Para ti" (personalized insights)
+- Renderiza solo si usuario tiene biomarcadores activos Y hay matches en BIOMARKER_RULES.
+- Layout: carousel scroll-snap (`overflow-x-auto snap-x`), cards 460px ancho, tabs Alertas/Vigilar.
+- **InsightCard:** avatar dinámico + friendly_title + friendly_biomarker_label + valor numérico + BiomarkerRangeBar (track animado con zonas) + impact arrows + friendly_explanation/recommendation + chips ingredientes.
+- **Estados:**
+  - Sin biomarcadores: `BiomarkerEmptyState` con link a `/biosync`.
+  - Con biomarcadores pero sin matches: `BiomarkerClearState` "Buenas noticias, no detectamos conflictos".
+  - Con matches: carousel de `InsightCard`.
 
 ---
 
-## 8. Plan de Frontend (MVP)
+## 8. Pantallas Frontend (Implementadas ✅)
 
-### 8.1 Stack
-* **Next.js 14 (App Router) + TypeScript**, desplegado en Vercel.
-* **SWR** para caché por barcode (ya definido en §4).
-* **Tailwind CSS + shadcn/ui** para UI (sin vendor lock-in, tree-shakeable).
-* **@zxing/browser** (o `html5-qrcode`) para lectura de barcode en navegador.
-* **react-hook-form + zod** — schemas espejo de los Pydantic del backend.
-* **PWA-first** con `next-pwa` para acceso a cámara móvil sin app store.
-* **Auth:** `fetch` con `credentials: 'include'` contra cookies HTTP-only del backend.
+### 8.1 · Públicas
+| Pantalla | Ruta | Stack | Notas |
+|---|---|---|---|
+| **Login** | `/login` | AuthForm + AuthField + AuthAlert | JWT + cookies, auto-focus email |
+| **Register** | `/register` | PasswordStrengthBar (inline) + checkbox privacidad | Auto-login post-registro |
 
-### 8.2 Estructura de carpetas
-```
-frontend/
-├── app/
-│   ├── (auth)/login, register
-│   ├── (app)/scan            ← barcode + fallback foto
-│   ├── (app)/result/[id]     ← semáforo + detalle ingredientes
-│   └── (app)/biomarkers      ← subir PDFs de laboratorio
-├── components/
-│   ├── Scanner/              ← barcode reader + modo foto (§2)
-│   ├── TrafficLight/         ← 5 estados del §7
-│   └── IngredientCard/
-└── lib/api/                  ← cliente tipado contra FastAPI
-```
+### 8.2 · Protegidas (JWT guard)
+| Pantalla | Ruta | Stack | Notas |
+|---|---|---|---|
+| **Dashboard** | `/` | Hero CTA + BiosyncCard + RecentScans | Empty state welcome.png + CTA escanear |
+| **Scanner** | `/scan` | Tabs barcode/foto, BarcodeScanner, PhotoCapture, OFFContributeToggle | Fallback 404 → tab foto, loading AILoadingState |
+| **Resultado** | `/scan/[id]` | SemaphoreHero + IngredientAccordion + ParaTiCarousel + PersonalizedInsights | Avatar PNG dinámico, nested accordions |
+| **Biosync** | `/biosync` | 3 estados (upload/loading/review), PDFDropzone, BiomarkerTable, AvatarGlow | Review editable, delete fila, agregar custom |
+| **Historial** | `/history` | FilterTabs, search, agrupación por día, SemaphoreBadge | Empty state welcome.png, chevron → `/scan/[id]` |
+| **Global** | SessionExpiredDialog, ErrorPage, Skeletons | gray.png en dialog, support.png en error | Shimmer verde en skeletons |
 
-### 8.3 Orden de implementación
-1. **Bootstrap + Auth UI** — login/register contra `/auth/*` (ya funcional en backend).
-2. **Pantalla Scan** con fallback manual a foto (mitiga riesgo "Falla de Scanner" del §5).
-3. **Componente TrafficLight** con los 5 estados — mockeable antes del backend de análisis.
-4. **Integración real** cuando `/scan` y el grafo LangGraph estén listos.
-5. **Pantalla Biomarkers** (upload de PDFs) — depende de Structured Outputs del §3.
-
-### 8.4 Decisión pendiente
-* **PWA vs. Capacitor (nativo):** PWA cubre MVP y Android/CDMX; iOS Safari tiene limitaciones en cámara standalone. Revisar en Fase 2 si el mix de usuarios lo requiere.
+### 8.3 · Componentes reutilizables (extracted)
+- `AvatarGlow` — variant (gray/blue/yellow/orange/red), size, intensity; used in biosync + insights.
+- `SemaphoreBadge` — thumbnail 40px, dashboard + history.
+- `SessionExpiredDialog` — modal centered, gray.png, "entrar de nuevo" → hard redirect `/login`.
+- `ErrorPage` — support.png, retry + ir al inicio.
+- `Skeletons` — SkeletonCard / Row / Hero con shimmer verde.
+- `AILoadingState` — 4 anillos orbitales, terminal typewriter, `SCAN_PHASES` / `BIOSYNC_PHASES`.
 
 ---
 
 ## 9. Cumplimiento Legal y Documentos Públicos
 
-BioShield procesa **datos sensibles de salud** (biomarcadores de sangre) y **contenido de usuario** (fotos de etiquetas). La publicación de Política de Privacidad y Términos de Uso es **bloqueante para abrir registro público** (ver §6, Fase 1).
+BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de usuario** (fotos de etiquetas). Publicación de Política de Privacidad + Términos de Uso es **bloqueante para abrir registro público**.
 
-### 9.1 Ubicación y artefactos
+### 9.1 · Estado actual
+- **Privacidad:** outline + draft inicial en `docs/legal/` (pendiente revisión legal formal).
+- **Términos:** outline + draft inicial (pendiente revisión legal formal).
+- **ARCO endpoints:** `GET /account/export`, `DELETE /account` (pendiente backend).
+- **UI checkboxes:** separado para datos médicos vs. identidad (implementado en register).
 
+### 9.2 · Documentos públicos (por publicar)
 ```
-docs/legal/
-├── privacy-policy.md        ← consumo humano + renderizado en /privacy
-├── terms-of-service.md      ← consumo humano + renderizado en /terms
-└── data-processing.md       ← anexo técnico: flujo de datos y terceros
+/privacy    → Política de Privacidad (versionada, pie de página)
+/terms      → Términos de Uso (versionada, pie de página)
+/contact    → Formulario ARCO / contacto privacy@<dominio>
 ```
 
-El frontend debe renderizar ambos documentos en rutas públicas (`/privacy`, `/terms`) y vincularlos desde el formulario de registro con checkbox de aceptación obligatoria.
+### 9.3 · Hitos legales
+1. ✅ Redacción de drafts iniciales.
+2. ⏳ Revisión por abogado especialista (México, LFPDPPP).
+3. ⏳ Implementar ARCO endpoints en backend.
+4. ⏳ Publicar `/privacy` y `/terms` con versionado.
+5. ⏳ Registrar aviso ante INAI (si escala lo requiere, Fase 2).
 
-### 9.2 Decisiones pendientes
+### 9.4 · Flujo OFF (Fase 2, ya especificado)
+- Toggle "Contribuir a Open Food Facts (ODbL)" en foto tab (default: off).
+- `POST /scan/contribute` → 202 Accepted, audit trail local (PENDING/SUBMITTED/FAILED).
+- Consentimiento granular por escaneo (no global).
+- Referencia: `docs/off-contribution.md` (operacional) + sección legal en Privacidad.
 
-| Decisión | Opciones | Default recomendado |
-| :--- | :--- | :--- |
-| **Jurisdicción primaria** | México (LFPDPPP) / GDPR / ambas | México Fase 1; GDPR si Fase 2 abre a EU |
-| **Profundidad inicial** | Outline para abogado / draft completo autogenerado | Outline + draft inicial con disclaimer "pendiente revisión legal" |
-| **Encargado de datos** | Persona física designada / entidad legal | Definir antes de lanzar |
-| **Contacto ARCO** | Email dedicado / formulario web | Email `privacy@<dominio>` |
+---
 
-### 9.3 Política de Privacidad — contenido requerido
+## 10. Stack Detallado (Fase 1 Completo)
 
-1. **Datos recolectados:**
-   * **Identidad:** email, contraseña (hash bcrypt, nunca en claro).
-   * **Salud (sensibles):** biomarcadores de sangre subidos por el usuario.
-   * **Contenido:** fotos de etiquetas nutricionales, códigos de barras escaneados.
-   * **Derivados:** historial de escaneos y veredictos del Semáforo (§7).
-   * **Técnicos:** IP, user-agent, timestamps (rate limiting y auditoría).
+### 10.1 · Backend
+| Componente | Versión | Notas |
+|---|---|---|
+| FastAPI | 0.115.6 | Web framework |
+| Uvicorn | 0.34.0 | ASGI server |
+| SQLAlchemy | 2.0.37 | ORM |
+| Alembic | 1.14.1 | Migraciones DB |
+| Pydantic | v2 (2.10.4) | Validación |
+| LangGraph | 0.3.5 | Orquestación agentes |
+| Gemini SDK | `google-generativeai` | VLM + embeddings fallback |
+| BGE-M3 | BAAI/bge-m3 | Embeddings primary (1024-dim) |
+| ChromaDB | 0.6.3 | Vector store |
+| rank-bm25 | 0.2.2 | BM25L scoring |
+| rapidfuzz | 3.12.1 | Fuzzy matching |
+| python-jose + bcrypt | 3.3.0 / 4.2.1 | JWT + password hashing |
+| cryptography | 44.0.0 | AES-GCM |
+| slowapi | 0.1.9 | Rate limiting |
+| httpx | 0.28.1 | HTTP client |
+| SQLite / PostgreSQL | — | Dev / Prod DB |
 
-2. **Base legal (LFPDPPP / GDPR Art. 9):**
-   * Consentimiento **explícito y granular** para datos de salud (checkbox separado del registro).
-   * Consentimiento general para datos de identidad y contenido.
+### 10.2 · Frontend
+| Componente | Versión | Notas |
+|---|---|---|
+| Next.js | 15 | Framework |
+| React | 19 | UI library |
+| TypeScript | strict | Type safety |
+| Tailwind CSS | v4 | Styling |
+| shadcn/ui | latest | Radix primitives |
+| TanStack Query | v5 | Server state + caching |
+| Zustand | latest | Client state (auth) |
+| Zod | latest | Schema validation |
+| @zxing/browser | latest | Barcode scanning |
+| Lucide React | latest | Icons |
+| next/font | — | Pacifico / Space Grotesk / JetBrains Mono |
 
-3. **Finalidades:**
-   * Análisis de conflictos entre ingredientes y biomarcadores del usuario.
-   * Contribución asíncrona a Open Food Facts cuando el usuario lo autoriza explícitamente (ver §9.6).
-   * Mejora del servicio (métricas agregadas y anonimizadas).
-   * **No se usa para publicidad, perfilado comercial ni venta a terceros.**
+---
 
-4. **Retención:**
-   * Biomarcadores: **180 días** (§5), eliminación automática por cron job.
-   * Datos de cuenta: hasta baja solicitada por el usuario.
-   * Logs técnicos: 90 días.
-   * Backups: 30 días adicionales tras eliminación lógica.
+## 11. Métricas de Éxito (Propuesta)
 
-5. **Terceros que procesan datos (subencargados):**
-   * **Google (Gemini API):** procesa fotos de etiquetas y ejecuta VLM/embeddings. No retiene datos según Google AI Terms.
-   * **Open Food Facts:** recibe contribuciones de fotos/ingredientes **solo con consentimiento explícito** del usuario.
-   * **Vercel:** hosting del frontend (EU/US edge).
-   * **Render/Railway:** hosting del backend y base de datos.
+| Métrica | Target | Cómo medir | Estado |
+|---|---|---|---|
+| **OCR accuracy** | ≥90% ingredientes correctos | Golden set 30 etiquetas reales MX | ✅ 100% en 13 muestras |
+| **Entity resolution precision** | ≥95% CAS / ≥85% fuzzy | Ground truth 200+ pares post-dogfood | ⏳ Calibración post-MVP |
+| **RAG precision@3** | ≥85% | 50 queries curadas, anotadas | ⏳ Post-MVP |
+| **p95 latencia `/scan/barcode`** | <3s | OpenTelemetry + Grafana (Fase 2) | ⏳ Medir en prod |
+| **p95 latencia `/scan/photo`** | <5s | Mismo | ⏳ Medir en prod |
+| **Test coverage backend** | ≥80% en `services/` + `routers/` | `pytest --cov` | ✅ 90 tests passing |
+| **E2E test coverage** | 36+ casos (auth, scan, biosync, dashboard, history) | Playwright specs/features/ | ⏳ En progreso (~4-6h) |
+| **Frontend Lighthouse** | ≥80 (perf/acc/best-practices) | Lighthouse CI en Vercel | ⏳ Post-deploy |
+| **Uptime (Fase 2+)** | ≥99.5% | Monitoring / alertas | ⏳ Fase 2 |
 
-6. **Seguridad:**
-   * Encriptación AES-256-GCM en reposo para biomarcadores (§5).
-   * JWT en cookies HTTP-only + SameSite.
-   * Datos desencriptados existen únicamente en memoria volátil durante la ejecución del grafo (§2.3).
-   * Rotación de claves AES documentada en `docs/legal/data-processing.md`.
+---
 
-7. **Derechos del titular (ARCO / GDPR):**
-   * **Acceso:** exportación de datos en formato JSON vía `GET /account/export`.
-   * **Rectificación:** edición de perfil y re-upload de biomarcadores.
-   * **Cancelación:** `DELETE /biosync/data` + `DELETE /account` (pendiente implementar).
-   * **Oposición:** opt-out de contribución a Open Food Facts.
-   * SLA de respuesta: 20 días hábiles (LFPDPPP) / 30 días (GDPR).
+## 12. Próximos Pasos (Orden de Prioridad)
 
-8. **Transferencias internacionales:**
-   * Datos procesados en servidores de Google (US) y hosting (US/EU).
-   * Cláusulas contractuales tipo (SCC) aplicables cuando corresponda.
+1. **E2E testing (Playwright)** — 36+ casos cubiertos en `.claude/plans/frontend.md §E`. ~4-6h.
+2. **Frontend CI/CD (GitHub Actions)** — `pnpm install + build + lint + typecheck`. ~2h.
+3. **docker-compose extensión** — servicio `frontend` + nginx reverse proxy (opcional). ~1h.
+4. **Validación legal** — revisión de Privacidad/T&C por abogado. ~3-5 días.
+5. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
+6. **Dogfood real** — scan productos reales, interview usuarios, calibración HITL.
 
-9. **Menores de edad:**
-   * Servicio **no destinado a menores de 18 años**. Registro bloqueado por declaración de edad.
+---
 
-10. **Cambios a la política:** notificación por email 30 días antes de entrada en vigor.
+## 13. Archivos de Referencia
 
-11. **Contacto del encargado de datos:** email + dirección postal.
+| Archivo | Contenido |
+|---|---|
+| `.claude/plans/backend.md` | Especificación técnica backend (Fases 1–6) |
+| `.claude/plans/frontend.md` | Especificación técnica frontend (Fase 7) |
+| `docs/reviews/18-04.md` | Tracking de cambios y decisiones (§1–13) |
+| `docs/design/tokens.md` | Design system tokens (semáforo, tipografía, motion) |
+| `docs/design/login/` | Handoff histórico login (referencia visual) |
+| `docs/prompts.md` | Prompt templates (sincronizados con `app/agents/prompts.py`) |
+| `docs/embedding-strategy.md` | Estrategia BGE-M3 primary + Gemini fallback |
+| `docs/deployment.md` | Runbook deploy local/staging/prod, rotación AES_KEY, KMS path |
+| `docs/off-contribution.md` | Flujo contribución Open Food Facts (Fase 2) |
+| `backend/CLAUDE.md` | Documentación backend (stack, convenciones, cómo correr) |
+| `frontend/CLAUDE.md` | Documentación frontend (stack, convenciones, cómo correr) |
+| `docs/legal/privacy-policy.md` | Borrador política de privacidad (pendiente) |
+| `docs/legal/terms-of-service.md` | Borrador términos de uso (pendiente) |
 
-### 9.4 Términos de Uso — contenido requerido
+---
 
-1. **Disclaimer médico (cláusula crítica, destacada):**
-   > "BioShield es una herramienta informativa. Los hallazgos del Semáforo y los cruces con biomarcadores **no constituyen consejo médico, diagnóstico ni tratamiento**. Consulta siempre a un profesional de salud certificado antes de tomar decisiones basadas en esta información."
-   >
-   > Esta cláusula es consistente con el prompt del Agente Conciliador (§3B) que instruye al modelo a redactar como hallazgos de literatura científica.
-
-2. **Objeto del servicio:** descripción del análisis de etiquetas, escaneo de barcode/foto y cruce con biomarcadores.
-
-3. **Cuenta de usuario:**
-   * Requisitos de registro (edad, email válido).
-   * Responsabilidad del usuario sobre la custodia de credenciales.
-   * Causales de suspensión/terminación.
-
-4. **Licencia y propiedad intelectual:**
-   * **Software:** MIT License (código del repositorio).
-   * **Datos propietarios de OFF:** ODbL.
-   * **Servicio hosteado:** la licencia MIT no aplica al SaaS; BioShield retiene derechos sobre marca, UX y agregados anonimizados.
-
-5. **Contenido de usuario (fotos de etiquetas):**
-   * El usuario retiene la propiedad.
-   * Otorga licencia no exclusiva a BioShield para procesarlas.
-   * **Contribución a Open Food Facts bajo ODbL requiere opt-in explícito** (no por defecto).
-
-6. **Prohibiciones:**
-   * Scraping o uso automatizado fuera de rate limits oficiales.
-   * Reverse-engineering del grafo LangGraph o los prompts.
-   * Uso comercial sin licencia (revender análisis, integrar en productos de terceros sin acuerdo).
-   * Subir datos de salud de terceros sin su consentimiento.
-
-7. **Limitación de responsabilidad:**
-   * BioShield no se hace responsable por decisiones médicas, nutricionales o de compra basadas en sus resultados.
-   * Tope de responsabilidad: monto pagado por el usuario en los 12 meses previos (USD $0 en Fase 1 MVP gratuito).
-   * Exclusión de daños indirectos, lucro cesante y daño moral en la máxima medida permitida.
-
-8. **Disponibilidad del servicio:** sin SLA formal durante MVP; mantenimiento programado con aviso.
-
-9. **Modificaciones al servicio:** derecho a pausar, modificar o discontinuar features con aviso razonable.
-
-10. **Resolución de disputas:**
-    * Negociación de buena fe como primer paso.
-    * Ley aplicable: **México (CDMX)** por defecto Fase 1.
-    * Jurisdicción: tribunales competentes de la Ciudad de México.
-
-11. **Cláusulas finales:** divisibilidad, cesión, notificaciones, integridad del acuerdo.
-
-### 9.5 Requisitos de UI/UX derivados
-
-* **Registro:** checkbox obligatorio de aceptación de Privacidad y T&C, separado del checkbox de consentimiento para datos de salud.
-* **Upload de biomarcadores:** recordatorio del disclaimer médico y la retención de 180 días antes del submit.
-* **Footer global:** links persistentes a `/privacy`, `/terms`, contacto ARCO.
-* **Banner de cambios:** al actualizar documentos, banner bloqueante hasta re-aceptación.
-
-### 9.6 Flujo de contribución a Open Food Facts (Fase 2 — implementado)
-
-El flujo contributivo asíncrono mencionado en §2.2 **requiere consentimiento explícito por escaneo** (no consentimiento global). La UI implementa un toggle "Contribuir esta foto a Open Food Facts (ODbL)" en el modo foto, desactivado por defecto.
-
-Cuando el usuario activa el toggle, el sistema envía los ingredientes extraídos + la foto a Open Food Facts de forma asíncrona, con respuesta 202 Accepted inmediata al usuario. BioShield mantiene un audit trail local registrando consentimiento y estado de cada contribución (PENDING/SUBMITTED/FAILED), cumpliendo con los requisitos de la licencia ODbL.
-
-**Referencias técnicas:**
-- Backend: `.claude/plans/backend.md` § Fase 8 (endpoint `POST /scan/contribute`, session handling, BackgroundTasks, ORM model `off_contributions`).
-- Guía operacional: `docs/off-contribution.md` (configuración OFF, ARCO, testing, deployment).
-- Política de datos: Sección §9.2 "Terceros que procesan datos" — OFF recibe solo ingredientes + imagen sin datos personales.
-
-### 9.7 Plan de ejecución
-
-1. Redactar drafts iniciales de ambos documentos en `docs/legal/`.
-2. Revisión legal por abogado especialista en protección de datos (México).
-3. Implementar endpoints de derechos ARCO (`GET /account/export`, `DELETE /account`).
-4. Implementar checkboxes y flujos de consentimiento en frontend.
-5. Publicar rutas `/privacy` y `/terms` con versionado en el pie de página.
-6. Registrar aviso de privacidad ante INAI si la escala lo requiere (evaluar en Fase 2).
+**Versión anterior:** v5.0 (2026-04-18). Cambios principales en v6.0: actualización stack (TanStack Query, Next.js 15, BGE-M3 primary), cierre Fase 1 (backend MVP + frontend completadas), E2E testing pendiente, legal documentos en borrador.

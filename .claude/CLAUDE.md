@@ -20,6 +20,12 @@ mediante búsqueda semántica, y cruza hallazgos con biomarcadores de sangre del
 - Todo endpoint requiere JWT excepto /auth/login, /auth/register y /auth/refresh.
 - Los datos médicos se encriptan con AES-256 antes de persistir.
 - Los datos de biomarkers expiran en 180 días; un cron job elimina registros donde expires_at < NOW().
+- Usa conventional commits: type(scope): description
+- Types: feat, fix, docs, style, refactor, test, chore, perf, ci
+- Scope: el módulo o área afectada (auth, api, db, ui, etc.)
+- Description: imperativo, lowercase, sin punto final
+- Body: explica el "por qué", no el "qué" (el diff ya muestra el qué)
+- Max 72 caracteres en la primera línea
 
 ## Tests E2E (Playwright)
 - Todos los specs viven en `tests/specs/{feature}/` en la raíz del repo.
