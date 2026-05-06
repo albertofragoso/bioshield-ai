@@ -22,7 +22,7 @@ test.describe("Feature: Dashboard", () => {
   });
 
   test("edge — empty dashboard shows welcome CTAs", async ({ mockedPage }) => {
-    // applyDefaultMocks already provides 404 biosync + empty history
+    await mockScanHistory(mockedPage, []);
     await mockedPage.goto("/");
 
     await expect(mockedPage.getByText(/sin scans aún/i)).toBeVisible();
@@ -40,6 +40,7 @@ test.describe("Feature: Dashboard", () => {
         expires_at: expiresIn14Days.toISOString(),
       }),
     );
+    await mockScanHistory(mockedPage, []);
     await mockedPage.goto("/");
 
     await expect(mockedPage.getByText(/caducan en|días/i)).toBeVisible();
