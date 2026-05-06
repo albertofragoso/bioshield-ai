@@ -13,9 +13,6 @@ type MockedPageFixture = {
 // Create extended test with mockedPage fixture
 export const test = base.extend<MockedPageFixture>({
   mockedPage: async ({ page, context }, use) => {
-    // Setup: apply default mocks to every test
-    await applyDefaultMocks(page);
-
     // Setup auth cookies for authenticated pages
     await context.addCookies([
       {
@@ -35,6 +32,9 @@ export const test = base.extend<MockedPageFixture>({
         sameSite: 'Lax',
       },
     ]);
+
+    // Apply default mocks to every test
+    await applyDefaultMocks(page);
 
     await use(page);
     // Teardown if needed
@@ -71,6 +71,18 @@ async function applyDefaultMocks(page: Page) {
     route.fulfill({
       status: 404,
       body: JSON.stringify({ detail: 'No biomarkers' }),
+    });
+  });
+
+  await page.route('**/auth/refresh', (route) => {
+    route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        access_token: 'test-jwt-token',
+        refresh_token: 'test-refresh-token',
+        token_type: 'bearer',
+        expires_in: 1800,
+      }),
     });
   });
 
@@ -149,6 +161,12 @@ export async function mockAuthLogout(page: Page) {
   await page.route('**/auth/logout', (route) => {
     route.fulfill({
       status: 204,
+      headers: {
+        'set-cookie': [
+          'access_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax',
+          'refresh_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax',
+        ].join('\n'),
+      },
       body: '',
     });
   });
@@ -180,29 +198,30 @@ export async function mockAuthRefreshFail(page: Page) {
 }
 
 // ============ Scan Mocks ============
-export async function mockScanBarcode(page: Page, barcode: string = '3017620422003') {
+export async function mockScanBarcode(page: Page, barcodeOrResponse: string | any = '3017620422003') {
   await page.route('**/scan/barcode', (route) => {
-    route.fulfill({
-      status: 200,
-      body: JSON.stringify({
-        product_barcode: barcode,
-        product_name: 'Nutella',
-        semaphore: 'YELLOW',
-        conflict_severity: 'LOW',
-        source: 'barcode',
-        scanned_at: new Date().toISOString(),
-        ingredients: [
-          {
-            name: 'Sucralose',
-            canonical_name: 'Sucralose',
-            e_number: 'E955',
-            regulatory_status: 'Approved',
-            confidence_score: 0.95,
-            conflicts: [],
-          },
-        ],
-      }),
-    });
+    const body = typeof barcodeOrResponse === 'string'
+      ? JSON.stringify({
+          product_barcode: barcodeOrResponse,
+          product_name: 'Nutella',
+          semaphore: 'YELLOW',
+          conflict_severity: 'LOW',
+          source: 'barcode',
+          scanned_at: new Date().toISOString(),
+          personalized_insights: [],
+          ingredients: [
+            {
+              name: 'Sucralose',
+              canonical_name: 'Sucralose',
+              e_number: 'E955',
+              regulatory_status: 'Approved',
+              confidence_score: 0.95,
+              conflicts: [],
+            },
+          ],
+        })
+      : JSON.stringify(barcodeOrResponse);
+    route.fulfill({ status: 200, body });
   });
 }
 
@@ -296,6 +315,9 @@ export function makeBiomarkerStatus(overrides = {}) {
 }
 
 export async function mockBiosyncStatus(page: Page, status: any) {
+  // Unroute all previous biosync/status handlers to ensure clean state
+  await page.unroute('**/biosync/status');
+
   if (status === null) {
     await page.route('**/biosync/status', (route) => {
       route.fulfill({
@@ -313,18 +335,23 @@ export async function mockBiosyncStatus(page: Page, status: any) {
   }
 }
 
-export async function mockBiosyncExtract(page: Page, biomarkers: any[] = []) {
-  await page.route('**/biosync/extract', (route) => {
-    route.fulfill({
-      status: 200,
-      body: JSON.stringify({
-        biomarkers: biomarkers.length > 0 ? biomarkers : [
+export async function mockBiosyncExtract(page: Page, biomarkersOrExtraction: any[] | any = []) {
+  const isArray = Array.isArray(biomarkersOrExtraction);
+  const responseBody = isArray
+    ? {
+        biomarkers: biomarkersOrExtraction.length > 0 ? biomarkersOrExtraction : [
           { name: 'ldl', raw_name: 'LDL', value: 150, unit: 'mg/dL', reference_range_low: 0, reference_range_high: 100 },
         ],
         lab_name: 'Chopo',
         test_date: new Date().toISOString(),
         language: 'es',
-      }),
+      }
+    : biomarkersOrExtraction;
+
+  await page.route('**/biosync/extract', (route) => {
+    route.fulfill({
+      status: 200,
+      body: JSON.stringify(responseBody),
     });
   });
 }
@@ -375,6 +402,9 @@ export async function mockScanHistory(page: Page, entries: any[] = []) {
     makeScanHistoryEntry({ id: 'scan-1', product_name: 'Nutella', semaphore: 'YELLOW' }),
     makeScanHistoryEntry({ id: 'scan-2', product_barcode: 'photo-abc123', product_name: 'Producto Etiqueta', semaphore: 'BLUE', source: 'photo' }),
   ];
+
+  // Unroute all previous scan/history handlers to ensure clean state
+  await page.unroute('**/scan/history');
 
   await page.route('**/scan/history', (route) => {
     route.fulfill({
@@ -478,13 +508,13 @@ export function makeOrangeBiomarkerScan(overrides = {}) {
     semaphore: 'ORANGE',
     conflict_severity: 'HIGH',
     ingredients: [
-      makeIngredient({ name: 'Trans fat', regulatory_status: 'Restricted' }),
-      makeIngredient({ name: 'Palm oil', regulatory_status: 'Approved' }),
+      makeIngredient({ name: 'Grasas trans', regulatory_status: 'Restricted' }),
+      makeIngredient({ name: 'Aceite de palma', regulatory_status: 'Approved' }),
     ],
     personalized_insights: [
       makePersonalizedInsight({
         biomarker_name: 'ldl',
-        affecting_ingredients: ['Trans fat', 'Palm oil'],
+        affecting_ingredients: ['Grasas trans', 'Aceite de palma'],
       }),
     ],
     ...overrides,

@@ -14,6 +14,8 @@ test.describe("Feature: Dashboard", () => {
       makeScanHistoryEntry({ id: "s1", product_name: "Producto Alpha", semaphore: "YELLOW" }),
       makeScanHistoryEntry({ id: "s2", product_name: "Producto Beta", semaphore: "RED" }),
     ]);
+    // Ensure mocks are registered before navigation
+    await new Promise(resolve => setImmediate(resolve));
     await mockedPage.goto("/");
 
     await expect(mockedPage.getByText(/biomarcadores activos/i)).toBeVisible();
@@ -22,7 +24,7 @@ test.describe("Feature: Dashboard", () => {
   });
 
   test("edge — empty dashboard shows welcome CTAs", async ({ mockedPage }) => {
-    // applyDefaultMocks already provides 404 biosync + empty history
+    await mockScanHistory(mockedPage, []);
     await mockedPage.goto("/");
 
     await expect(mockedPage.getByText(/sin scans aún/i)).toBeVisible();
@@ -40,6 +42,7 @@ test.describe("Feature: Dashboard", () => {
         expires_at: expiresIn14Days.toISOString(),
       }),
     );
+    await mockScanHistory(mockedPage, []);
     await mockedPage.goto("/");
 
     await expect(mockedPage.getByText(/caducan en|días/i)).toBeVisible();

@@ -12,7 +12,7 @@ import {
   makeBiomarkerStatus,
 } from "../../fixtures";
 
-const PDF_FIXTURE = path.resolve(__dirname, "../../fixtures/files/biomarkers.pdf");
+const PDF_FIXTURE = path.resolve(__dirname, "../../fixtures/biosync-test.pdf");
 
 test.describe("Feature: Biosync PDF flow", () => {
   test("happy path — upload PDF → extract → review → confirm → toast → redirect /", async ({ mockedPage }) => {
