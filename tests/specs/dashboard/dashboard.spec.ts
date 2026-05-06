@@ -14,8 +14,6 @@ test.describe("Feature: Dashboard", () => {
       makeScanHistoryEntry({ id: "s1", product_name: "Producto Alpha", semaphore: "YELLOW" }),
       makeScanHistoryEntry({ id: "s2", product_name: "Producto Beta", semaphore: "RED" }),
     ]);
-    // Ensure mocks are registered before navigation
-    await new Promise(resolve => setImmediate(resolve));
     await mockedPage.goto("/");
 
     await expect(mockedPage.getByText(/biomarcadores activos/i)).toBeVisible();

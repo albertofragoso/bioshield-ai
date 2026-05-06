@@ -37,12 +37,17 @@ export const test = base.extend<MockedPageFixture>({
     await applyDefaultMocks(page);
 
     await use(page);
-    // Teardown if needed
+
+    // Teardown: clear mock overrides for next test
+    Object.keys(mockOverrides).forEach(key => delete mockOverrides[key]);
   },
 });
 
 // Export expect and test
 export { expect };
+
+// Store overrides per endpoint to allow dynamic mock updates
+const mockOverrides: Record<string, any> = {};
 
 // Default mocks applied to every test
 async function applyDefaultMocks(page: Page) {
@@ -68,6 +73,8 @@ async function applyDefaultMocks(page: Page) {
   });
 
   await page.route('**/biosync/status', (route) => {
+    const override = mockOverrides['biosync-status'];
+    if (override) return override(route);
     route.fulfill({
       status: 404,
       body: JSON.stringify({ detail: 'No biomarkers' }),
@@ -87,6 +94,9 @@ async function applyDefaultMocks(page: Page) {
   });
 
   await page.route('**/scan/history', (route) => {
+    const override = mockOverrides['scan-history'];
+    // console.log('[DEBUG] scan/history route hit, override exists:', !!override);
+    if (override) return override(route);
     route.fulfill({
       status: 200,
       body: JSON.stringify([]),
@@ -315,23 +325,20 @@ export function makeBiomarkerStatus(overrides = {}) {
 }
 
 export async function mockBiosyncStatus(page: Page, status: any) {
-  // Unroute all previous biosync/status handlers to ensure clean state
-  await page.unroute('**/biosync/status');
-
   if (status === null) {
-    await page.route('**/biosync/status', (route) => {
+    mockOverrides['biosync-status'] = (route: any) => {
       route.fulfill({
         status: 404,
         body: JSON.stringify({ detail: 'No biomarkers' }),
       });
-    });
+    };
   } else {
-    await page.route('**/biosync/status', (route) => {
+    mockOverrides['biosync-status'] = (route: any) => {
       route.fulfill({
         status: 200,
         body: JSON.stringify(status || makeBiomarkerStatus()),
       });
-    });
+    };
   }
 }
 
@@ -403,15 +410,12 @@ export async function mockScanHistory(page: Page, entries: any[] = []) {
     makeScanHistoryEntry({ id: 'scan-2', product_barcode: 'photo-abc123', product_name: 'Producto Etiqueta', semaphore: 'BLUE', source: 'photo' }),
   ];
 
-  // Unroute all previous scan/history handlers to ensure clean state
-  await page.unroute('**/scan/history');
-
-  await page.route('**/scan/history', (route) => {
+  mockOverrides['scan-history'] = (route: any) => {
     route.fulfill({
       status: 200,
       body: JSON.stringify(entries.length > 0 ? entries : defaultEntries),
     });
-  });
+  };
 }
 
 export async function mockDashboardData(page: Page) {
