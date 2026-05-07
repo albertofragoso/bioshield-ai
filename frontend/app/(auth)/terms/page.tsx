@@ -1,12 +1,16 @@
-import fs from 'fs'
-import Link from 'next/link'
-import Image from 'next/image'
-import { marked } from 'marked'
-import { getLegalDocPath } from '@/lib/legal-path'
+import fs from "fs";
+import Link from "next/link";
+import Image from "next/image";
+import { marked } from "marked";
+import { getLegalDocPath } from "@/lib/legal-path";
 
 export default async function TermsPage() {
-  const raw = fs.readFileSync(getLegalDocPath('terms.md'), 'utf-8')
-  const html = await marked(raw)
+  const raw = fs.readFileSync(getLegalDocPath("terms.md"), "utf-8");
+  // Suppress h1 — title is already rendered in JSX above
+  const renderer = new marked.Renderer();
+  const origHeading = renderer.heading.bind(renderer);
+  renderer.heading = (token) => (token.depth === 1 ? "" : origHeading(token));
+  const html = await marked(raw, { renderer });
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 relative z-10">
@@ -49,7 +53,9 @@ export default async function TermsPage() {
             </div>
             <div
               className="w-full h-px mt-1"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(74,222,128,.2), transparent)" }}
+              style={{
+                background: "linear-gradient(90deg, transparent, rgba(74,222,128,.2), transparent)",
+              }}
             />
           </div>
 
@@ -78,5 +84,5 @@ export default async function TermsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
