@@ -19,6 +19,7 @@ from app.models import Biomarker
 from app.schemas.models import (
     CanonicalBiomarker,
     ConflictSeverity,
+    ConflictType,
     IngredientConflict,
     IngredientResult,
     PersonalizedInsight,
@@ -210,8 +211,8 @@ def make_detect_conflicts_node(db: Session):
             for c in db_conflicts:
                 item.conflicts.append(
                     IngredientConflict(
-                        conflict_type=c.conflict_type,
-                        severity=c.severity,
+                        conflict_type=ConflictType(c.conflict_type),
+                        severity=ConflictSeverity(c.severity),
                         summary=c.summary,
                         sources=_sources_from_summary(c.summary),
                     )

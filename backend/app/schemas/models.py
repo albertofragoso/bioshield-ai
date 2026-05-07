@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
@@ -10,7 +10,7 @@ from pydantic import BaseModel, EmailStr, Field
 # ─────────────────────────────────────────────
 
 
-class SemaphoreColor(str, Enum):
+class SemaphoreColor(StrEnum):
     GRAY = "GRAY"  # Error de lectura / datos insuficientes
     BLUE = "BLUE"  # Ingredientes limpios
     YELLOW = "YELLOW"  # Aditivos bajo observación (EWG/EFSA)
@@ -18,19 +18,19 @@ class SemaphoreColor(str, Enum):
     RED = "RED"  # Toxicidad confirmada / ingrediente prohibido
 
 
-class ConflictSeverity(str, Enum):
+class ConflictSeverity(StrEnum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
 
 
-class ConflictType(str, Enum):
+class ConflictType(StrEnum):
     REGULATORY = "REGULATORY"
     SCIENTIFIC = "SCIENTIFIC"
     TEMPORAL = "TEMPORAL"
 
 
-class RegulatoryStatus(str, Enum):
+class RegulatoryStatus(StrEnum):
     APPROVED = "Approved"
     BANNED = "Banned"
     RESTRICTED = "Restricted"
@@ -129,7 +129,7 @@ class ScanHistoryEntry(BaseModel):
 # ─────────────────────────────────────────────
 
 
-class CanonicalBiomarker(str, Enum):
+class CanonicalBiomarker(StrEnum):
     """Taxonomía canónica reconocida.
 
     Cualquier biomarcador del PDF que no encaje aquí va a OTHER con su raw_name.
@@ -158,14 +158,14 @@ class CanonicalBiomarker(str, Enum):
     OTHER = "other"
 
 
-class BiomarkerClassification(str, Enum):
+class BiomarkerClassification(StrEnum):
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
     UNKNOWN = "unknown"
 
 
-class ReferenceSource(str, Enum):
+class ReferenceSource(StrEnum):
     LAB = "lab"  # rango leído del PDF
     CANONICAL = "canonical"  # rango fallback (tabla interna)
     NONE = "none"  # sin rango disponible

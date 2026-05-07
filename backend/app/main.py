@@ -18,7 +18,7 @@ app = FastAPI(
 
 # Attach limiter so @limiter.limit decorators can resolve it from app.state
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # type: ignore
 
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(

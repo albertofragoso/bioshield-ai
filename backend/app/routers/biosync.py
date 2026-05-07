@@ -10,6 +10,7 @@ the user to review before they confirm via POST /biosync/upload.
 
 import base64
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile, status
 from sqlalchemy import select
@@ -145,7 +146,7 @@ def upload_biomarkers(
     db.refresh(biomarker)
 
     return BiomarkerStatusResponse(
-        id=biomarker.id,
+        id=UUID(biomarker.id),
         uploaded_at=biomarker.uploaded_at,
         expires_at=biomarker.expires_at,
         has_data=True,
@@ -169,7 +170,7 @@ def biomarker_status(
             detail="No biomarker data for this user",
         )
     return BiomarkerStatusResponse(
-        id=biomarker.id,
+        id=UUID(biomarker.id),
         uploaded_at=biomarker.uploaded_at,
         expires_at=biomarker.expires_at,
         has_data=True,
