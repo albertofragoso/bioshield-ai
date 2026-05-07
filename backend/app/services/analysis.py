@@ -15,6 +15,7 @@ Extending it is a data-curation task, not a code change.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
@@ -52,6 +53,16 @@ _STATUS_RANK = {
 }
 
 _NEGATION_TERMS = ("free", "without", "sin", "no ", "zero", "libre", "free of")
+
+
+def _normalize_ingredient_name(text: str) -> str:
+    """Normalize ingredient names by converting non-alphanumeric chars to spaces.
+
+    Handles cases like "High-Fructose Corn Syrup" → "high fructose corn syrup"
+    so keyword matching works across different punctuation styles.
+    """
+    normalized = re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+    return " ".join(normalized.split())  # collapse multiple spaces
 
 
 def _has_negation(text: str, keyword: str) -> bool:
@@ -148,6 +159,8 @@ BIOMARKER_RULES: tuple[BiomarkerRule, ...] = (
             "azúcar refinada",
             "glucose syrup",
             "jarabe de glucosa",
+            "high fructose",
+            "corn syrup",
         ),
         severity=ConflictSeverity.HIGH,
         message="Glucosa con azúcares de absorción rápida",
@@ -324,7 +337,8 @@ def _find_matches_keywords(
 
             matched_ingr: list[str] = []
             for ing in ingredients:
-                ing_names = " ".join(filter(None, (ing.name, ing.canonical_name))).lower()
+                ing_names_raw = " ".join(filter(None, (ing.name, ing.canonical_name))).lower()
+                ing_names = _normalize_ingredient_name(ing_names_raw)
                 for kw in rule.keywords:
                     if kw not in ing_names:
                         continue
