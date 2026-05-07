@@ -108,7 +108,14 @@ def query_by_embedding(
     for eid, doc, meta, dist in zip(ids, docs, metas, distances):
         # cosine distance ∈ [0, 2]; convert to similarity ∈ [0, 1]
         similarity = max(0.0, 1.0 - (dist / 2.0))
-        hits.append(RAGHit(entity_id=eid, document=doc, metadata=dict(meta) if meta else {}, similarity=similarity))
+        hits.append(
+            RAGHit(
+                entity_id=eid,
+                document=doc,
+                metadata=dict(meta) if meta else {},
+                similarity=similarity,
+            )
+        )
     return hits
 
 
