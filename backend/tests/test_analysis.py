@@ -281,12 +281,12 @@ def test_glucose_dextrose_matches_glucose_not_hba1c():
     assert hba1c_matches == []
 
 
-def test_hba1c_fructose_matches_hba1c_not_glucose():
-    """'high fructose corn syrup' (carga crónica) → HBA1C sí, GLUCOSE no."""
+def test_hba1c_fructose_matches_hba1c_and_glucose():
+    """'high fructose corn syrup' affects both HBA1C (carga crónica) and GLUCOSE (absorción rápida)."""
     ingredients = [_ing("high fructose corn syrup")]
     glucose_matches = _find_matches_keywords([_bm("glucose", 120, "high")], ingredients)
     hba1c_matches = _find_matches_keywords([_bm("hba1c", 7.5, "high")], ingredients)
-    assert glucose_matches == []
+    assert len(glucose_matches) == 1
     assert len(hba1c_matches) == 1
 
 
