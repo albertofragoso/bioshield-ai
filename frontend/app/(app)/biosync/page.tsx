@@ -426,7 +426,8 @@ function PrivacyCard() {
         {[
           "Encriptados con AES-256 antes de guardarse.",
           "Se borran automáticamente después de 180 días.",
-          "Nunca se comparten ni se usan para entrenar modelos.",
+          "Nunca se comparten con terceros ni con servicios de IA externos (incluyendo Gemini).",
+          "Nunca se usan para entrenar modelos.",
           "Puedes eliminarlos en cualquier momento.",
         ].map((bullet) => (
           <li key={bullet} className="font-mono text-[11px] leading-[1.5] flex gap-2" style={{ color: "#6B8A6A" }}>
