@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
@@ -19,7 +21,7 @@ TEST_SETTINGS = Settings(
     jwt_access_token_expire_minutes=30,
     jwt_refresh_token_expire_days=7,
     aes_key="test-aes-key-32-bytes-xxxxxxxxxx",
-    gemini_api_key="test-key",
+    gemini_api_key=os.getenv("GEMINI_API_KEY", "test-key"),
     chroma_persist_directory="",
     allowed_origins=["http://testserver"],
     # OFF contribution — sincrónico en tests para evitar flakiness con BackgroundTask
