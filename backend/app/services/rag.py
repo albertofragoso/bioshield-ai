@@ -81,7 +81,7 @@ def upsert_record(
     collection.upsert(
         ids=[entity_id],
         documents=[template_text],
-        embeddings=[embedding],
+        embeddings=[embedding],  # type: ignore
         metadatas=[metadata],
     )
 
@@ -94,7 +94,7 @@ def query_by_embedding(
 ) -> list[RAGHit]:
     """Return top_k hits for a query embedding, ranked by cosine similarity."""
     result = collection.query(
-        query_embeddings=[embedding],
+        query_embeddings=[embedding],  # type: ignore
         n_results=top_k,
         where=where,
     )
@@ -108,7 +108,7 @@ def query_by_embedding(
     for eid, doc, meta, dist in zip(ids, docs, metas, distances):
         # cosine distance ∈ [0, 2]; convert to similarity ∈ [0, 1]
         similarity = max(0.0, 1.0 - (dist / 2.0))
-        hits.append(RAGHit(entity_id=eid, document=doc, metadata=meta or {}, similarity=similarity))
+        hits.append(RAGHit(entity_id=eid, document=doc, metadata=dict(meta) if meta else {}, similarity=similarity))
     return hits
 
 

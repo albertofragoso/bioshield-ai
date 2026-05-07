@@ -21,4 +21,4 @@ def expire_biomarkers(db: Session) -> int:
     now = datetime.now(UTC)
     result = db.execute(delete(Biomarker).where(Biomarker.expires_at < now))
     db.commit()
-    return result.rowcount or 0
+    return result.rowcount or 0  # type: ignore

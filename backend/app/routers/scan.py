@@ -9,7 +9,7 @@ avoid duplicating product metadata per scan.
 
 import logging
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -299,7 +299,7 @@ async def scan_contribute(
         background_tasks.add_task(_run_off_contribution, row.id, body, settings)
 
     return OFFContributeResponse(
-        contribution_id=row.id,
+        contribution_id=UUID(row.id),
         status="PENDING",
         message="Contribución recibida. Se enviará a Open Food Facts en segundo plano.",
     )

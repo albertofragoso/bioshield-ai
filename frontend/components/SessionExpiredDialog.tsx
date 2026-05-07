@@ -15,8 +15,6 @@ export function SessionExpiredDialog({ open, onConfirm }: SessionExpiredDialogPr
         showCloseButton={false}
         className="max-w-[360px] flex flex-col items-center gap-5 py-8 text-center bs-card border-0"
         style={{ border: "1px solid rgba(74,222,128,.18)" }}
-        onInteractOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <Image
           src="/avatars/gray.png"

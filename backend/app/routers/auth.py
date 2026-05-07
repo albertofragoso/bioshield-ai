@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
@@ -76,7 +76,7 @@ def register(
     db.refresh(user)
 
     _set_auth_cookies(response, access, refresh, settings)
-    return UserResponse(id=user.id, email=user.email, created_at=user.created_at)
+    return UserResponse(id=UUID(user.id), email=user.email, created_at=user.created_at)
 
 
 # ─────────────────────────────────────────────
