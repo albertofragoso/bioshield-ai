@@ -1,4 +1,8 @@
-import { test, expect } from '@playwright/test'
+import { test as base, expect } from '@playwright/test'
+import { test as mockedTest } from '../../fixtures'
+
+// Alias for readability
+const test = base
 
 test.describe('Legal pages', () => {
   test('/privacy loads with correct heading and avatar', async ({ page }) => {
@@ -66,16 +70,9 @@ test.describe('Register — terms consent', () => {
   })
 })
 
-test.describe('BioSync — privacy card', () => {
-  test('privacy card mentions Gemini explicitly', async ({ page, context }) => {
-    // Set auth cookie so (app) route is accessible
-    await context.addCookies([{
-      name: 'access_token',
-      value: 'test-token',
-      domain: 'localhost',
-      path: '/',
-    }])
-    await page.goto('/biosync')
-    await expect(page.getByText(/Gemini/i)).toBeVisible()
+mockedTest.describe('BioSync — privacy card', () => {
+  mockedTest('privacy card mentions Gemini explicitly', async ({ mockedPage }) => {
+    await mockedPage.goto('/biosync')
+    await expect(mockedPage.getByText(/Gemini/i)).toBeVisible()
   })
 })
