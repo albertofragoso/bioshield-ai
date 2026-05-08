@@ -238,14 +238,31 @@ export default function RegisterPage() {
                 </div>
               </div>
               <span className="font-mono text-[11px] text-subtext select-none">
-                acepto los términos y la política de datos médicos
+                acepto la{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-brand-amber underline hover:opacity-80 transition-opacity"
+                >
+                  política de privacidad
+                </Link>
+                {" "}y los{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-brand-amber underline hover:opacity-80 transition-opacity"
+                >
+                  términos y condiciones
+                </Link>
               </span>
             </label>
 
             {/* CTA */}
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || !accepted}
               className="w-full rounded-button py-[15px] font-mono text-[13px] font-semibold uppercase tracking-[0.12em] text-brand-green transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bs-glow-green hover:bs-glow-green-strong"
               style={{
                 background: "rgba(74,222,128,.15)",
