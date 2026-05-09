@@ -188,15 +188,23 @@ class PersonalizedInsightCopy(BaseModel):
 
 **Bloqueante de lanzamiento (Fase 2):** Política de Privacidad + Términos de Uso publicados y aceptados por usuario.
 
-### Fase 2 — Retail Integration
-**Objetivo:** conectar con APIs de supermercados para análisis preventivo.
-**Features:**
-- Conectores Walmart / Cornershop / Mercado Libre APIs (requiere credenciales comerciales).
-- Caché geográfico: pre-cargar top-50 productos por CP en Chroma.
-- Recomendaciones de producto basadas en biomarcadores.
-- A/B testing de semáforo UI en producción.
+### Fase 2 — Alternative Matching (Health-Conscious)
 
-**Dependencias:** Fase 1 shipped, acceso a APIs retail, datos de usuarios reales.
+**Objetivo:** dado un producto con semáforo YELLOW/ORANGE/RED, encontrar alternativas reales del mercado mexicano con ingredientes más limpios, priorizadas por compatibilidad con los biomarcadores activos del usuario.
+
+**Pivot estratégico:** se descartaron los conectores a APIs retail (Walmart/Cornershop/Mercado Libre) por cobertura pobre en productos health-conscious y dependencia de credenciales comerciales. Se reemplaza por un curated DB propio de 6K productos.
+
+**Features:**
+- Curated DB de 6K productos health-conscious (Costco Organic, Soriana Organic, CERTIMEX, Mercado Libre salud, NATURLAND)
+- Hybrid matching engine: SQL first pass por categoría → ChromaDB re-rank → biomarker filter rule-based
+- Pantalla `/scan/[id]/alternatives`: top pick personalizado (AvatarGlow blue) + lista secundaria
+- `GET /scan/alternatives/{barcode}` endpoint · `POST /analytics/event` fire-and-forget
+- Nueva ChromaDB collection `products` (ingredient profiles, 1024-dim BGE-M3)
+- A/B testing de semáforo UI en producción (independiente — sigue en roadmap)
+
+**Spec completo:** `docs/superpowers/specs/2026-05-08-alternative-matching-design.md`
+
+**Dependencias:** Fase 1 shipped, curated DB cargado y scripts de curation ejecutados.
 
 ### Fase 3 — Reality Engineering
 **Objetivo:** RAG multidimensional con sabiduría ancestral + agente conciliador holístico.

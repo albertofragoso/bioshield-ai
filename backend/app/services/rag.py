@@ -51,6 +51,19 @@ def get_collection(settings: Settings) -> Collection:
     )
 
 
+def get_products_collection(settings: Settings) -> Collection:
+    """Returns (or creates) the ChromaDB collection for curated product profiles.
+
+    Separate from the 'ingredients' collection — stores product-level
+    ingredient profile embeddings for alternative matching (Fase 2).
+    """
+    client = _client_for(settings.chroma_persist_directory)
+    return client.get_or_create_collection(
+        name="products",
+        metadata={"hnsw:space": "cosine"},
+    )
+
+
 def build_embedding_template(
     entity_id: str,
     canonical_name: str,

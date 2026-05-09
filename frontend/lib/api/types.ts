@@ -174,3 +174,49 @@ export interface OFFContributeResponse {
   status: "PENDING" | "SUBMITTED" | "FAILED";
   message: string;
 }
+
+// ── Alternatives (Fase 2) ─────────────────────────────────────────────────
+
+export interface AlternativeProductOut {
+  barcode: string;
+  name: string | null;
+  brand: string | null;
+  clean_score: number;
+}
+
+export interface AlternativeTopPick {
+  product: AlternativeProductOut;
+  clean_ingredients: string[];
+  biomarker_conflicts: string[];
+  compatibility_pct: number;
+  avatar_variant: AvatarVariant;
+}
+
+export interface AlternativeItem {
+  product: AlternativeProductOut;
+  avatar_variant: AvatarVariant;
+  semaphore_precomputed: SemaphoreColor;
+}
+
+export interface ScannedProductSummary {
+  barcode: string;
+  name: string | null;
+  semaphore: SemaphoreColor;
+}
+
+export interface AlternativesResponse {
+  scanned_product: ScannedProductSummary;
+  top_pick: AlternativeTopPick | null;
+  alternatives: AlternativeItem[];
+  has_biomarkers: boolean;
+  fallback_used: boolean;
+}
+
+// ── Analytics (Fase 2) ────────────────────────────────────────────────────
+
+export type AnalyticsEventType = "alt_button_shown" | "alt_page_opened" | "alt_tapped";
+
+export interface AnalyticsEventIn {
+  event_type: AnalyticsEventType;
+  payload?: Record<string, unknown>;
+}

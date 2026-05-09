@@ -5,7 +5,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import get_settings
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
-from app.routers import auth, biosync, scan
+from app.routers import analytics, auth, biosync, scan
 
 settings = get_settings()
 
@@ -32,6 +32,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(scan.router, prefix="/scan", tags=["scan"])
 app.include_router(biosync.router, prefix="/biosync", tags=["biosync"])
+app.include_router(analytics.router, tags=["analytics"])
 
 
 @app.get("/health", tags=["health"])

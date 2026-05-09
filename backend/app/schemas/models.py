@@ -312,3 +312,53 @@ class OFFContributeResponse(BaseModel):
 
 # Resolve forward references now that all models in this module are defined.
 ScanResponse.model_rebuild()
+
+
+# ─────────────────────────────────────────────
+# Alternatives schemas (Fase 2)
+# ─────────────────────────────────────────────
+
+
+class AlternativeProductOut(BaseModel):
+    barcode: str
+    name: str | None = None
+    brand: str | None = None
+    clean_score: int
+
+
+class AlternativeTopPick(BaseModel):
+    product: AlternativeProductOut
+    clean_ingredients: list[str]
+    biomarker_conflicts: list[str]
+    compatibility_pct: int
+    avatar_variant: str  # "blue" | "yellow" | "orange" | "red" | "gray"
+
+
+class AlternativeItem(BaseModel):
+    product: AlternativeProductOut
+    avatar_variant: str
+    semaphore_precomputed: SemaphoreColor
+
+
+class ScannedProductSummary(BaseModel):
+    barcode: str
+    name: str | None = None
+    semaphore: SemaphoreColor
+
+
+class AlternativesResponse(BaseModel):
+    scanned_product: ScannedProductSummary
+    top_pick: AlternativeTopPick | None
+    alternatives: list[AlternativeItem]
+    has_biomarkers: bool
+    fallback_used: bool
+
+
+# ─────────────────────────────────────────────
+# Analytics schemas (Fase 2)
+# ─────────────────────────────────────────────
+
+
+class AnalyticsEventIn(BaseModel):
+    event_type: Literal["alt_button_shown", "alt_page_opened", "alt_tapped"]
+    payload: dict = {}

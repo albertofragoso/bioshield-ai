@@ -22,6 +22,7 @@ from app.middleware.rate_limit import limiter
 from app.models import Ingredient, OFFContribution, Product, ScanHistory, User
 from app.models.base import SessionLocal, get_db
 from app.schemas.models import (
+    AlternativesResponse,
     BarcodeRequest,
     IngredientResult,
     OFFContributeRequest,
@@ -99,6 +100,42 @@ def get_scan_result(
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
     return ScanResponse.model_validate(row.result_json)
+
+
+# ─────────────────────────────────────────────
+# GET /scan/alternatives/{barcode}  (Fase 2)
+# ─────────────────────────────────────────────
+
+
+@router.get("/alternatives/{barcode}", response_model=AlternativesResponse)
+@limiter.limit("10/minute")
+async def get_alternatives(
+    request: Request,
+    barcode: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    """Return ingredient-based alternatives for a scanned product (Fase 2).
+
+    Semaphore guard is enforced in the frontend — endpoint works for any barcode
+    with existing scan history.
+    """
+    from app.services.alternatives import find_alternatives, get_active_biomarkers  # noqa: PLC0415
+
+    has_biomarkers, active_biomarkers = await get_active_biomarkers(
+        str(current_user.id), db, settings
+    )
+    result = await find_alternatives(
+        barcode=barcode,
+        db=db,
+        settings=settings,
+        active_biomarkers=active_biomarkers,
+        has_biomarkers=has_biomarkers,
+    )
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
+    return result
 
 
 # ─────────────────────────────────────────────
