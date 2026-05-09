@@ -109,9 +109,7 @@ class Product(Base):
     ingredients_json: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     ingredients_source: Mapped[str | None] = mapped_column(String(20), nullable=True)
     ingredients_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    needs_barcode_link: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
+    needs_barcode_link: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     scans: Mapped[list["ScanHistory"]] = relationship(back_populates="product")

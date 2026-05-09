@@ -178,9 +178,7 @@ async def scan_barcode(
     db.commit()
 
     resolved: list[IngredientResult] = final_state.get("resolved") or []
-    avg_conf = (
-        sum(r.confidence_score for r in resolved) / len(resolved) if resolved else 0.0
-    )
+    avg_conf = sum(r.confidence_score for r in resolved) / len(resolved) if resolved else 0.0
     if avg_conf >= 0.8:
         background_tasks.add_task(
             _run_enrich_task,
@@ -244,9 +242,7 @@ async def scan_photo(
     db.commit()
 
     resolved: list[IngredientResult] = final_state.get("resolved") or []
-    avg_conf = (
-        sum(r.confidence_score for r in resolved) / len(resolved) if resolved else 0.0
-    )
+    avg_conf = sum(r.confidence_score for r in resolved) / len(resolved) if resolved else 0.0
 
     if extracted_barcode and avg_conf >= 0.8:
         # Ex.1: barcode real disponible → enriquecer directamente
