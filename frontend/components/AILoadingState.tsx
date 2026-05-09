@@ -85,6 +85,27 @@ export const BIOSYNC_PHASES: AILoadingPhase[] = [
   },
 ];
 
+export const ALTERNATIVES_PHASES: AILoadingPhase[] = [
+  {
+    label: "ANALYZING_CATEGORY",
+    detail: "Identificando categoría del producto escaneado",
+    nodeIndex: 0,
+    completesAt: 800,
+  },
+  {
+    label: "SEARCHING_ALTERNATIVES",
+    detail: "Buscando alternativas más limpias en nuestra base de datos",
+    nodeIndex: 1,
+    completesAt: 2000,
+  },
+  {
+    label: "CHECKING_BIOMARKERS",
+    detail: "Cruzando con tus biomarcadores · priorizando compatibilidad personal",
+    nodeIndex: 2,
+    completesAt: Infinity,
+  },
+];
+
 const ORBITAL_NODES = [
   { Icon: Eye },
   { Icon: FlaskConical },

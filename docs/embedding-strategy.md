@@ -167,3 +167,39 @@ Todavía sin implementación de tracking; objetivos iniciales:
 - **Latencia p95** de hybrid retrieval < 400ms por query.
 
 Dataset de evaluación pendiente — documentado en `reviews/18-04.md`.
+
+---
+
+## 11. Fase 2 — Collection `products`
+
+### Propósito
+
+Segunda collection de ChromaDB, separada de `ingredients`. Almacena ingredient profiles de productos curados para el alternative matching engine.
+
+### Template de embedding
+
+```
+"nombre: {name} | marca: {brand} | categoría: {category} |
+clean_score: {clean_score}"
+```
+
+Metadata por documento: `{ barcode, category, clean_score, semaphore_precomputed }`.
+
+### Pipeline de ingesta
+
+1. `backend/scripts/compute_clean_scores.py` — calcula `clean_score` y persiste en `products.clean_score`
+2. `backend/scripts/index_products_chroma.py` — genera profile text → embed con BGE-M3 → upsert en collection `products`
+
+Scripts offline: se corren una vez al cargar el curated DB y cada vez que se agregan productos nuevos.
+
+### Modelo y dimensión
+
+Mismo que la collection `ingredients`: BGE-M3 local (1024-dim). No requiere re-indexar `ingredients` — son collections independientes.
+
+### Query en runtime
+
+El alternatives engine (`backend/app/services/alternatives.py`) construye el query text como:
+```
+"categoría: {category} sin {flagged_ing_1} sin {flagged_ing_2}..."
+```
+y filtra con `where={"barcode": {"$in": candidate_barcodes}}` sobre los resultados del SQL first pass.

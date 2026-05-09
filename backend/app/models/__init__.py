@@ -17,6 +17,7 @@ from sqlalchemy import (
     Index,
     Integer,
     LargeBinary,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -103,6 +104,8 @@ class Product(Base):
     name: Mapped[str | None] = mapped_column(String(255))
     brand: Mapped[str | None] = mapped_column(String(255))
     image_url: Mapped[str | None] = mapped_column(String(500))
+    category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    clean_score: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     scans: Mapped[list["ScanHistory"]] = relationship(back_populates="product")
@@ -308,7 +311,27 @@ class IngestionLog(Base):
     __table_args__ = (Index("idx_ingestion_source", "source_id"),)
 
 
+# ─────────────────────────────────────────────
+# analytics_events
+# ─────────────────────────────────────────────
+
+
+class AnalyticsEvent(Base):
+    __tablename__ = "analytics_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
+    __table_args__ = (Index("idx_analytics_events_user", "user_id"),)
+
+
 __all__ = [
+    "AnalyticsEvent",
     "Base",
     "Biomarker",
     "Conflict",

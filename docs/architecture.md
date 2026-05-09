@@ -341,3 +341,34 @@ CREATE INDEX idx_off_contrib_status ON off_contributions(status);
 - **Vector Store:** Los embeddings se almacenan en **ChromaDB** (ver `data-sources.md` §9), **no** en PostgreSQL. La relación entre `ingredients.entity_id` y el vector store es por referencia lógica. **Dimensión: 1024** (BGE-M3 local). Los valores numéricos de los biomarcadores del usuario nunca se embeddean — solo el texto canónico de la regla clínica (código estático, sin PHI).
 - **OFF Audit Trail:** La tabla `off_contributions` registra cada contribución a Open Food Facts con consentimiento explícito (PRD §9.6, ODbL). Aunque el POST a OFF es fire-and-forget asíncrono, el audit log local permite cumplimiento de ODbL y debugging.
 - **Migración MVP → Producción:** El schema es compatible con SQLite (desarrollo) y PostgreSQL (producción). Los tipos `UUID` y `JSONB` se adaptan a `TEXT` y `JSON` respectivamente en SQLite; `render_as_batch=True` en Alembic maneja ALTER TABLE en SQLite.
+
+---
+
+## 2. Fase 2 — Extensiones de Schema
+
+### 2.1 Campos nuevos en `products`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `category` | `VARCHAR(100)` | Categoría OFF (ej. `"yogurts"`, `"bebidas"`). `NULL` para productos foto-scaneados sin categoría. |
+| `clean_score` | `SMALLINT DEFAULT 0` | Número de ingredientes problemáticos detectados. **Menor = más limpio.** 0 = cero ingredientes flaggeados. Pre-computado en curation via `scripts/compute_clean_scores.py`. |
+
+Índices: `idx_products_category`, `idx_products_clean_score`.
+
+### 2.2 Nueva tabla `analytics_events`
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | `UUID PK` | Identificador único |
+| `user_id` | `UUID FK → users.id` | Usuario que generó el evento |
+| `event_type` | `VARCHAR(50)` | `alt_button_shown` / `alt_page_opened` / `alt_tapped` |
+| `payload` | `JSONB` | Contexto adicional (barcode, semaphore, etc.) |
+| `created_at` | `TIMESTAMP` | Timestamp del evento |
+
+### 2.3 Nueva ChromaDB collection: `products`
+
+Separada de la collection `ingredients`. Cada documento es el ingredient profile de un producto curado. Dimensión: 1024 (BGE-M3, consistente con `ingredients`).
+
+**Pipeline de ingesta:** `scripts/compute_clean_scores.py` → `scripts/index_products_chroma.py`
+
+**Nota:** `scan_history.result_json` (migration `a3f7c2d1e845`) ya existe — Fase 2 lo consume para extraer `flagged_ingredients[]` sin re-correr el pipeline.

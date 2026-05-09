@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  AlternativesResponse,
   OFFContributeRequest,
   OFFContributeResponse,
   ScanResponse,
@@ -33,4 +34,8 @@ export async function getScanHistory(limit = 5): Promise<ScanHistoryEntry[]> {
 
 export async function getScanResult(barcode: string): Promise<ScanResponse> {
   return apiFetch<ScanResponse>(`/scan/result/${barcode}`);
+}
+
+export async function getAlternatives(barcode: string): Promise<AlternativesResponse> {
+  return apiFetch<AlternativesResponse>(`/scan/alternatives/${barcode}`);
 }

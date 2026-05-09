@@ -247,6 +247,30 @@ function ScanResultInner() {
             </div>
           </div>
 
+          {/* Ver alternativas — visible solo cuando semáforo es YELLOW, ORANGE o RED */}
+          {(["YELLOW", "ORANGE", "RED"] as const).includes(
+            data.semaphore as "YELLOW" | "ORANGE" | "RED"
+          ) && (
+            <Link
+              href={`/scan/${id}/alternatives`}
+              onClick={() =>
+                import("@/lib/api/analytics").then(({ recordAnalyticsEvent }) =>
+                  recordAnalyticsEvent({
+                    event_type: "alt_button_shown",
+                    payload: { barcode: id, semaphore: data.semaphore },
+                  })
+                )
+              }
+              className="bs-card flex items-center justify-between px-4 py-3 hover:border-[rgba(96,165,250,.4)] transition-colors group"
+              style={{ borderColor: "rgba(96,165,250,.2)" }}
+            >
+              <span className="text-[13px] font-semibold text-[#93c5fd] group-hover:text-[#60a5fa] transition-colors">
+                Ver alternativas más limpias
+              </span>
+              <span className="text-[#60a5fa] text-[16px]">→</span>
+            </Link>
+          )}
+
           {/* Explicación contextual */}
           <p className="font-sans text-sm text-foreground/80 leading-relaxed px-1 text-center">
             {explanation}
