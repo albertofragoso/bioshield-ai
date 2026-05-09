@@ -5,6 +5,7 @@ import type {
   OFFContributeResponse,
   ScanResponse,
   ScanHistoryEntry,
+  LinkBarcodeRequest,
 } from "./types";
 
 export async function scanBarcode(barcode: string): Promise<ScanResponse> {
@@ -38,4 +39,14 @@ export async function getScanResult(barcode: string): Promise<ScanResponse> {
 
 export async function getAlternatives(barcode: string): Promise<AlternativesResponse> {
   return apiFetch<AlternativesResponse>(`/scan/alternatives/${barcode}`);
+}
+
+export async function linkPhotoToBarcode(
+  pseudoBarcode: string,
+  barcode: string
+): Promise<ScanResponse> {
+  return apiFetch<ScanResponse>(`/scan/photo/${pseudoBarcode}/link`, {
+    method: "POST",
+    body: JSON.stringify({ barcode } satisfies LinkBarcodeRequest),
+  });
 }

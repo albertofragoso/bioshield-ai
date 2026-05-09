@@ -372,3 +372,31 @@ Separada de la collection `ingredients`. Cada documento es el ingredient profile
 **Pipeline de ingesta:** `scripts/compute_clean_scores.py` → `scripts/index_products_chroma.py`
 
 **Nota:** `scan_history.result_json` (migration `a3f7c2d1e845`) ya existe — Fase 2 lo consume para extraer `flagged_ingredients[]` sin re-correr el pipeline.
+
+---
+
+## 3. Enrichment Pipeline
+
+El pipeline de enriquecimiento convierte cada scan exitoso en una contribución automática al curated DB.
+
+**Trigger:** `POST /scan/barcode` y `POST /scan/photo` — disparan `BackgroundTask` después de `db.commit()`.
+
+**Flujo:**
+1. `_run_enrich_task` abre `SessionLocal()` propio (sesión del request ya cerrada).
+2. `enrich_product()` aplica `SELECT FOR UPDATE` — first-write-wins, compatible SQLite + PostgreSQL.
+3. Si `avg_confidence < 0.8`, la escritura se descarta.
+4. Escribe `ingredients_json`, `ingredients_source`, `ingredients_confidence`, `clean_score` en `products`.
+5. Si el producto tiene `category`, re-indexa en ChromaDB collection `products`.
+
+**Photo scan — cascada de 3 excepciones:**
+- **Ex.1:** Gemini extrae barcode EAN de la imagen → usa barcode real directamente.
+- **Ex.2:** `_run_off_lookup_task` busca barcode por nombre+marca en OFF Search API → si encuentra, crea Product real y enriquece.
+- **Ex.3:** CTA manual — `POST /scan/photo/{pseudo}/link` → `link_photo_to_barcode()` en `enrichment.py`.
+
+**First-write-wins:** `product.ingredients_json IS NULL` verificado dentro del `SELECT FOR UPDATE`. Segunda escritura concurrente ve campo ya poblado y retorna sin modificar.
+
+**Módulos clave:**
+- `app/services/enrichment.py` — toda la lógica
+- `app/services/off_client.py` — `off_lookup_barcode()` para Ex.2
+- `app/routers/scan.py` — BackgroundTask wrappers `_run_enrich_task`, `_run_off_lookup_task`
+- `scripts/compute_clean_scores.py` — thin wrapper que llama `_compute_clean_score` de `enrichment.py`

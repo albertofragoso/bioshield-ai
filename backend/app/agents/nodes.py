@@ -85,6 +85,7 @@ def make_extract_ingredients_node(settings: Settings):
         return {
             "product_name": extraction.product_name,
             "extracted_ingredients": extraction.ingredients,
+            "extracted_barcode": extraction.barcode,
             "source": "photo",
         }
 

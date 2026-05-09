@@ -74,6 +74,10 @@ class BarcodeRequest(BaseModel):
     barcode: str = Field(min_length=8, max_length=14, pattern=r"^\d+$")
 
 
+class LinkBarcodeRequest(BaseModel):
+    barcode: str = Field(..., min_length=8, max_length=14, pattern=r"^\d+$")
+
+
 class PhotoScanRequest(BaseModel):
     image_base64: str = Field(description="Base64-encoded image of the ingredient label")
 
@@ -84,6 +88,7 @@ class ProductExtraction(BaseModel):
     ingredients: list[str]
     has_additives: bool
     language: str = "es"
+    barcode: str | None = None
 
 
 class IngredientConflict(BaseModel):
@@ -112,6 +117,7 @@ class ScanResponse(BaseModel):
     source: str = Field(description="'barcode' if from OFF, 'photo' if from Gemini OCR")
     scanned_at: datetime
     personalized_insights: list["PersonalizedInsight"] = []
+    show_barcode_cta: bool = False
 
 
 class ScanHistoryEntry(BaseModel):

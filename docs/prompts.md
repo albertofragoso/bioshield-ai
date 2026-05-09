@@ -22,6 +22,7 @@ Reglas:
 - Si en la etiqueta aparecen dos sustancias distintas unidas por "y" o "/" en una misma línea (ej. "dióxido de silicio y silicato de calcio"), sepáralas en dos elementos independientes. No apliques esta regla a nombres compuestos que contienen "y" como parte del nombre (ej. "mono y diglicéridos").
 - Idioma: el campo `language` refleja el idioma predominante de la etiqueta ("es", "en", "pt", etc.).
 - Si la imagen es ilegible o no contiene una lista de ingredientes, devuelve product_name=null, ingredients=[] y has_additives=false.
+- `barcode` (EAN/UPC): Si el código de barras impreso (8–14 dígitos) es claramente visible y legible en la imagen, extráelo en el campo `barcode`. Si no es visible, no es claro, o la lectura es ambigua, devuelve null.
 ```
 
 ---

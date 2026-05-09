@@ -106,6 +106,12 @@ class Product(Base):
     image_url: Mapped[str | None] = mapped_column(String(500))
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
     clean_score: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    ingredients_json: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    ingredients_source: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    ingredients_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    needs_barcode_link: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     scans: Mapped[list["ScanHistory"]] = relationship(back_populates="product")

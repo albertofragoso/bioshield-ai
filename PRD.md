@@ -206,6 +206,11 @@ class PersonalizedInsightCopy(BaseModel):
 
 **Dependencias:** Fase 1 shipped, curated DB cargado y scripts de curation ejecutados.
 
+#### Enrichment Pipeline (Fase 2.1)
+
+Extensión del alternative matching: cada scan exitoso alimenta automáticamente
+el curated DB sin intervención manual. Ver spec: `docs/superpowers/specs/2026-05-09-scan-enrichment-design.md`.
+
 ### Fase 3 — Reality Engineering
 **Objetivo:** RAG multidimensional con sabiduría ancestral + agente conciliador holístico.
 **Features:**
