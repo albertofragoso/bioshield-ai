@@ -190,14 +190,15 @@ async def find_alternatives(
                 {"barcode": {"$in": candidate_barcodes}} if candidate_barcodes else None
             )
             results = collection.query(
-                query_embeddings=[embedding],
+                query_embeddings=[embedding],  # type: ignore[arg-type]
                 n_results=min(5, max(1, len(candidates))) if candidates else 1,
-                where=where_filter,
-                include=["metadatas", "distances"],
+                where=where_filter,  # type: ignore[arg-type]
+                include=["metadatas", "distances"],  # type: ignore[list-item]
             )
+            metadatas = results.get("metadatas") or []
             ranked_barcodes: list[str] = [
-                m["barcode"]
-                for m in (results["metadatas"][0] if results.get("metadatas") else [])
+                str(m["barcode"])
+                for m in (metadatas[0] if metadatas else [])  # type: ignore[index]
             ]
             barcode_to_product = {c.barcode: c for c in candidates}
             reranked = [

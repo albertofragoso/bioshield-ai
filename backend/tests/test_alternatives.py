@@ -5,7 +5,7 @@ Patches ChromaDB and embed_text so tests run offline.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -17,7 +17,6 @@ from app.services.alternatives import (
     _semaphore_from_clean_score,
     find_alternatives,
 )
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
