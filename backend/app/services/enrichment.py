@@ -1,4 +1,5 @@
 """Scan → Product Enrichment Service."""
+
 from __future__ import annotations
 
 import logging
@@ -20,10 +21,7 @@ _MIN_CONFIDENCE = 0.8
 
 
 def should_enrich(product: Product) -> bool:
-    return (
-        product.ingredients_json is None
-        and not product.barcode.startswith("photo-")
-    )
+    return product.ingredients_json is None and not product.barcode.startswith("photo-")
 
 
 def _compute_clean_score(canonical_names: list[str], db: Session) -> int:
@@ -66,7 +64,7 @@ async def _reindex_chroma(product: Product, settings: Settings) -> None:
     collection.upsert(
         ids=[product.barcode],
         documents=[profile],
-        embeddings=[embedding],
+        embeddings=[embedding],  # type: ignore[arg-type]
         metadatas=[
             {
                 "barcode": product.barcode,
@@ -89,9 +87,7 @@ async def enrich_product(
     if avg_confidence < _MIN_CONFIDENCE:
         return
 
-    product = db.scalar(
-        select(Product).where(Product.barcode == barcode).with_for_update()
-    )
+    product = db.scalar(select(Product).where(Product.barcode == barcode).with_for_update())
     if product is None or not should_enrich(product):
         return
 
@@ -136,16 +132,14 @@ async def try_off_lookup(
             .where(ScanHistory.product_barcode == pseudo_barcode)
             .order_by(ScanHistory.scanned_at.desc())
         )
-        if (
-            history
-            and history.result_json
-            and (history.confidence_score or 0) >= _MIN_CONFIDENCE
-        ):
+        if history and history.result_json and (history.confidence_score or 0) >= _MIN_CONFIDENCE:
             resolved = [
                 IngredientResult.model_validate(i)
                 for i in history.result_json.get("ingredients", [])
             ]
-            await enrich_product(barcode, resolved, history.confidence_score, "off", db, settings)
+            await enrich_product(
+                barcode, resolved, history.confidence_score or 0.0, "off", db, settings
+            )
 
     if photo_product:
         photo_product.needs_barcode_link = False
@@ -183,8 +177,7 @@ async def link_photo_to_barcode(
 
     if history.result_json and should_enrich(real_product):
         resolved = [
-            IngredientResult.model_validate(i)
-            for i in history.result_json.get("ingredients", [])
+            IngredientResult.model_validate(i) for i in history.result_json.get("ingredients", [])
         ]
         avg_conf = history.confidence_score or 0.0
         if avg_conf >= _MIN_CONFIDENCE:

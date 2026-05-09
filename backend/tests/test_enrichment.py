@@ -1,4 +1,5 @@
 """Tests for the product enrichment service."""
+
 import pytest
 from sqlalchemy import select
 
@@ -12,11 +13,12 @@ from app.models import (
 )
 from app.schemas.models import IngredientResult
 
-
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
-def _make_ingredient_result(name: str, canonical: str | None, score: float = 0.9) -> IngredientResult:
+def _make_ingredient_result(
+    name: str, canonical: str | None, score: float = 0.9
+) -> IngredientResult:
     return IngredientResult(name=name, canonical_name=canonical, confidence_score=score)
 
 
@@ -41,18 +43,21 @@ def _add_data_source(db, name: str = "TEST") -> DataSource:
 
 def test_should_enrich_returns_true_for_clean_product(db_session):
     from app.services.enrichment import should_enrich
+
     product = _add_product(db_session, "7501111111111")
     assert should_enrich(product) is True
 
 
 def test_should_enrich_returns_false_if_already_enriched(db_session):
     from app.services.enrichment import should_enrich
+
     product = _add_product(db_session, "7501111111112", ingredients_json=["azucar"])
     assert should_enrich(product) is False
 
 
 def test_should_enrich_returns_false_for_pseudo_barcode(db_session):
     from app.services.enrichment import should_enrich
+
     product = _add_product(db_session, "photo-abc123def456")
     assert should_enrich(product) is False
 
@@ -62,6 +67,7 @@ def test_should_enrich_returns_false_for_pseudo_barcode(db_session):
 
 def test_compute_clean_score_ignores_unknown_ingredients(db_session):
     from app.services.enrichment import _compute_clean_score
+
     score = _compute_clean_score(["ingrediente_inexistente_xyz"], db_session)
     assert score == 0
 
@@ -97,6 +103,7 @@ def test_compute_clean_score_counts_banned_ingredients(db_session):
 
 async def test_enrich_product_skips_if_low_confidence(db_session):
     from app.services.enrichment import enrich_product
+
     product = _add_product(db_session, "7501111111113")
     resolved = [_make_ingredient_result("azucar", "sucrose", score=0.5)]
     await enrich_product(
@@ -146,8 +153,12 @@ async def test_enrich_product_concurrent_skip(db_session, monkeypatch):
     resolved_a = [_make_ingredient_result("sugar", "sucrose", score=0.9)]
     resolved_b = [_make_ingredient_result("salt", "sodium chloride", score=0.95)]
 
-    await enrichment_module.enrich_product("7501111111115", resolved_a, 0.9, "scan", db_session, object())
-    await enrichment_module.enrich_product("7501111111115", resolved_b, 0.95, "scan", db_session, object())
+    await enrichment_module.enrich_product(
+        "7501111111115", resolved_a, 0.9, "scan", db_session, object()
+    )
+    await enrichment_module.enrich_product(
+        "7501111111115", resolved_b, 0.95, "scan", db_session, object()
+    )
 
     db_session.refresh(product)
     assert product.ingredients_json == ["sucrose"]
@@ -158,15 +169,18 @@ async def test_enrich_product_concurrent_skip(db_session, monkeypatch):
 
 async def test_link_photo_to_barcode_validates_ownership(db_session, monkeypatch):
     from fastapi import HTTPException
+
     from app.services.enrichment import link_photo_to_barcode
 
     user = User(id="user-1", email="a@b.com", password_hash="x")
     db_session.add(user)
-    pseudo = _add_product(db_session, "photo-aabbccddeeff0011")
+    _add_product(db_session, "photo-aabbccddeeff0011")
     db_session.flush()
 
     with pytest.raises(HTTPException) as exc_info:
-        await link_photo_to_barcode("photo-aabbccddeeff0011", "7501000000001", "user-2", db_session, None)
+        await link_photo_to_barcode(
+            "photo-aabbccddeeff0011", "7501000000001", "user-2", db_session, None
+        )
 
     assert exc_info.value.status_code == 403
 
@@ -199,7 +213,16 @@ async def test_link_photo_to_barcode_enriches_real_product(db_session, monkeypat
         user_id="user-3",
         product_barcode="photo-112233445566aabb",
         confidence_score=0.92,
-        result_json={"ingredients": [{"name": "water", "canonical_name": "water", "confidence_score": 0.92, "conflicts": []}]},
+        result_json={
+            "ingredients": [
+                {
+                    "name": "water",
+                    "canonical_name": "water",
+                    "confidence_score": 0.92,
+                    "conflicts": [],
+                }
+            ]
+        },
         semaphore_result="BLUE",
     )
     db_session.add(history)
