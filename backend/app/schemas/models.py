@@ -318,6 +318,7 @@ ScanResponse.model_rebuild()
 # Alternatives schemas (Fase 2)
 # ─────────────────────────────────────────────
 
+
 class AlternativeProductOut(BaseModel):
     barcode: str
     name: str | None = None
@@ -356,6 +357,7 @@ class AlternativesResponse(BaseModel):
 # ─────────────────────────────────────────────
 # Analytics schemas (Fase 2)
 # ─────────────────────────────────────────────
+
 
 class AnalyticsEventIn(BaseModel):
     event_type: Literal["alt_button_shown", "alt_page_opened", "alt_tapped"]

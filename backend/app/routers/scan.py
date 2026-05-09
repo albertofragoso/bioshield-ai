@@ -134,9 +134,7 @@ async def get_alternatives(
         has_biomarkers=has_biomarkers,
     )
     if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
     return result
 
 

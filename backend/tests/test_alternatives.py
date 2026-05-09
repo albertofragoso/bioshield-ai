@@ -2,6 +2,7 @@
 
 Patches ChromaDB and embed_text so tests run offline.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -21,9 +22,7 @@ from app.services.alternatives import (
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 
-def _make_product(
-    db, barcode: str, name: str, category: str | None, clean_score: int
-) -> Product:
+def _make_product(db, barcode: str, name: str, category: str | None, clean_score: int) -> Product:
     p = Product(
         barcode=barcode,
         name=name,
@@ -122,7 +121,9 @@ async def test_find_alternatives_sql_first_pass(db_session):
     """SQL first pass returns products with lower clean_score in same category."""
     _make_product(db_session, "BAD001", "Bad Yogurt", "yogurts", clean_score=3)
     _make_scan(
-        db_session, "BAD001", "RED",
+        db_session,
+        "BAD001",
+        "RED",
         ["sugar", "colorante E129", "leche"],
         ["sugar", "colorante E129"],
     )
@@ -131,6 +132,7 @@ async def test_find_alternatives_sql_first_pass(db_session):
     _make_product(db_session, "DIFF001", "Other Category", "snacks", clean_score=0)
 
     from app.config import Settings
+
     settings = Settings(chroma_persist_directory="")
 
     with (
@@ -166,6 +168,7 @@ async def test_find_alternatives_fallback_when_no_category(db_session):
     _make_scan(db_session, "NOCAT001", "RED", ["sugar"], ["sugar"])
 
     from app.config import Settings
+
     settings = Settings(chroma_persist_directory="")
 
     with (
@@ -190,6 +193,7 @@ async def test_find_alternatives_fallback_when_no_category(db_session):
 async def test_find_alternatives_returns_none_when_scan_not_found(db_session):
     """Returns None when the barcode has no scan history."""
     from app.config import Settings
+
     settings = Settings(chroma_persist_directory="")
 
     result = await find_alternatives(
@@ -210,6 +214,7 @@ async def test_find_alternatives_chroma_failure_degrades_gracefully(db_session):
     _make_product(db_session, "GOOD003", "Good Drink", "bebidas", clean_score=0)
 
     from app.config import Settings
+
     settings = Settings(chroma_persist_directory="")
 
     with patch(

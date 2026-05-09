@@ -3,6 +3,7 @@
 Records user interactions with the alternatives feature.
 Errors are swallowed to never block the UI.
 """
+
 import logging
 from uuid import uuid4
 

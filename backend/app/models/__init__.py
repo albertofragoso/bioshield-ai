@@ -325,7 +325,9 @@ class AnalyticsEvent(Base):
     )
     event_type: Mapped[str] = mapped_column(String(50), nullable=False)
     payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
 
     __table_args__ = (Index("idx_analytics_events_user", "user_id"),)
 

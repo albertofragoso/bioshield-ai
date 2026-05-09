@@ -3,6 +3,7 @@
 Hybrid C: SQL first pass (category) → ChromaDB re-rank → biomarker filter.
 No LangGraph at load time — only triggered on "Ver análisis completo" tap.
 """
+
 from __future__ import annotations
 
 import logging
@@ -145,9 +146,7 @@ async def find_alternatives(
     product_name = result.get("product_name")
     all_ingredients: list[str] = [i["name"] for i in result.get("ingredients", [])]
     flagged_ingredients: list[str] = [
-        i["name"]
-        for i in result.get("ingredients", [])
-        if i.get("conflicts")
+        i["name"] for i in result.get("ingredients", []) if i.get("conflicts")
     ]
 
     # ── 2. Load scanned product to get category + clean_score ────────────────
@@ -179,16 +178,13 @@ async def find_alternatives(
 
     if flagged_ingredients:
         query_text = (
-            f"categoría: {category or 'alimento'} "
-            f"sin {' sin '.join(flagged_ingredients[:5])}"
+            f"categoría: {category or 'alimento'} sin {' sin '.join(flagged_ingredients[:5])}"
         )
         try:
             embedding = await embed_text(query_text, settings)
             collection = get_products_collection(settings)
             candidate_barcodes = [c.barcode for c in candidates] or None
-            where_filter = (
-                {"barcode": {"$in": candidate_barcodes}} if candidate_barcodes else None
-            )
+            where_filter = {"barcode": {"$in": candidate_barcodes}} if candidate_barcodes else None
             results = collection.query(
                 query_embeddings=[embedding],  # type: ignore[arg-type]
                 n_results=min(5, max(1, len(candidates))) if candidates else 1,
@@ -201,9 +197,7 @@ async def find_alternatives(
                 for m in (metadatas[0] if metadatas else [])  # type: ignore[index]
             ]
             barcode_to_product = {c.barcode: c for c in candidates}
-            reranked = [
-                barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product
-            ]
+            reranked = [barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product]
             seen = set(ranked_barcodes)
             reranked += [c for c in candidates if c.barcode not in seen]
         except Exception as exc:
