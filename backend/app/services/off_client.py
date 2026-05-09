@@ -190,3 +190,48 @@ async def upload_product_image(
         except (httpx.HTTPError, httpx.TimeoutException) as exc:
             logger.warning("OFF image upload failed for %s: %s", barcode, exc)
             return False
+
+
+async def off_lookup_barcode(
+    name: str,
+    brand: str | None,
+    settings: Settings,
+) -> str | None:
+    """Busca el barcode EAN de un producto en OFF por nombre+marca.
+
+    Retorna el EAN del primer resultado si tiene alta confianza de match,
+    None si no encuentra o OFF está caído.
+    """
+    query = f"{name} {brand}" if brand else name
+    url = f"{settings.off_write_base_url}/search.pl"
+    timeout = httpx.Timeout(settings.off_timeout_seconds)
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            response = await client.get(
+                url,
+                params={
+                    "search_terms": query,
+                    "cc": "mx",
+                    "json": "1",
+                    "page_size": "5",
+                    "fields": "code,product_name,brands",
+                },
+            )
+            if response.status_code != 200:
+                return None
+            data = response.json()
+        except (httpx.HTTPError, httpx.TimeoutException) as exc:
+            logger.warning("OFF search failed for '%s': %s", query, exc)
+            return None
+
+    products = data.get("products") or []
+    if not products:
+        return None
+
+    first = products[0]
+    code = first.get("code") or ""
+    # Validar que el código tenga formato EAN válido (8–14 dígitos)
+    if code and code.isdigit() and 8 <= len(code) <= 14:
+        return code
+    return None

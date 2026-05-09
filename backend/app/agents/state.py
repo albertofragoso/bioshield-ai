@@ -25,6 +25,7 @@ class ScanState(TypedDict, total=False):
     product_brand: str | None
     product_image_url: str | None
     extracted_ingredients: list[str]
+    extracted_barcode: str | None
     resolved: list[IngredientResult]
     rag_context_by_ingredient: dict[str, str]
     biomarkers: list | None  # list[Biomarker schema], structured (post-decrypt)

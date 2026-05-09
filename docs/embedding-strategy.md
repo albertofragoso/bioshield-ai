@@ -203,3 +203,13 @@ El alternatives engine (`backend/app/services/alternatives.py`) construye el que
 "categoría: {category} sin {flagged_ing_1} sin {flagged_ing_2}..."
 ```
 y filtra con `where={"barcode": {"$in": candidate_barcodes}}` sobre los resultados del SQL first pass.
+
+### Nota: Crecimiento automático vía flywheel de scans
+
+A partir de la implementación del Enrichment Pipeline (Fase 2), la collection `products`
+crece automáticamente con cada scan exitoso de barcode real (confianza ≥ 0.8).
+Los scripts `compute_clean_scores.py` e `index_products_chroma.py` ahora complementan
+el pipeline automático para re-scoring masivo o re-indexación inicial.
+
+Los productos con `barcode LIKE 'photo-%'` nunca se indexan — solo se indexan productos
+con barcode real y `category IS NOT NULL`.

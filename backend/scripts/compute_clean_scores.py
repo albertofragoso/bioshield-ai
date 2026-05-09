@@ -1,51 +1,33 @@
-"""Compute and persist clean_score for all products in DB.
+"""Compute and persist clean_score for all enriched products in DB.
 
-clean_score = number of flagged ingredients detected via regulatory_status.
-Lower = cleaner. Run after loading the curated product dataset.
+clean_score = número de ingredientes con estatus Banned o Restricted.
+Solo procesa productos que ya tienen ingredients_json poblado (enriquecidos
+vía scan o importación). Productos sin ingredients_json se saltan.
 
 Usage:
     cd backend && python -m scripts.compute_clean_scores
 """
 import logging
+
 from sqlalchemy import select
 
-from app.models import Ingredient, Product, RegulatoryStatus
+from app.models import Product
 from app.models.base import SessionLocal
+from app.services.enrichment import _compute_clean_score
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-_BANNED_STATUSES = {"Banned", "Restricted"}
-
-
-def compute_clean_score(product_ingredients: list[str], db) -> int:
-    score = 0
-    for ing_name in product_ingredients:
-        ing = db.scalar(
-            select(Ingredient).where(Ingredient.canonical_name.ilike(ing_name))
-        )
-        if ing is None:
-            continue
-        statuses = list(
-            db.scalars(
-                select(RegulatoryStatus).where(RegulatoryStatus.ingredient_id == ing.id)
-            )
-        )
-        if any(s.status in _BANNED_STATUSES for s in statuses):
-            score += 1
-    return score
 
 
 def main():
     db = SessionLocal()
     try:
-        products = list(db.scalars(select(Product)))
-        logger.info("Computing clean_score for %d products...", len(products))
+        products = list(
+            db.scalars(select(Product).where(Product.ingredients_json.isnot(None)))
+        )
+        logger.info("Computing clean_score for %d enriched products...", len(products))
         for product in products:
-            # Ingredient names are loaded from the curated data source.
-            # Populate this list from your CSV or product_ingredients table.
-            ingredients: list[str] = []
-            product.clean_score = compute_clean_score(ingredients, db)
+            product.clean_score = _compute_clean_score(product.ingredients_json or [], db)
         db.commit()
         logger.info("Done.")
     finally:

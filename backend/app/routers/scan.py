@@ -25,6 +25,7 @@ from app.schemas.models import (
     AlternativesResponse,
     BarcodeRequest,
     IngredientResult,
+    LinkBarcodeRequest,
     OFFContributeRequest,
     OFFContributeResponse,
     PhotoScanRequest,
@@ -99,7 +100,10 @@ def get_scan_result(
     )
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
-    return ScanResponse.model_validate(row.result_json)
+    product = db.scalar(select(Product).where(Product.barcode == barcode))
+    response = ScanResponse.model_validate(row.result_json)
+    response.show_barcode_cta = product.needs_barcode_link if product else False
+    return response
 
 
 # ─────────────────────────────────────────────
@@ -148,6 +152,7 @@ async def get_alternatives(
 async def scan_barcode(
     request: Request,
     body: BarcodeRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -172,6 +177,18 @@ async def scan_barcode(
     _persist_scan_history(db, current_user, product.barcode, final_state, response)
     db.commit()
 
+    resolved: list[IngredientResult] = final_state.get("resolved") or []
+    avg_conf = sum(r.confidence_score for r in resolved) / len(resolved) if resolved else 0.0
+    if avg_conf >= 0.8:
+        background_tasks.add_task(
+            _run_enrich_task,
+            barcode=body.barcode,
+            resolved_json=[r.model_dump(mode="json") for r in resolved],
+            avg_confidence=avg_conf,
+            source="scan",
+            settings=settings,
+        )
+
     return response
 
 
@@ -185,6 +202,7 @@ async def scan_barcode(
 async def scan_photo(
     request: Request,
     body: PhotoScanRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -203,20 +221,91 @@ async def scan_photo(
             detail="No se pudo extraer lista de ingredientes de la imagen.",
         )
 
-    # Photo scans have no real barcode — synthesize a marker so the FK holds.
-    # Use hyphen (not colon) so the value is safe in URL path segments.
-    pseudo_barcode = f"photo-{uuid4().hex[:16]}"
+    # Ex.1: Gemini extrajo barcode de la imagen → usar barcode real
+    extracted_barcode: str | None = final_state.get("extracted_barcode")
+    barcode_to_use = extracted_barcode or f"photo-{uuid4().hex[:16]}"
+    show_cta = not bool(extracted_barcode)
+
     product = _upsert_product(
         db,
-        barcode=pseudo_barcode,
+        barcode=barcode_to_use,
         name=final_state.get("product_name"),
         brand=None,
         image_url=None,
     )
+    if show_cta:
+        product.needs_barcode_link = True
+
     response = _build_response(final_state, product.barcode, product.name)
+    response.show_barcode_cta = show_cta
     _persist_scan_history(db, current_user, product.barcode, final_state, response)
     db.commit()
 
+    resolved: list[IngredientResult] = final_state.get("resolved") or []
+    avg_conf = sum(r.confidence_score for r in resolved) / len(resolved) if resolved else 0.0
+
+    if extracted_barcode and avg_conf >= 0.8:
+        # Ex.1: barcode real disponible → enriquecer directamente
+        background_tasks.add_task(
+            _run_enrich_task,
+            barcode=extracted_barcode,
+            resolved_json=[r.model_dump(mode="json") for r in resolved],
+            avg_confidence=avg_conf,
+            source="scan",
+            settings=settings,
+        )
+    elif show_cta:
+        # Ex.2: sin barcode → buscar en OFF por nombre+marca en background
+        background_tasks.add_task(
+            _run_off_lookup_task,
+            name=final_state.get("product_name"),
+            brand=final_state.get("product_brand"),
+            pseudo_barcode=barcode_to_use,
+            settings=settings,
+        )
+
+    return response
+
+
+# ─────────────────────────────────────────────
+# POST /scan/photo/{pseudo_barcode}/link  (Fase 2)
+# ─────────────────────────────────────────────
+
+
+@router.post("/photo/{pseudo_barcode}/link", response_model=ScanResponse)
+@limiter.limit("10/minute")
+async def link_photo_barcode(
+    request: Request,
+    pseudo_barcode: str,
+    body: LinkBarcodeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    from app.services.enrichment import link_photo_to_barcode as _link  # noqa: PLC0415
+
+    real_product = await _link(
+        pseudo_barcode=pseudo_barcode,
+        real_barcode=body.barcode,
+        user_id=str(current_user.id),
+        db=db,
+        settings=settings,
+    )
+
+    history = db.scalar(
+        select(ScanHistory)
+        .where(
+            ScanHistory.product_barcode == pseudo_barcode,
+            ScanHistory.user_id == current_user.id,
+        )
+        .order_by(ScanHistory.scanned_at.desc())
+    )
+    if not history or not history.result_json:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
+
+    response = ScanResponse.model_validate(history.result_json)
+    response.product_barcode = real_product.barcode
+    response.show_barcode_cta = False
     return response
 
 
@@ -282,7 +371,7 @@ def _persist_scan_history(
             ),
             confidence_score=avg_confidence,
             conflict_severity=state.get("conflict_severity"),
-            result_json=response.model_dump(mode="json"),
+            result_json=response.model_dump(mode="json", exclude={"show_barcode_cta"}),
         )
     )
 
@@ -386,5 +475,41 @@ async def _run_off_contribution(
     db = SessionLocal()
     try:
         await _run_off_contribution_impl(contribution_id, body, settings, db)
+    finally:
+        db.close()
+
+
+async def _run_enrich_task(
+    barcode: str,
+    resolved_json: list[dict],
+    avg_confidence: float,
+    source: str,
+    settings,
+) -> None:
+    from app.services.enrichment import enrich_product  # noqa: PLC0415
+
+    db = SessionLocal()
+    try:
+        resolved = [IngredientResult.model_validate(i) for i in resolved_json]
+        await enrich_product(barcode, resolved, avg_confidence, source, db, settings)
+    except Exception as exc:
+        logger.error("Enrichment failed for %s: %s", barcode, exc)
+    finally:
+        db.close()
+
+
+async def _run_off_lookup_task(
+    name: str | None,
+    brand: str | None,
+    pseudo_barcode: str,
+    settings,
+) -> None:
+    from app.services.enrichment import try_off_lookup  # noqa: PLC0415
+
+    db = SessionLocal()
+    try:
+        await try_off_lookup(name, brand, pseudo_barcode, db, settings)
+    except Exception as exc:
+        logger.error("OFF lookup failed for %s: %s", pseudo_barcode, exc)
     finally:
         db.close()

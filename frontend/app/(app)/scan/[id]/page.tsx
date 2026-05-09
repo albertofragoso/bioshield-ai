@@ -1,9 +1,9 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { getScanResult, scanBarcode } from "@/lib/api/scan";
+import { getScanResult, linkPhotoToBarcode, scanBarcode } from "@/lib/api/scan";
 import { getBiomarkerStatus } from "@/lib/api/biosync";
 import type { BiomarkerStatusResponse } from "@/lib/api/types";
 import Image from "next/image";
@@ -117,6 +117,64 @@ function getExplanation(sem: SemaphoreColor, conflictCount: number): string {
     case "GRAY":
       return "No pudimos resolver suficientes ingredientes con confianza para emitir un veredicto.";
   }
+}
+
+// ── LinkBarcodeCard ─────────────────────────────────────────────────────────────
+function LinkBarcodeCard({ pseudoBarcode }: { pseudoBarcode: string }) {
+  const router = useRouter();
+  const [barcode, setBarcode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleLink() {
+    if (!/^\d{8,14}$/.test(barcode)) {
+      setError("Código inválido — debe tener 8 a 14 dígitos");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await linkPhotoToBarcode(pseudoBarcode, barcode);
+      router.push(`/scan/${result.product_barcode}`);
+    } catch {
+      setError("No pudimos linkear el producto. Intenta de nuevo.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-[14px] border border-[rgba(96,165,250,.2)] bg-[rgba(12,24,40,.5)] p-4 flex flex-col gap-3">
+      <div className="flex items-start gap-2">
+        <span className="text-[18px]">🔗</span>
+        <div>
+          <p className="text-[13px] font-semibold text-[#cbd5e1]">
+            ¿Tienes el producto a la mano?
+          </p>
+          <p className="text-[11px] text-[#475569] mt-0.5">
+            Escanea su código de barras para que BioShield lo recuerde
+            y pueda sugerirte alternativas más limpias.
+          </p>
+        </div>
+      </div>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="\d*"
+        placeholder="Ej. 7501030495584"
+        value={barcode}
+        onChange={(e) => setBarcode(e.target.value.replace(/\D/g, ""))}
+        className="w-full px-3 py-2 rounded-lg bg-[#0f172a] border border-[#1e293b] text-[13px] text-[#f1f5f9] placeholder:text-[#334155] focus:outline-none focus:border-[#3b82f6]"
+      />
+      {error && <p className="text-[11px] text-[#f87171]">{error}</p>}
+      <button
+        onClick={handleLink}
+        disabled={loading || barcode.length < 8}
+        className="w-full py-2 rounded-lg bg-[#2563eb] text-white text-[13px] font-semibold disabled:opacity-40 hover:bg-[#1d4ed8] transition-colors"
+      >
+        {loading ? "Guardando..." : "Confirmar"}
+      </button>
+    </div>
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -269,6 +327,11 @@ function ScanResultInner() {
               </span>
               <span className="text-[#60a5fa] text-[16px]">→</span>
             </Link>
+          )}
+
+          {/* LinkBarcodeCard — foto scans con CTA habilitado */}
+          {data.show_barcode_cta && id.startsWith("photo-") && (
+            <LinkBarcodeCard pseudoBarcode={id} />
           )}
 
           {/* Explicación contextual */}

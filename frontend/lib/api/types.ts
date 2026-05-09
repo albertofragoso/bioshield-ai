@@ -38,6 +38,10 @@ export interface PhotoScanRequest {
   image_base64: string;
 }
 
+export interface LinkBarcodeRequest {
+  barcode: string;
+}
+
 export interface IngredientConflict {
   conflict_type: ConflictType;
   severity: ConflictSeverity;
@@ -64,6 +68,7 @@ export interface ScanResponse {
   source: ScanSource;
   scanned_at: string;
   personalized_insights: PersonalizedInsight[];
+  show_barcode_cta: boolean;
 }
 
 // ── Biomarker types (mirror of backend Biosync schemas) ──────────────────────
