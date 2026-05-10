@@ -81,9 +81,11 @@ async def test_login_success(client):
     response = await client.post(LOGIN_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
     assert response.status_code == 200
     body = response.json()
-    assert "access_token" in body
-    assert "refresh_token" in body
-    assert body["token_type"] == "bearer"
+    assert "access_token" not in body
+    assert "refresh_token" not in body
+    assert "token_type" not in body
+    assert "expires_in" in body
+    assert body["expires_in"] == TEST_SETTINGS.jwt_access_token_expire_minutes * 60
     assert "access_token" in response.cookies
     assert "refresh_token" in response.cookies
 
@@ -168,9 +170,9 @@ async def test_refresh_issues_new_token_pair(client):
     response = await client.post(REFRESH_URL)
     assert response.status_code == 200
     body = response.json()
-    assert "access_token" in body
-    assert "refresh_token" in body
-    # New token is valid — can access protected route
+    assert "access_token" not in body
+    assert "refresh_token" not in body
+    assert "expires_in" in body
     assert "access_token" in response.cookies
     protected = await client.get(PROTECTED_URL)
     assert protected.status_code == 200

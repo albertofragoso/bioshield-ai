@@ -8,7 +8,7 @@ from app.config import Settings, get_settings
 from app.middleware.rate_limit import limiter
 from app.models import User
 from app.models.base import get_db
-from app.schemas.models import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.schemas.models import AuthSuccessResponse, LoginRequest, RegisterRequest, UserResponse
 from app.services.auth import (
     create_access_token,
     create_refresh_token,
@@ -84,7 +84,7 @@ def register(
 # ─────────────────────────────────────────────
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=AuthSuccessResponse)
 @limiter.limit("10/minute")
 def login(
     request: Request,
@@ -103,11 +103,7 @@ def login(
     db.commit()
 
     _set_auth_cookies(response, access, refresh, settings)
-    return TokenResponse(
-        access_token=access,
-        refresh_token=refresh,
-        expires_in=settings.jwt_access_token_expire_minutes * 60,
-    )
+    return AuthSuccessResponse(expires_in=settings.jwt_access_token_expire_minutes * 60)
 
 
 # ─────────────────────────────────────────────
@@ -115,7 +111,7 @@ def login(
 # ─────────────────────────────────────────────
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=AuthSuccessResponse)
 def refresh(
     response: Response,
     refresh_token: str | None = Cookie(default=None, alias=_REFRESH_COOKIE),
@@ -130,12 +126,7 @@ def refresh(
 
     _, new_access, new_refresh = validate_and_rotate_refresh_token(db, refresh_token, settings)
     _set_auth_cookies(response, new_access, new_refresh, settings)
-
-    return TokenResponse(
-        access_token=new_access,
-        refresh_token=new_refresh,
-        expires_in=settings.jwt_access_token_expire_minutes * 60,
-    )
+    return AuthSuccessResponse(expires_in=settings.jwt_access_token_expire_minutes * 60)
 
 
 # ─────────────────────────────────────────────
