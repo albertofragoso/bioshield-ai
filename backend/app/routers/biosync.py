@@ -28,9 +28,9 @@ from app.schemas.models import (
     BiomarkerUploadRequest,
 )
 from app.services.biomarker_ranges import classify
-from app.services.maintenance import scrub_scan_history_insights
 from app.services.crypto import encrypt_biomarker
 from app.services.gemini import extract_biomarkers_from_pdf
+from app.services.maintenance import scrub_scan_history_insights
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 

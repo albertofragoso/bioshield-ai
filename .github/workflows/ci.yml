@@ -49,6 +49,7 @@ jobs:
         working-directory: backend
     env:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      DEBUG: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
