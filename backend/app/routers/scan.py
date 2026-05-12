@@ -406,6 +406,19 @@ async def scan_contribute(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> OFFContributeResponse:
+    if body.scan_history_id is not None:
+        owned = db.scalar(
+            select(ScanHistory).where(
+                ScanHistory.id == str(body.scan_history_id),
+                ScanHistory.user_id == current_user.id,
+            )
+        )
+        if owned is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="scan_history_id no pertenece al usuario autenticado",
+            )
+
     ingredients_text = ", ".join(body.ingredients)
 
     row = OFFContribution(

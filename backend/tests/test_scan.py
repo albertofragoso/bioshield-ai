@@ -364,3 +364,102 @@ async def test_photo_creates_pseudo_barcode_product(client, db_session, monkeypa
     product = db_session.scalar(select(Product))
     assert product is not None
     assert product.barcode.startswith("photo-")
+
+
+# ─────────────────────────────────────────────
+# /scan/contribute — ownership check
+# ─────────────────────────────────────────────
+
+CONTRIBUTE_URL = "/scan/contribute"
+LOGIN_URL = "/auth/login"
+
+
+async def test_contribute_rejects_unowned_scan_history_id(client, db_session):
+    """contribute must return 403 if scan_history_id belongs to another user."""
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "usera@test.ai", "password": "pass123456"})
+    await client.post(REGISTER_URL, json={"email": "userb@test.ai", "password": "pass123456"})
+
+    userb = db_session.scalar(select(User).where(User.email == "userb@test.ai"))
+
+    product = Product(barcode="9991111111111", name="Foreign Product", brand=None, image_url=None)
+    db_session.add(product)
+    db_session.flush()
+
+    foreign_scan = ScanHistory(
+        user_id=userb.id,
+        product_barcode="9991111111111",
+        semaphore_result="GRAY",
+        result_json={"product_barcode": "9991111111111", "semaphore": "GRAY", "ingredients": []},
+    )
+    db_session.add(foreign_scan)
+    db_session.commit()
+
+    await client.post(LOGIN_URL, json={"email": "usera@test.ai", "password": "pass123456"})
+
+    response = await client.post(
+        CONTRIBUTE_URL,
+        json={
+            "barcode": "9991111111111",
+            "ingredients": ["sugar"],
+            "scan_history_id": str(foreign_scan.id),
+            "consent": True,
+        },
+    )
+    assert response.status_code == 403
+
+
+async def test_contribute_accepts_owned_scan_history_id(client, db_session, monkeypatch):
+    """contribute must accept scan_history_id owned by the authenticated user."""
+    from app.models import User
+    from app.services import off_client as off_mod
+
+    await client.post(REGISTER_URL, json={"email": "ownera@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "ownera@test.ai", "password": "pass123456"})
+
+    user = db_session.scalar(select(User).where(User.email == "ownera@test.ai"))
+    product = Product(barcode="8881111111111", name="My Product", brand=None, image_url=None)
+    db_session.add(product)
+    db_session.flush()
+    own_scan = ScanHistory(
+        user_id=user.id,
+        product_barcode="8881111111111",
+        semaphore_result="GRAY",
+        result_json={"product_barcode": "8881111111111", "semaphore": "GRAY", "ingredients": []},
+    )
+    db_session.add(own_scan)
+    db_session.commit()
+
+    monkeypatch.setattr(off_mod, "contribute_product", lambda *a, **kw: None)
+
+    response = await client.post(
+        CONTRIBUTE_URL,
+        json={
+            "barcode": "8881111111111",
+            "ingredients": ["sugar"],
+            "scan_history_id": str(own_scan.id),
+            "consent": True,
+        },
+    )
+    assert response.status_code == 202
+
+
+async def test_contribute_without_scan_history_id_accepted(client, monkeypatch):
+    """scan_history_id is optional — omitting it must work normally."""
+    from app.services import off_client as off_mod
+
+    await client.post(REGISTER_URL, json={"email": "noid@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "noid@test.ai", "password": "pass123456"})
+
+    monkeypatch.setattr(off_mod, "contribute_product", lambda *a, **kw: None)
+
+    response = await client.post(
+        CONTRIBUTE_URL,
+        json={
+            "barcode": "0000000000001",
+            "ingredients": ["sugar"],
+            "consent": True,
+        },
+    )
+    assert response.status_code == 202
