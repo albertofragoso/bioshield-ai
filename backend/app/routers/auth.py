@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.middleware.auth import get_current_user
 from app.middleware.rate_limit import limiter
 from app.models import User
 from app.models.base import get_db
@@ -13,7 +14,7 @@ from app.services.auth import (
     create_access_token,
     create_refresh_token,
     hash_password,
-    revoke_user_token,
+    revoke_all_user_tokens,
     store_refresh_token,
     validate_and_rotate_refresh_token,
     verify_password,
@@ -137,10 +138,9 @@ def refresh(
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
     response: Response,
-    refresh_token: str | None = Cookie(default=None, alias=_REFRESH_COOKIE),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if refresh_token:
-        revoke_user_token(db, refresh_token)
+    revoke_all_user_tokens(db, current_user.id)
     response.delete_cookie(_ACCESS_COOKIE)
     response.delete_cookie(_REFRESH_COOKIE, path="/auth/refresh")

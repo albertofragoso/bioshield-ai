@@ -214,3 +214,16 @@ async def test_logout_clears_cookies(client):
     # After logout, protected route must return 401
     response = await client.get(PROTECTED_URL)
     assert response.status_code == 401
+
+
+async def test_logout_revokes_all_sessions(client):
+    """After logout, even a manually constructed refresh should fail."""
+    await client.post(REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
+    await client.post(LOGIN_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
+
+    logout_response = await client.post(LOGOUT_URL)
+    assert logout_response.status_code == 204
+
+    # Refresh should now fail (token was revoked)
+    refresh_response = await client.post(REFRESH_URL)
+    assert refresh_response.status_code == 401
