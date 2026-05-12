@@ -81,9 +81,11 @@ async def test_login_success(client):
     response = await client.post(LOGIN_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
     assert response.status_code == 200
     body = response.json()
-    assert "access_token" in body
-    assert "refresh_token" in body
-    assert body["token_type"] == "bearer"
+    assert "access_token" not in body
+    assert "refresh_token" not in body
+    assert "token_type" not in body
+    assert "expires_in" in body
+    assert body["expires_in"] == TEST_SETTINGS.jwt_access_token_expire_minutes * 60
     assert "access_token" in response.cookies
     assert "refresh_token" in response.cookies
 
@@ -168,9 +170,9 @@ async def test_refresh_issues_new_token_pair(client):
     response = await client.post(REFRESH_URL)
     assert response.status_code == 200
     body = response.json()
-    assert "access_token" in body
-    assert "refresh_token" in body
-    # New token is valid — can access protected route
+    assert "access_token" not in body
+    assert "refresh_token" not in body
+    assert "expires_in" in body
     assert "access_token" in response.cookies
     protected = await client.get(PROTECTED_URL)
     assert protected.status_code == 200
@@ -212,3 +214,16 @@ async def test_logout_clears_cookies(client):
     # After logout, protected route must return 401
     response = await client.get(PROTECTED_URL)
     assert response.status_code == 401
+
+
+async def test_logout_revokes_all_sessions(client):
+    """After logout, even a manually constructed refresh should fail."""
+    await client.post(REGISTER_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
+    await client.post(LOGIN_URL, json={"email": VALID_EMAIL, "password": VALID_PASSWORD})
+
+    logout_response = await client.post(LOGOUT_URL)
+    assert logout_response.status_code == 204
+
+    # Refresh should now fail (token was revoked)
+    refresh_response = await client.post(REFRESH_URL)
+    assert refresh_response.status_code == 401

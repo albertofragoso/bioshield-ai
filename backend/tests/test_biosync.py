@@ -256,3 +256,46 @@ async def test_user_isolation(client, db_session):
 
     alice = db_session.scalar(select(User).where(User.email == "alice@bioshield.ai"))
     assert biomarkers[0].user_id == alice.id
+
+
+# ─────────────────────────────────────────────
+# scrub_scan_history_insights
+# ─────────────────────────────────────────────
+
+
+async def test_delete_scrubs_scan_history_phi(client, db_session):
+    """DELETE /biosync/data must scrub personalized_insights from scan_history."""
+    from sqlalchemy import select as sql_select
+
+    from app.models import Product, ScanHistory, User
+
+    await _register(client)
+    await client.post(UPLOAD_URL, json=_upload_body())
+
+    # get the user that was just registered
+    user = db_session.scalar(sql_select(User).order_by(User.created_at.desc()))
+
+    product = Product(barcode="7501111111111", name="Test", brand=None, image_url=None)
+    db_session.add(product)
+    db_session.flush()
+    scan = ScanHistory(
+        user_id=user.id,
+        product_barcode="7501111111111",
+        semaphore_result="GRAY",
+        result_json={
+            "product_barcode": "7501111111111",
+            "semaphore": "GRAY",
+            "ingredients": [],
+            "personalized_insights": [{"biomarker_name": "LDL_CHOLESTEROL", "biomarker_value": 130.0}],
+        },
+    )
+    db_session.add(scan)
+    db_session.commit()
+
+    response = await client.delete(DELETE_URL)
+    assert response.status_code == 204
+
+    db_session.expire_all()
+    updated = db_session.scalar(sql_select(ScanHistory).where(ScanHistory.product_barcode == "7501111111111"))
+    assert updated is not None
+    assert "personalized_insights" not in (updated.result_json or {})

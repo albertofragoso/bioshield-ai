@@ -6,9 +6,7 @@ is constructed per-request so nodes can access the live DB + external services.
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from typing import Literal, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,12 +15,10 @@ from app.agents.state import ScanState
 from app.config import Settings
 from app.models import Biomarker
 from app.schemas.models import (
-    CanonicalBiomarker,
     ConflictSeverity,
     ConflictType,
     IngredientConflict,
     IngredientResult,
-    PersonalizedInsight,
     RegulatoryStatus,
     SemaphoreColor,
 )
@@ -31,12 +27,10 @@ from app.services import off_client
 from app.services.analysis import (
     aggregate_regulatory_status,
     compute_semaphore,
-    find_ingredient_matches,
 )
 from app.services.conflicts import detect_conflicts
 from app.services.crypto import decrypt_biomarker
 from app.services.entity_resolution import resolve
-from app.services.rag import get_collection
 from app.services.retrieval import hybrid_search
 
 logger = logging.getLogger(__name__)
@@ -224,13 +218,6 @@ def make_detect_conflicts_node(db: Session):
     return node
 
 
-_SEVERITY_TO_AVATAR: dict[str, str] = {
-    ConflictSeverity.HIGH.value: "red",
-    ConflictSeverity.MEDIUM.value: "orange",
-    ConflictSeverity.LOW.value: "yellow",
-}
-
-
 # ─────────────────────────────────────────────
 # 7. Personalize — generate friendly insights per biomarker × ingredient
 # ─────────────────────────────────────────────
@@ -238,81 +225,12 @@ _SEVERITY_TO_AVATAR: dict[str, str] = {
 
 def make_personalize_node(settings: Settings):
     async def node(state: ScanState) -> ScanState:
+        from app.services.analysis import generate_personalized_insights
+
         resolved = state.get("resolved") or []
         biomarkers = state.get("biomarkers")
-
-        collection = get_collection(settings)
-        matches = await find_ingredient_matches(biomarkers, resolved, settings, collection)
-        if not matches:
-            return {"personalized_insights": []}
-
-        async def _build_insight(
-            bm,
-            ingr_names: list[str],
-            severity: ConflictSeverity,
-            kind: str,
-            direction: str,
-            semantic_score: float = 0.0,
-        ) -> PersonalizedInsight:
-            name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", "")
-            value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", 0.0)
-            unit = bm.get("unit") if isinstance(bm, dict) else getattr(bm, "unit", "")
-            classification = (
-                bm.get("classification")
-                if isinstance(bm, dict)
-                else getattr(bm, "classification", "high")
-            )
-            ref_low = (
-                bm.get("reference_range_low")
-                if isinstance(bm, dict)
-                else getattr(bm, "reference_range_low", None)
-            )
-            ref_high = (
-                bm.get("reference_range_high")
-                if isinstance(bm, dict)
-                else getattr(bm, "reference_range_high", None)
-            )
-            name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
-            class_val = (
-                classification.value
-                if (classification is not None and hasattr(classification, "value"))
-                else str(classification)
-            )
-            float_value = float(value or 0.0)
-
-            copy = await gemini_service.generate_personalized_insight(
-                biomarker_name=name_val,
-                biomarker_value=float_value,
-                biomarker_unit=str(unit),
-                classification=class_val,
-                severity=severity.value,
-                affecting_ingredients=ingr_names,
-                kind=kind,
-                settings=settings,
-            )
-            return PersonalizedInsight(
-                biomarker_name=cast(CanonicalBiomarker, name_val),
-                biomarker_value=float_value,
-                biomarker_unit=str(unit),
-                classification=cast(Literal["low", "normal", "high"], class_val),
-                affecting_ingredients=ingr_names,
-                severity=severity,
-                kind=cast(Literal["alert", "watch"], kind),
-                impact_direction=cast(Literal["raises", "lowers"], direction),
-                reference_range_low=ref_low,
-                reference_range_high=ref_high,
-                friendly_title=copy.friendly_title,
-                friendly_biomarker_label=copy.friendly_biomarker_label,
-                friendly_explanation=copy.friendly_explanation,
-                friendly_recommendation=copy.friendly_recommendation,
-                avatar_variant=cast(
-                    Literal["yellow", "orange", "red"],
-                    _SEVERITY_TO_AVATAR.get(severity.value, "yellow"),
-                ),
-            )
-
-        insights = await asyncio.gather(*[_build_insight(*m) for m in matches])
-        return {"personalized_insights": list(insights)}
+        insights = await generate_personalized_insights(resolved, biomarkers, settings)
+        return {"personalized_insights": insights}
 
     return node
 

@@ -1,11 +1,17 @@
 import { apiFetch, HttpError } from "./client";
-import type { LoginRequest, RegisterRequest, TokenResponse, UserResponse, ApiError } from "./types";
+import type {
+  LoginRequest,
+  RegisterRequest,
+  AuthSuccessResponse,
+  UserResponse,
+  ApiError,
+} from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // Login usa fetch directo para que un 401 de credenciales incorrectas
 // no dispare el interceptor de refresh de apiFetch.
-export async function login(body: LoginRequest): Promise<TokenResponse> {
+export async function login(body: LoginRequest): Promise<AuthSuccessResponse> {
   const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     credentials: "include",
@@ -13,10 +19,10 @@ export async function login(body: LoginRequest): Promise<TokenResponse> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const payload = await res.json().catch(() => ({} as ApiError));
+    const payload = await res.json().catch(() => ({}) as ApiError);
     throw new HttpError(res.status, payload.detail ?? res.statusText);
   }
-  return res.json() as Promise<TokenResponse>;
+  return res.json() as Promise<AuthSuccessResponse>;
 }
 
 export async function register(body: RegisterRequest): Promise<UserResponse> {
@@ -30,6 +36,6 @@ export async function logout(): Promise<void> {
   return apiFetch<void>("/auth/logout", { method: "POST" });
 }
 
-export async function refresh(): Promise<TokenResponse> {
-  return apiFetch<TokenResponse>("/auth/refresh", { method: "POST" });
+export async function refresh(): Promise<AuthSuccessResponse> {
+  return apiFetch<AuthSuccessResponse>("/auth/refresh", { method: "POST" });
 }

@@ -30,6 +30,7 @@ from app.schemas.models import (
 from app.services.biomarker_ranges import classify
 from app.services.crypto import encrypt_biomarker
 from app.services.gemini import extract_biomarkers_from_pdf
+from app.services.maintenance import scrub_scan_history_insights
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -188,8 +189,10 @@ def delete_biomarkers(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    scrub_scan_history_insights(db, str(current_user.id))
     biomarker = db.scalar(select(Biomarker).where(Biomarker.user_id == current_user.id))
     if not biomarker:
+        db.commit()  # persist scrub even if no Biomarker row
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No biomarker data for this user",
