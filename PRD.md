@@ -192,19 +192,38 @@ class PersonalizedInsightCopy(BaseModel):
 
 **Objetivo:** dado un producto con semáforo YELLOW/ORANGE/RED, encontrar alternativas reales del mercado mexicano con ingredientes más limpios, priorizadas por compatibilidad con los biomarcadores activos del usuario.
 
-**Pivot estratégico:** se descartaron los conectores a APIs retail (Walmart/Cornershop/Mercado Libre) por cobertura pobre en productos health-conscious y dependencia de credenciales comerciales. Se reemplaza por un curated DB propio de 6K productos.
+**Pivot estratégico:** se descartaron los conectores a APIs retail (Walmart/Cornershop/Mercado Libre) por cobertura pobre en productos health-conscious y dependencia de credenciales comerciales. Se reemplaza por un curated DB propio de productos, ingesta vía **Open Food Facts Search API v2** (filtrado por `countries_tags=en:mexico` + categorías health). Mercado Libre descartado también como fuente — es marketplace sin datos de ingredientes.
 
 **Features:**
-- Curated DB de 6K productos health-conscious (Costco Organic, Soriana Organic, CERTIMEX, Mercado Libre salud, NATURLAND)
-- Hybrid matching engine: SQL first pass por categoría → ChromaDB re-rank → biomarker filter rule-based
-- Pantalla `/scan/[id]/alternatives`: top pick personalizado (AvatarGlow blue) + lista secundaria
-- `GET /scan/alternatives/{barcode}` endpoint · `POST /analytics/event` fire-and-forget
-- Nueva ChromaDB collection `products` (ingredient profiles, 1024-dim BGE-M3)
-- A/B testing de semáforo UI en producción (independiente — sigue en roadmap)
+- ✅ Hybrid matching engine: SQL first pass por categoría → ChromaDB re-rank → biomarker filter rule-based
+- ✅ Pantalla `/scan/[id]/alternatives`: top pick personalizado (AvatarGlow blue) + lista secundaria
+- ✅ `GET /scan/alternatives/{barcode}` endpoint · `POST /analytics/event` fire-and-forget
+- ✅ Nueva ChromaDB collection `products` (ingredient profiles, 1024-dim BGE-M3)
+- ✅ Enrichment Pipeline (Fase 2.1): scan → product DB auto-feeding
+- ⏳ **Curated DB ingestion** — 400–900 productos health-conscious vía Open Food Facts Search API v2 (MX)
+- ⏳ A/B testing de semáforo UI en producción (independiente — sigue en roadmap post-Fase 2)
 
-**Spec completo:** `docs/superpowers/specs/2026-05-08-alternative-matching-design.md`
+**Sub-fases:**
+1. **Fase 2.0 — Ingesta + Curation** (BLOQUEANTE para feature testing)
+   - Scripts de ingesta Open Food Facts Search API v2 (MX, categorías health)
+   - Curation pipeline: `compute_clean_scores.py`, `index_products_chroma.py`, `seed_alternatives_fixture.py`
+   - ~2 días de ejecución
+   - Spec: `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md`
 
-**Dependencias:** Fase 1 shipped, curated DB cargado y scripts de curation ejecutados.
+2. **Fase 2.1 — Feature Implementation** (ya implementado ✅)
+   - Backend APIs + Frontend UI + Enrichment Pipeline
+   - Spec: `docs/superpowers/specs/2026-05-08-alternative-matching-design.md`
+
+3. **Fase 2.2 — Testing & Validation**
+   - E2E testing (36+ casos Playwright)
+   - Legal validation (Privacy/T&C)
+   - Dogfood real con usuarios
+
+**Dependencias críticas:**
+- ✅ Fase 1 shipped
+- ⏳ **Curated DB cargado y scripts de curation ejecutados (BLOQUEANTE)**
+- ⏳ E2E tests de alternatives passing
+- ⏳ Documentos legales publicados
 
 #### Enrichment Pipeline (Fase 2.1)
 
@@ -368,12 +387,23 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 
 ## 12. Próximos Pasos (Orden de Prioridad)
 
-1. **E2E testing (Playwright)** — 36+ casos cubiertos en `.claude/plans/frontend.md §E`. ~4-6h.
-2. **Frontend CI/CD (GitHub Actions)** — `pnpm install + build + lint + typecheck`. ~2h.
-3. **docker-compose extensión** — servicio `frontend` + nginx reverse proxy (opcional). ~1h.
+### FASE 2: Ingesta de Productos (BLOQUEANTE para alternatives feature)
+
+1. **[CRÍTICO] Product Ingestion Pipeline — Open Food Facts (MX)** — Scripts automatizados vía OFF Search API v2.
+   - Fase 2.0.1a: `utils/ingredient_parser.py` + `ingest_off_mexico.py` → `off_products.json` ~4-6h
+   - Fase 2.0.1b: `load_products_to_db.py` → upsert a tabla `products` ~2h
+   - Fase 2.0.1c: Refactor `build_product_profile` centralizado en `rag.py` ~1h
+   - Fase 2.0.1d: `compute_clean_scores.py` + `index_products_chroma.py` + validación ~2h
+   - **Total: ~2 días | Spec: `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md`**
+
+### FASE 2: Testing & Validation (después de ingesta)
+
+2. **E2E testing (Playwright)** — 36+ casos de alternatives + existing flows. ~4-6h. (Bloqueado por: ingesta completa)
+3. **Frontend CI/CD (GitHub Actions)** — `pnpm install + build + lint + typecheck`. ~2h.
 4. **Validación legal** — revisión de Privacidad/T&C por abogado. ~3-5 días.
-5. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
-6. **Dogfood real** — scan productos reales, interview usuarios, calibración HITL.
+5. **docker-compose extensión** — servicio `frontend` + nginx reverse proxy (opcional). ~1h.
+6. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
+7. **Dogfood real** — scan productos reales con alternatives, interview usuarios, calibración HITL.
 
 ---
 
@@ -394,6 +424,9 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 | `frontend/CLAUDE.md` | Documentación frontend (stack, convenciones, cómo correr) |
 | `docs/legal/privacy-policy.md` | Borrador política de privacidad (pendiente) |
 | `docs/legal/terms-of-service.md` | Borrador términos de uso (pendiente) |
+| `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md` | Product Ingestion Pipeline — Fase 2.0.1 (BLOQUEANTE) |
+| `docs/superpowers/specs/2026-05-08-alternative-matching-design.md` | Alternative Matching Feature Design — Fase 2.1 |
+| `docs/superpowers/specs/2026-05-09-scan-enrichment-design.md` | Scan → Product Enrichment Pipeline — Fase 2.1 |
 
 ---
 
