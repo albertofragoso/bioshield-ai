@@ -198,11 +198,19 @@ Mismo que la collection `ingredients`: BGE-M3 local (1024-dim). No requiere re-i
 
 ### Query en runtime
 
-El alternatives engine (`backend/app/services/alternatives.py`) construye el query text como:
+El alternatives engine (`backend/app/services/alternatives.py`) construye el query text de dos formas:
+
+**Cuando hay ingredientes problemáticos:**
 ```
-"categoría: {category} sin {flagged_ing_1} sin {flagged_ing_2}..."
+"producto: {product_name} sin {flagged_ing_1} sin {flagged_ing_2}..."
 ```
-y filtra con `where={"barcode": {"$in": candidate_barcodes}}` sobre los resultados del SQL first pass.
+
+**Cuando no hay ingredientes problemáticos (fallback por falta de categoría):**
+```
+"producto: {product_name} ingredientes: {ing_1}, {ing_2}, ..."
+```
+
+La inclusión del nombre del producto mejora el matching semántico cuando el producto escaneado no tiene categoría asignada (fallback_used = true). Se filtra con `where={"barcode": {"$in": candidate_barcodes}}` sobre los resultados del SQL first pass.
 
 ### Nota: Crecimiento automático vía flywheel de scans
 

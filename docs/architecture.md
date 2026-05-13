@@ -373,6 +373,43 @@ Separada de la collection `ingredients`. Cada documento es el ingredient profile
 
 **Nota:** `scan_history.result_json` (migration `a3f7c2d1e845`) ya existe — Fase 2 lo consume para extraer `flagged_ingredients[]` sin re-correr el pipeline.
 
+### 2.4 Ingesta OFF Mexico (Product Ingestion Pipeline)
+
+**Scripts de ingesta (offline, no runtime):**
+
+| Script | Entrada | Salida | Responsabilidad |
+|---|---|---|---|
+| `scripts/ingest_off_mexico.py` | OFF Search API v2 (MX + health categories) | `scripts/data/off_products.json` | Fetch categorías de salud, mapeo de productos, deduplicación por barcode (última categoría gana) |
+| `scripts/load_products_to_db.py` | `off_products.json` | Tabla `products` | Upsert en DB, pre-computa `clean_score`, asigna `category` |
+| `scripts/compute_clean_scores.py` | Tabla `products` | Tabla `products` (clean_score actualizado) | Calcula clean_score según BIOMARKER_RULES para cada producto |
+| `scripts/index_products_chroma.py` | Tabla `products` | ChromaDB collection `products` | Genera ingredient profiles, embeddea con BGE-M3, indexa |
+
+**Estrategia de deduplicación (last-wins):**
+- OFF Search API devuelve el mismo producto en múltiples categorías (ej. un yogurt aparece en `en:yogurts` Y `en:fermented-milks`).
+- Los scripts de ingesta NO deduplicán durante el fetch — procesan todas las categorías.
+- El upsert en `load_products_to_db` asigna la **última categoría procesada** al barcode (last-wins).
+- Esto evita bloqueos de DB y mantiene coherencia con la orden de procesamiento.
+
+**Categorías de salud (ordenadas de general a específico):**
+- `en:plant-based-foods`, `en:plant-based-beverages`
+- `en:breakfast-cereals`, `en:whole-grain-foods`
+- `en:yogurts`, `en:fermented-milks`
+- `en:nuts`, `en:dried-fruits`, `en:legumes`
+- `en:waters`, `en:fruit-juices`, `en:herbal-teas`
+- `en:organic-foods`, `en:baby-foods`, `en:dietary-supplements`
+- **[CATEGORÍAS NUEVAS - pendiente]**
+
+**Función compartida: `build_product_profile()` en `rag.py`**
+
+Centraliza la generación de ingredient profiles para ChromaDB:
+```python
+def build_product_profile(product: Product) -> str:
+    """Genera: 'nombre: X | marca: Y | categoría: Z | clean_score: N [| ingredientes: ...]'"""
+```
+Usada por:
+- `enrichment.py` — post-scan, cuando un producto nuevo se enriquece
+- `index_products_chroma.py` — bulk indexing de ingesta OFF
+
 ---
 
 ## 3. Enrichment Pipeline
