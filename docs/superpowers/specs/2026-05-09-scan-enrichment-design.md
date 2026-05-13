@@ -13,6 +13,21 @@ Convertir cada scan exitoso de usuario en una contribución automática al curat
 
 ---
 
+## 1.1 Dependencias Críticas (BLOQUEANTE)
+
+**⚠️ IMPORTANTE:** Este feature depende de la initial curation completada en Fase 2.0:
+
+| Dependencia | Descripción | Estado |
+|---|---|---|
+| **Curated DB Ingestion (Fase 2.0)** | 400–900 productos seed vía Open Food Facts Search API v2 (MX) + curation pipeline | ⏳ `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md` |
+| **`compute_clean_scores.py` script** | Calcula `clean_score` para todos los productos seed | ⏳ Ejecutar post-ingesta |
+| **`index_products_chroma.py` script** | Indexa collection `products` en ChromaDB | ⏳ Ejecutar post-ingesta |
+| **ChromaDB collection `products` existente** | Debe estar creado antes de escribir en él | ⏳ Auto-creado por script |
+
+**Este pipeline ENRIQUECE el DB initial, pero requiere que exista primero.**
+
+---
+
 ## 2. Arquitectura General
 
 ### 2.1 Trigger y flujo principal
@@ -628,15 +643,15 @@ function LinkBarcodeCard({ pseudoBarcode }: { pseudoBarcode: string }) {
 
 | Fuente | Approach | Ingredientes | Viabilidad |
 |---|---|---|---|
-| Mercado Libre API | CLI via printingpress.dev desde OpenAPI spec | Via cross-ref OFF | 🟢 Alta |
-| Open Food Facts bulk | Dump mensual filtrado por país MX | Directamente | 🟢 Alta |
-| Soriana | HAR capture + printingpress CLI | No disponible online | 🟡 Media |
+| Open Food Facts (otros países) | `ingest_off.py --country-tag en:spain --market es` | Directamente | 🟢 Alta |
+| Soriana | Scraping bot (BeautifulSoup) | No disponible online | 🟡 Media |
 | Costco MX | Scraping — anti-bot agresivo | No disponible online | 🔴 Baja |
 
 **Approach recomendado para Fase 3:**
-1. OFF bulk dump mensual filtrado por `countries_tags:mexico` → ingredientes + barcode → carga masiva al curated DB
-2. Mercado Libre API (printingpress CLI) → catálogo MX → cross-ref OFF para ingredientes
-3. Los ingredientes que OFF no tenga se llenan vía el flywheel de scans de usuarios (este pipeline)
+1. Parametrizar `ingest_off_mexico.py` → `ingest_off.py --country-tag --market` para agregar países sin duplicar código
+2. Agregar columna `market` al modelo `Product` (Alembic migration) y filtro en `alternatives.py`
+3. Ver estrategia completa de escalado multi-país en `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md §6`
+4. Los ingredientes que OFF no tenga se llenan vía el flywheel de scans de usuarios (este pipeline)
 
 **Branch:** nuevo `feat/fase3-catalog-ingestion` desde `main` cuando Fase 2 esté merged.
 

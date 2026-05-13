@@ -12,7 +12,7 @@ from app.config import Settings
 from app.models import Ingredient, Product, RegulatoryStatus, ScanHistory
 from app.schemas.models import IngredientResult
 from app.services.embeddings import embed_text
-from app.services.rag import get_products_collection
+from app.services.rag import build_product_profile, get_products_collection
 
 logger = logging.getLogger(__name__)
 
@@ -48,18 +48,9 @@ def _semaphore(clean_score: int) -> str:
     return "RED"
 
 
-def _build_profile(product: Product) -> str:
-    return (
-        f"nombre: {product.name or 'desconocido'} | "
-        f"marca: {product.brand or 'desconocida'} | "
-        f"categoría: {product.category or 'sin categoría'} | "
-        f"clean_score: {product.clean_score}"
-    )
-
-
 async def _reindex_chroma(product: Product, settings: Settings) -> None:
     collection = get_products_collection(settings)
-    profile = _build_profile(product)
+    profile = build_product_profile(product)
     embedding = await embed_text(profile, settings)
     collection.upsert(
         ids=[product.barcode],

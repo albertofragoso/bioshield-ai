@@ -15,19 +15,10 @@ from app.config import get_settings
 from app.models import Product
 from app.models.base import SessionLocal
 from app.services.embeddings import embed_text
-from app.services.rag import get_products_collection
+from app.services.rag import build_product_profile, get_products_collection
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def _build_profile(product: Product) -> str:
-    return (
-        f"nombre: {product.name or 'desconocido'} | "
-        f"marca: {product.brand or 'desconocida'} | "
-        f"categoría: {product.category or 'sin categoría'} | "
-        f"clean_score: {product.clean_score}"
-    )
 
 
 def _semaphore(clean_score: int) -> str:
@@ -50,7 +41,7 @@ async def main():
         logger.info("Indexing %d products into ChromaDB 'products' collection...", len(products))
 
         for i, product in enumerate(products):
-            profile = _build_profile(product)
+            profile = build_product_profile(product)
             embedding = await embed_text(profile, settings)
             collection.upsert(
                 ids=[product.barcode],

@@ -1988,10 +1988,10 @@ Busca el bloque que empieza en `### Fase 2 — Retail Integration` y reemplázal
 
 **Objetivo:** dado un producto con semáforo YELLOW/ORANGE/RED, encontrar alternativas reales del mercado mexicano con ingredientes más limpios, priorizadas por compatibilidad con los biomarcadores activos del usuario.
 
-**Pivot estratégico:** se descartaron los conectores a APIs retail (Walmart/Cornershop/Mercado Libre) por cobertura pobre en productos health-conscious y dependencia de credenciales comerciales. Se reemplaza por un curated DB propio de 6K productos.
+**Pivot estratégico:** se descartaron los conectores a APIs retail (Walmart/Cornershop/Mercado Libre) por cobertura pobre en productos health-conscious y dependencia de credenciales comerciales. Se reemplaza por un curated DB propio de productos, ingesta vía Open Food Facts Search API v2 (MX). Ver spec: `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md`.
 
 **Features:**
-- Curated DB de 6K productos health-conscious (Costco Organic, Soriana Organic, CERTIMEX, Mercado Libre salud, NATURLAND)
+- Curated DB de 400–900 productos health-conscious vía Open Food Facts (MX, categorías health)
 - Hybrid matching engine: SQL first pass por categoría → ChromaDB re-rank → biomarker filter rule-based
 - Pantalla `/scan/[id]/alternatives`: top pick personalizado (AvatarGlow blue) + lista secundaria
 - `GET /scan/alternatives/{barcode}` endpoint · `POST /analytics/event` fire-and-forget

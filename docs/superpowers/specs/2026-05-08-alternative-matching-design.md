@@ -13,7 +13,22 @@ El MVP de BioShield (Fase 1) analiza etiquetas nutricionales y cruza ingrediente
 
 **Objetivo de Fase 2:** dado un producto con semáforo YELLOW, ORANGE o RED, encontrar y presentar alternativas reales del mercado mexicano con ingredientes más limpios, priorizando las que no generan conflictos con los biomarcadores activos del usuario.
 
-**Pivot estratégico respecto a Fase 2 original del PRD:** se descarta el approach de conectores a APIs retail (Walmart/Cornershop/Mercado Libre) por cobertura pobre en productos health-conscious y dependencia de credenciales comerciales. Se reemplaza por un curated DB propio de 6K productos health-conscious del mercado mexicano. El único item que sobrevive del PRD original es el A/B testing de semáforo UI (independiente de este feature).
+**Pivot estratégico respecto a Fase 2 original del PRD:** se descarta el approach de conectores a APIs retail (Walmart/Cornershop/Mercado Libre) por cobertura pobre en productos health-conscious y dependencia de credenciales comerciales. Se reemplaza por un curated DB propio de productos health-conscious del mercado mexicano, ingesta vía **Open Food Facts Search API v2** (filtrado por país MX + categorías health). El único item que sobrevive del PRD original es el A/B testing de semáforo UI (independiente de este feature).
+
+---
+
+## 1.1 Dependencias Críticas (BLOQUEANTE)
+
+**⚠️ IMPORTANTE:** Este feature NO puede testearse ni funcionar sin la siguiente dependencia completada primero:
+
+| Dependencia | Descripción | Esfuerzo | Spec |
+|---|---|---|---|
+| **Curated DB Ingestion (Fase 2.0)** | Scripts automatizados de ingesta Open Food Facts (Search API v2, MX) + curation pipeline | ~2 días | `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md` |
+| **ChromaDB collection `products` indexada** | Embedding ingredient profiles + metadata persisted | ~1 día (post-ingesta) | Scripts: `index_products_chroma.py` |
+| **Clean scores computed** | Cada producto debe tener `clean_score` calculado según BIOMARKER_RULES | ~1 día (post-ingesta) | Script: `compute_clean_scores.py` |
+| **E2E fixture (5-10 productos)** | Seed de testing en DB + ChromaDB para Playwright specs | ~4h | Script: `seed_alternatives_fixture.py` |
+
+**No implementar este feature hasta que ✅ curated DB esté cargado, indexado y testeado.**
 
 ---
 
