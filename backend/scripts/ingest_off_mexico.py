@@ -46,8 +46,13 @@ _FIELDS = ",".join([
     "brands",
     "categories_tags",
     "ingredients_text",
+    "ingredients_tags",
     "image_front_url",
 ])
+
+_PAGE_SIZE = 100
+_MAX_PAGES = 5  # up to 500 products per category
+_HEADERS = {"User-Agent": "BioShieldAI/1.0 (isc.albertofragoso@gmail.com)"}
 
 
 def _fetch_page(category: str, page: int) -> dict:
@@ -57,21 +62,44 @@ def _fetch_page(category: str, page: int) -> dict:
             "countries_tags": "en:mexico",
             "categories_tags": category,
             "fields": _FIELDS,
-            "page_size": 1000,
+            "page_size": _PAGE_SIZE,
             "page": page,
+            "sort_by": "unique_scans_n",
         },
+        headers=_HEADERS,
         timeout=30,
     )
     resp.raise_for_status()
     return resp.json()
 
 
+def _tags_to_text(tags: list) -> str:
+    """Convert ingredients_tags like ['en:wheat-flour', ...] to readable text."""
+    names = []
+    for tag in tags or []:
+        # Strip language prefix (e.g. 'en:', 'es:')
+        if ":" in tag:
+            tag = tag.split(":", 1)[1]
+        # Replace hyphens with spaces and title-case
+        names.append(tag.replace("-", " "))
+    return ", ".join(names)
+
+
 def _map_product(hit: dict, category: str) -> dict | None:
     barcode = (hit.get("code") or "").strip()
     name = (hit.get("product_name_es") or hit.get("product_name") or "").strip()
-    ingredients_text = (hit.get("ingredients_text") or "").strip()
 
-    if not barcode or not name or not ingredients_text:
+    if not barcode or not name:
+        return None
+
+    # Prefer free-text ingredients; fall back to structured tags
+    ingredients_text = (hit.get("ingredients_text") or "").strip()
+    if not ingredients_text:
+        tags = hit.get("ingredients_tags") or []
+        if tags:
+            ingredients_text = _tags_to_text(tags)
+
+    if not ingredients_text:
         return None
 
     ingredients_json = parse_ingredients(ingredients_text)
@@ -79,7 +107,10 @@ def _map_product(hit: dict, category: str) -> dict | None:
         return None
 
     brands_raw = hit.get("brands") or ""
-    brand = brands_raw.split(",")[0].strip() if brands_raw.strip() else None
+    if isinstance(brands_raw, list):
+        brand = brands_raw[0].strip() if brands_raw else None
+    else:
+        brand = brands_raw.split(",")[0].strip() if brands_raw.strip() else None
 
     return {
         "barcode": barcode,
@@ -144,7 +175,7 @@ def main() -> None:
                 stats["accepted"] += 1
 
             total = data.get("count") or 0
-            if page * 1000 >= total:
+            if page * _PAGE_SIZE >= total or page >= _MAX_PAGES:
                 break
             page += 1
             time.sleep(0.1)
