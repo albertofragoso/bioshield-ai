@@ -134,3 +134,16 @@ def query_by_embedding(
 
 def collection_size(collection: Collection) -> int:
     return collection.count()
+
+
+def build_product_profile(product) -> str:
+    base = (
+        f"nombre: {product.name or 'desconocido'} | "
+        f"marca: {product.brand or 'desconocida'} | "
+        f"categoría: {product.category or 'sin categoría'} | "
+        f"clean_score: {product.clean_score}"
+    )
+    if product.ingredients_json:
+        ings = ", ".join(product.ingredients_json[:20])
+        return base + f" | ingredientes: {ings}"
+    return base

@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, patch
 from sqlalchemy import select
 
 from app.config import Settings
-from app.models import Ingredient, RegulatoryStatus
+from app.models import Ingredient, Product, RegulatoryStatus
 from app.services.conflicts import detect_conflicts
 from app.services.entity_resolution import resolve
 from app.services.ingestion.common import (
@@ -326,3 +326,47 @@ async def test_hybrid_search_bm25_fallback(db_session, monkeypatch):
     top = results[0]
     assert "Titanium" in top.document
     assert top.metadata.get("degraded") is True
+
+
+# ─────────────────────────────────────────────
+# build_product_profile
+# ─────────────────────────────────────────────
+
+from app.services.rag import build_product_profile  # noqa: E402
+
+
+def test_build_product_profile_base_fields():
+    p = Product(barcode="123", name="Avena", brand="Quaker", category="cereals", clean_score=2)
+    profile = build_product_profile(p)
+    assert "nombre: Avena" in profile
+    assert "marca: Quaker" in profile
+    assert "categoría: cereals" in profile
+    assert "clean_score: 2" in profile
+    assert "ingredientes:" not in profile
+
+
+def test_build_product_profile_includes_ingredients_when_present():
+    p = Product(
+        barcode="123", name="Avena", brand="Quaker", category="cereals",
+        clean_score=1, ingredients_json=["Avena integral", "Azúcar"],
+    )
+    profile = build_product_profile(p)
+    assert "ingredientes: Avena integral, Azúcar" in profile
+
+
+def test_build_product_profile_caps_ingredients_at_20():
+    p = Product(
+        barcode="123", name="X", brand="Y", category="z", clean_score=0,
+        ingredients_json=[f"ing{i}" for i in range(25)],
+    )
+    profile = build_product_profile(p)
+    assert "ing19" in profile
+    assert "ing20" not in profile
+
+
+def test_build_product_profile_handles_none_fields():
+    p = Product(barcode="123", clean_score=0)
+    profile = build_product_profile(p)
+    assert "desconocido" in profile
+    assert "desconocida" in profile
+    assert "sin categoría" in profile
