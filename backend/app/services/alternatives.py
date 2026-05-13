@@ -180,10 +180,14 @@ async def find_alternatives(
     if flagged_ingredients or not candidates:
         if flagged_ingredients:
             query_text = (
-                f"categoría: {category or 'alimento'} sin {' sin '.join(flagged_ingredients[:5])}"
+                f"producto: {product_name or category or 'alimento'} "
+                f"sin {' sin '.join(flagged_ingredients[:5])}"
             )
         else:
-            query_text = f"ingredientes: {', '.join(all_ingredients[:8])}"
+            query_text = (
+                f"producto: {product_name or 'alimento'} "
+                f"ingredientes: {', '.join(all_ingredients[:8])}"
+            )
         try:
             embedding = await embed_text(query_text, settings)
             collection = get_products_collection(settings)
