@@ -33,6 +33,9 @@ node_modules/
 # Golden dataset — generated files (keep .gitkeep, ignore JSON outputs)
 backend/data/golden/*.json
 
+# OFF ingestion output (large generated data, not committed)
+backend/scripts/data/
+
 # Misc
 *.pdf
 !tests/fixtures/biosync-test.pdf
@@ -50,3 +53,4 @@ tests/fixtures/integration-auth.json
 
 # Ingestion script output (can be large, regenerated on demand)
 backend/scripts/data/
+.worktrees/
