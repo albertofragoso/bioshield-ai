@@ -22,21 +22,21 @@ OFF_SEARCH_URL = "https://search.openfoodfacts.org/search"
 OUTPUT_PATH = Path(__file__).parent / "data" / "off_products.json"
 
 HEALTH_CATEGORIES = [
-    "en:yogurts",
-    "en:fermented-milks",
-    "en:plant-based-foods",
-    "en:breakfast-cereals",
-    "en:whole-grain-foods",
-    "en:nuts",
-    "en:dried-fruits",
-    "en:legumes",
-    "en:plant-based-beverages",
-    "en:waters",
-    "en:fruit-juices",
-    "en:herbal-teas",
-    "en:organic-foods",
-    "en:baby-foods",
-    "en:dietary-supplements",
+    "en:plant-based-foods",      # general
+    "en:organic-foods",          # general
+    "en:baby-foods",             # general
+    "en:dietary-supplements",    # general
+    "en:plant-based-beverages",  # general
+    "en:waters",                 # específico
+    "en:fruit-juices",           # específico
+    "en:herbal-teas",            # específico
+    "en:legumes",                # específico
+    "en:nuts",                   # específico
+    "en:dried-fruits",           # específico
+    "en:whole-grain-foods",      # específico
+    "en:breakfast-cereals",      # específico (sub de whole-grain)
+    "en:fermented-milks",        # específico
+    "en:yogurts",                # más específico (sub de fermented-milks)
 ]
 
 _FIELDS = ",".join([
@@ -127,14 +127,14 @@ def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     products: list[dict] = []
-    seen: set[str] = set()
+    seen_index: dict[str, int] = {}
     stats: dict[str, int] = {
         "fetched": 0,
         "accepted": 0,
         "skipped_no_barcode": 0,
         "skipped_no_name": 0,
         "skipped_no_ingredients": 0,
-        "skipped_duplicate": 0,
+        "category_updated": 0,
     }
 
     for category in HEALTH_CATEGORIES:
@@ -166,13 +166,14 @@ def main() -> None:
                         stats["skipped_no_ingredients"] += 1
                     continue
 
-                if product["barcode"] in seen:
-                    stats["skipped_duplicate"] += 1
-                    continue
-
-                seen.add(product["barcode"])
-                products.append(product)
-                stats["accepted"] += 1
+                if product["barcode"] in seen_index:
+                    # Reemplazar con la categoría más reciente (más específica por orden de lista)
+                    products[seen_index[product["barcode"]]] = product
+                    stats["category_updated"] += 1
+                else:
+                    seen_index[product["barcode"]] = len(products)
+                    products.append(product)
+                    stats["accepted"] += 1
 
             total = data.get("count") or 0
             if page * _PAGE_SIZE >= total or page >= _MAX_PAGES:
