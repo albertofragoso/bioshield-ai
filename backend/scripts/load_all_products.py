@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SOURCES = [
-    Path(__file__).parent / "data" / "off_mx_products.json",      # prioridad 1
+    Path(__file__).parent / "data" / "off_products.json",         # prioridad 1 (OFF México)
     Path(__file__).parent / "data" / "off_global_products.json",  # prioridad 2
     Path(__file__).parent / "data" / "usda_products.json",        # prioridad 3
 ]
