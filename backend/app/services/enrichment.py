@@ -16,7 +16,7 @@ from app.services.rag import build_product_profile, get_products_collection
 
 logger = logging.getLogger(__name__)
 
-_BANNED_STATUSES = {"Banned", "Restricted"}
+_BANNED_STATUSES = {"BANNED", "RESTRICTED"}
 _MIN_CONFIDENCE = 0.8
 
 
