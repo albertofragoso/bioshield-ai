@@ -78,6 +78,7 @@ def _load_sources(sources: list[Path], db: Session) -> tuple[int, int]:
 
                 if batch_count % BATCH_SIZE == 0:
                     db.commit()
+                    batch_count = 0
                     logger.info("  %d inserted so far...", inserted)
 
             except Exception as exc:
