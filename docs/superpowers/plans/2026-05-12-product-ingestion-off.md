@@ -1,5 +1,7 @@
 # Product Ingestion Pipeline (OFF) Implementation Plan
 
+> **SUPERSEDIDO — Fase 2.1:** `load_products_to_db.py` se mantiene por compatibilidad pero ya no es el script canónico de carga. El script canónico es `load_all_products.py`. Ver plan vigente: `docs/superpowers/plans/2026-05-13-hybrid-ingestion.md`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **⚠️ WORKTREE REQUIRED:** Before starting ANY task, invoke `superpowers:using-git-worktrees` to create an isolated workspace for branch `feat/fase2-product-ingestion`. NEVER commit to `main`.

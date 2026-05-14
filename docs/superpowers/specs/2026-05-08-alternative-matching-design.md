@@ -23,7 +23,7 @@ El MVP de BioShield (Fase 1) analiza etiquetas nutricionales y cruza ingrediente
 
 | Dependencia | Descripción | Esfuerzo | Spec |
 |---|---|---|---|
-| **Curated DB Ingestion (Fase 2.0)** | Scripts automatizados de ingesta Open Food Facts (Search API v2, MX) + curation pipeline | ~2 días | `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md` |
+| **Curated DB Ingestion (Fase 2.1)** | Pipeline híbrido: OFF MX + OFF Global + USDA Branded Foods. Target: ≥ 7,000 productos únicos. Script canónico: `load_all_products.py` | ~3.5 días | `docs/superpowers/specs/2026-05-13-hybrid-ingestion-design.md` |
 | **ChromaDB collection `products` indexada** | Embedding ingredient profiles + metadata persisted | ~1 día (post-ingesta) | Scripts: `index_products_chroma.py` |
 | **Clean scores computed** | Cada producto debe tener `clean_score` calculado según BIOMARKER_RULES | ~1 día (post-ingesta) | Script: `compute_clean_scores.py` |
 | **E2E fixture (5-10 productos)** | Seed de testing en DB + ChromaDB para Playwright specs | ~4h | Script: `seed_alternatives_fixture.py` |
