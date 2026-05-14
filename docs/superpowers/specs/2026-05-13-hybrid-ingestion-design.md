@@ -238,3 +238,40 @@ Regla: ningún documento debe hacer referencia al pipeline de ingesta como "solo
 | Ejecución del pipeline completo + validación | 0.5 |
 | Actualización de documentación | 0.5 |
 | **Total** | **3.5 días** |
+
+---
+
+## 11. Resultados Post-Implementación
+
+**Fecha de ejecución:** 2026-05-14
+
+### Conteo real por fuente
+
+| Fuente | `ingredients_source` | Productos |
+|---|---|---|
+| OFF México | `off_dump_mx` | 431 |
+| USDA FoodData Central | `usda_branded` | 15,570 |
+| Legacy (sin fuente asignada) | `NULL` | 22 |
+| **TOTAL en DB** | | **16,023** |
+
+**Criterio de exito alcanzado:** 16,023 productos >= mínimo de 7,000.
+
+### Nota sobre OFF Global
+
+Con el filtro `labels_tags: en:organic,en:no-additives` activo, OFF Global retornó mayormente los mismos barcodes que OFF México. Resultado neto: **0 productos únicos añadidos** por `ingest_off_global.py`. Los 15,570 productos nuevos son 100% USDA. Para una segunda corrida con mayor yield de OFF Global, considerar remover o relajar el filtro `labels_tags`.
+
+### Bugs corregidos durante implementación
+
+1. **`load_all_products.py`** buscaba `off_mx_products.json` — corregido a `off_products.json` (nombre real del output de `ingest_off_mexico.py`).
+2. **`ingest_usda.py`** no cargaba `.env` al arrancar — corregido añadiendo `load_dotenv()` al inicio del módulo.
+3. **`enrichment.py` `_BANNED_STATUSES`** usaba casing incorrecto (`{"banned", "restricted"}`) — corregido a `{"BANNED", "RESTRICTED"}` para matchear los valores uppercase almacenados en DB. Este era un bug pre-existente no relacionado con la ingesta; descubierto durante la validación post-pipeline.
+
+### Estado de ChromaDB
+
+Pendiente de indexación manual. El pipeline de ingesta carga productos en la tabla `products` y computa `clean_score`, pero la indexación BGE-M3 sobre 16k productos requiere correr manualmente:
+
+```bash
+cd backend && python3 -m scripts.index_products_chroma
+```
+
+Tiempo estimado: 15–30 minutos sobre 16k productos con BGE-M3 local.

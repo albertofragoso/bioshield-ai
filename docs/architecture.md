@@ -373,31 +373,43 @@ Separada de la collection `ingredients`. Cada documento es el ingredient profile
 
 **Nota:** `scan_history.result_json` (migration `a3f7c2d1e845`) ya existe — Fase 2 lo consume para extraer `flagged_ingredients[]` sin re-correr el pipeline.
 
-### 2.4 Ingesta OFF Mexico (Product Ingestion Pipeline)
+### 2.4 Pipeline de Ingesta Híbrida (Fase 2.1)
+
+**Resultado post-ejecución (2026-05-14):** 16,023 productos en DB — 431 OFF MX + 15,570 USDA + 22 legacy sin fuente.
 
 **Scripts de ingesta (offline, no runtime):**
 
 | Script | Entrada | Salida | Responsabilidad |
 |---|---|---|---|
-| `scripts/ingest_off_mexico.py` | OFF Search API v2 (MX + health categories) | `scripts/data/off_products.json` | Fetch categorías de salud, mapeo de productos, deduplicación por barcode (última categoría gana) |
-| `scripts/load_products_to_db.py` | `off_products.json` | Tabla `products` | Upsert en DB, pre-computa `clean_score`, asigna `category` |
+| `scripts/ingest_off_mexico.py` | OFF Search API v2 (MX + health categories) | `scripts/data/off_products.json` | Fetch categorías de salud MX, mapeo de productos, `ingredients_source = "off_dump_mx"` |
+| `scripts/ingest_off_global.py` | OFF Search API v2 (global, sin filtro de país, 25 categorías health) | `scripts/data/off_global_products.json` | Igual que MX pero sin `countries_tags`; filtro de calidad `labels_tags: en:organic,en:no-additives`; `ingredients_source = "off_global"` |
+| `scripts/ingest_usda.py` | USDA FoodData Central API (`/fdc/v1/foods/search`, Branded Foods, 8 categorías) | `scripts/data/usda_products.json` | Fetch por query de categoría; requiere `USDA_API_KEY` en `.env`; `ingredients_source = "usda_branded"` |
+| `scripts/load_all_products.py` | Los 3 JSON anteriores | Tabla `products` | Script canónico de carga. Merge con prioridad MX > Global > USDA — skip si barcode ya existe |
+| `scripts/load_products_to_db.py` | `off_products.json` | Tabla `products` | **Deprecated** — solo OFF MX, mantenido por compatibilidad con pipeline anterior |
 | `scripts/compute_clean_scores.py` | Tabla `products` | Tabla `products` (clean_score actualizado) | Calcula clean_score según BIOMARKER_RULES para cada producto |
 | `scripts/index_products_chroma.py` | Tabla `products` | ChromaDB collection `products` | Genera ingredient profiles, embeddea con BGE-M3, indexa |
 
-**Estrategia de deduplicación (last-wins):**
-- OFF Search API devuelve el mismo producto en múltiples categorías (ej. un yogurt aparece en `en:yogurts` Y `en:fermented-milks`).
-- Los scripts de ingesta NO deduplicán durante el fetch — procesan todas las categorías.
-- El upsert en `load_products_to_db` asigna la **última categoría procesada** al barcode (last-wins).
-- Esto evita bloqueos de DB y mantiene coherencia con la orden de procesamiento.
+**Variables de entorno requeridas:**
+- `USDA_API_KEY` en `.env` — API key de USDA FoodData Central (gratuita; `DEMO_KEY` válida para desarrollo)
 
-**Categorías de salud (ordenadas de general a específico):**
+**Estrategia de deduplicación (skip, no last-wins):**
+- `load_all_products.py` procesa fuentes en orden MX → Global → USDA.
+- Si un barcode ya existe en DB, la inserción se **omite** (skip) — preserva la fuente de mayor prioridad.
+- Esto garantiza que OFF MX no se sobreescriba por datos USDA de menor prioridad.
+
+**Nota sobre OFF Global:** Con el filtro `labels_tags: en:organic,en:no-additives`, OFF Global retornó mayormente los mismos barcodes que OFF México. Los 15,570 productos nuevos son 100% USDA. OFF Global aportó 0 productos netos únicos en la ejecución Fase 2.1.
+
+**Categorías de salud — `ingest_off_mexico.py` (15 categorías):**
 - `en:plant-based-foods`, `en:plant-based-beverages`
 - `en:breakfast-cereals`, `en:whole-grain-foods`
 - `en:yogurts`, `en:fermented-milks`
 - `en:nuts`, `en:dried-fruits`, `en:legumes`
 - `en:waters`, `en:fruit-juices`, `en:herbal-teas`
 - `en:organic-foods`, `en:baby-foods`, `en:dietary-supplements`
-- **[CATEGORÍAS NUEVAS - pendiente]**
+
+**Categorías adicionales — `ingest_off_global.py` (25 categorías, incluye las 15 MX más):**
+- `en:snacks`, `en:condiments`, `en:dairy`, `en:sauces`, `en:frozen-foods`
+- `en:cereals`, `en:beverages`, `en:bread`, `en:chocolate`, `en:spreads`
 
 **Función compartida: `build_product_profile()` en `rag.py`**
 

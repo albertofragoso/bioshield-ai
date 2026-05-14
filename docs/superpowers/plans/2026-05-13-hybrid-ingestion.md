@@ -1,5 +1,9 @@
 # Hybrid Product Ingestion (OFF Global + USDA) Implementation Plan
 
+**Estado:** COMPLETADO — 2026-05-14
+**Resultado:** 16,023 productos en DB (431 OFF MX + 15,570 USDA + 22 legacy)
+**Pendiente:** ChromaDB indexación manual — `python3 -m scripts.index_products_chroma`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Expand el catálogo de productos de ~400–900 (solo OFF MX) a 7,000–17,000 únicos añadiendo OFF Global y USDA Branded Foods como fuentes adicionales, sin tocar el motor de matching ni el schema de DB.
