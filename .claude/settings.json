@@ -7,6 +7,12 @@
           { "type": "command", "command": "bash scripts/hooks/security-check.sh" },
           { "type": "command", "command": "bash scripts/hooks/safety-gate.sh" }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "bash scripts/hooks/pre-push-ci.sh" }
+        ]
       }
     ],
     "PostToolUse": [
