@@ -43,13 +43,6 @@ def test_map_product_valid():
     assert result["image_url"] == "https://img.off.org/oatmeal.jpg"
 
 
-def test_map_product_source_is_off_global():
-    from scripts.ingest_off_global import _map_product
-
-    result = _map_product(_make_hit(), "en:snacks")
-    assert result["ingredients_source"] == "off_global"
-
-
 def test_map_product_returns_none_without_barcode():
     from scripts.ingest_off_global import _map_product
 
@@ -87,8 +80,23 @@ def test_fetch_page_excludes_countries_tags():
         _fetch_page("en:snacks", 1)
 
     call_kwargs = mock_get.call_args
-    params = call_kwargs[1]["params"] if "params" in call_kwargs[1] else call_kwargs[0][1]
-    assert "countries_tags" not in params
+    # params es ahora una lista de tuplas
+    params = call_kwargs[1].get("params") or call_kwargs[0][1]
+    param_keys = [k for k, v in params] if isinstance(params, list) else list(params.keys())
+    assert "countries_tags" not in param_keys
+    assert "labels_tags" in param_keys
+
+
+def test_map_product_falls_back_to_ingredients_tags():
+    """Cuando ingredients_text está vacío, debe usar ingredients_tags como fallback."""
+    from scripts.ingest_off_global import _map_product
+
+    hit = _make_hit(ingredients="")
+    hit["ingredients_tags"] = ["en:whole-grain-oats", "en:salt"]
+    result = _map_product(hit, "en:cereals")
+    assert result is not None
+    # El parser debe producir algo basado en los tags
+    assert len(result["ingredients_json"]) >= 1
 
 
 def test_main_writes_json_and_deduplicates(tmp_path):

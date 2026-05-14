@@ -69,16 +69,18 @@ _HEADERS = {"User-Agent": "BioShieldAI/1.0 (isc.albertofragoso@gmail.com)"}
 
 def _fetch_page(category: str, page: int) -> dict:
     # Sin countries_tags — diferencia clave respecto al script de México
+    # Lista de tuplas para enviar labels_tags dos veces (API v2 no acepta valor separado por comas)
     resp = requests.get(
         OFF_SEARCH_URL,
-        params={
-            "categories_tags": category,
-            "labels_tags": "en:organic,en:no-additives",
-            "fields": _FIELDS,
-            "page_size": _PAGE_SIZE,
-            "page": page,
-            "sort_by": "unique_scans_n",
-        },
+        params=[
+            ("categories_tags", category),
+            ("labels_tags", "en:organic"),
+            ("labels_tags", "en:no-additives"),
+            ("fields", _FIELDS),
+            ("page_size", _PAGE_SIZE),
+            ("page", page),
+            ("sort_by", "unique_scans_n"),
+        ],
         headers=_HEADERS,
         timeout=30,
     )
