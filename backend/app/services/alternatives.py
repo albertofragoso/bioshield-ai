@@ -152,7 +152,6 @@ async def find_alternatives(
     # ── 2. Load scanned product to get category + clean_score ────────────────
     scanned_product = db.scalar(select(Product).where(Product.barcode == barcode))
     category = scanned_product.category if scanned_product else None
-    scanned_clean_score = scanned_product.clean_score if scanned_product else 0
 
     fallback_used = category is None
 
@@ -211,7 +210,9 @@ async def find_alternatives(
             ]
             if candidates:
                 barcode_to_product = {c.barcode: c for c in candidates}
-                reranked = [barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product]
+                reranked = [
+                    barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product
+                ]
                 seen = set(ranked_barcodes)
                 reranked += [c for c in candidates if c.barcode not in seen]
             else:
@@ -220,7 +221,9 @@ async def find_alternatives(
                     db.scalars(select(Product).where(Product.barcode.in_(ranked_barcodes)))
                 )
                 barcode_to_product = {p.barcode: p for p in fetched}
-                reranked = [barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product]
+                reranked = [
+                    barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product
+                ]
         except Exception as exc:
             logger.warning("ChromaDB re-rank failed, falling back to SQL order: %s", exc)
 
