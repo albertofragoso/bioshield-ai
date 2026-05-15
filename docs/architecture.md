@@ -437,3 +437,13 @@ El pipeline de enriquecimiento convierte cada scan exitoso en una contribución 
 - `app/services/off_client.py` — `off_lookup_barcode()` para Ex.2
 - `app/routers/scan.py` — BackgroundTask wrappers `_run_enrich_task`, `_run_off_lookup_task`
 - `scripts/compute_clean_scores.py` — thin wrapper que llama `_compute_clean_score` de `enrichment.py`
+
+---
+
+## 4. Frontend — Home Dashboard
+
+### Componentes
+
+- `components/home/HomeOrbSection.tsx` — Panel izquierdo: orbe animado con mascota, CTA de scan, partículas, data stream
+- `components/home/HomeStatsPanel.tsx` — Panel derecho: stats pills, biosync card, historial reciente con stagger
+- `components/BottomNav.tsx` — Navegación fija inferior (mobile únicamente, `md:hidden`)
