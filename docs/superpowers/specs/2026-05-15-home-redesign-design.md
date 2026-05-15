@@ -160,7 +160,7 @@ Keyframes `orbit-cw` y `orbit-ccw` ya existen en `globals.css` como `.bs-orbital
 
 ## 7. Design Docs a Actualizar
 
-- **`docs/design/README.md`**: agregar sección "Home Dashboard" con descripción del layout Hero Orb + split panel y referencia a componentes home/
+- **`docs/design/README.md`**: crear archivo nuevo con sección "Home Dashboard" — descripción del layout Hero Orb + split panel y referencia a componentes home/ (el archivo no existe aún)
 - **`docs/architecture.md`**: sección Frontend → actualizar estructura de componentes con `components/home/` y `BottomNav`
 
 ---
