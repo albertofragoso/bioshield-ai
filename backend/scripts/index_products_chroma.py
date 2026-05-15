@@ -1,15 +1,21 @@
 """Index curated products into ChromaDB 'products' collection.
 
-Generates ingredient profile text per product and embeds with BGE-M3.
-Run after compute_clean_scores.py.
+Genera ingredient profile text por producto y embeddea con BGE-M3.
+Corre después de compute_clean_scores.py.
 
-Usage:
-    cd backend && python -m scripts.index_products_chroma
+Supports batch mode to avoid OOM on large catalogs:
+    cd backend && python -m scripts.index_products_chroma --batch-size 500
+    cd backend && python -m scripts.index_products_chroma --batch-size 500 --offset 500
+    cd backend && python -m scripts.index_products_chroma --batch-size 500 --offset 1000
+    ...
+
+Sin args: corre todo de una vez (comportamiento original).
 """
+import argparse
 import asyncio
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.config import get_settings
 from app.models import Product
@@ -31,14 +37,52 @@ def _semaphore(clean_score: int) -> str:
     return "RED"
 
 
-async def main():
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=0,
+        help="Productos por ejecución. 0 = sin límite (procesa todo).",
+    )
+    parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Índice de inicio (para reanudar). Default 0.",
+    )
+    return parser.parse_args()
+
+
+async def main() -> None:
+    args = _parse_args()
     settings = get_settings()
     db = SessionLocal()
     collection = get_products_collection(settings)
 
     try:
-        products = list(db.scalars(select(Product).where(Product.category.isnot(None))))
-        logger.info("Indexing %d products into ChromaDB 'products' collection...", len(products))
+        base_query = select(Product).where(Product.category.isnot(None)).order_by(Product.id)
+
+        total = db.scalar(
+            select(func.count()).select_from(
+                select(Product).where(Product.category.isnot(None)).subquery()
+            )
+        )
+        logger.info("Total productos con categoría: %d", total)
+
+        # Aplica offset y limit solo si se especificaron
+        query = base_query.offset(args.offset)
+        if args.batch_size > 0:
+            query = query.limit(args.batch_size)
+
+        products = list(db.scalars(query))
+        end = args.offset + len(products)
+        logger.info(
+            "Indexando productos %d–%d de %d...",
+            args.offset + 1,
+            end,
+            total,
+        )
 
         for i, product in enumerate(products):
             profile = build_product_profile(product)
@@ -57,9 +101,17 @@ async def main():
                 ],
             )
             if (i + 1) % 50 == 0:
-                logger.info("  %d/%d indexed...", i + 1, len(products))
+                logger.info("  %d/%d del batch...", i + 1, len(products))
 
-        logger.info("Done. %d products indexed.", len(products))
+        logger.info("Done. %d productos indexados (offset=%d).", len(products), args.offset)
+
+        if args.batch_size > 0 and end < total:
+            logger.info(
+                "Quedan %d productos. Corre con --offset %d para continuar.",
+                total - end,
+                end,
+            )
+
     finally:
         db.close()
 
