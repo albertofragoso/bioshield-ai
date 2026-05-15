@@ -24,7 +24,8 @@ export default function DashboardPage() {
   });
 
   const historyItems: ScanHistoryEntry[] = historyQuery.data ?? [];
-  const historyEmpty = !historyQuery.isLoading && historyItems.length === 0;
+  const historyEmpty =
+    !historyQuery.isLoading && !historyQuery.isError && historyItems.length === 0;
 
   return (
     <div className="relative z-10 flex flex-col md:grid md:grid-cols-2 md:min-h-[calc(100vh-56px)]">

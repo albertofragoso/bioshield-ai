@@ -118,10 +118,7 @@ export function HomeStatsPanel({
       </Link>
 
       {/* Historial reciente */}
-      <div
-        className="bs-card px-4 py-3 animate-fade-up"
-        style={{ animationDelay: "0.25s" }}
-      >
+      <div className="bs-card px-4 py-3 animate-fade-up" style={{ animationDelay: "0.25s" }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <History size={13} className="text-subtext" />
@@ -206,6 +203,7 @@ function HistoryRow({
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 0) return "Ahora";
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "Ahora";
   if (mins < 60) return `hace ${mins}min`;
