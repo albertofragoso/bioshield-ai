@@ -14,6 +14,8 @@ Sin args: corre todo de una vez (comportamiento original).
 import argparse
 import asyncio
 import logging
+import threading
+import time
 
 from sqlalchemy import func, select
 
@@ -25,6 +27,19 @@ from app.services.rag import build_product_profile, get_products_collection
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _start_heartbeat(interval: int = 30) -> threading.Event:
+    """Imprime un '.' cada `interval` segundos para mantener vivo el stream del proceso."""
+    stop = threading.Event()
+
+    def _beat() -> None:
+        while not stop.wait(interval):
+            print(".", end="", flush=True)
+
+    t = threading.Thread(target=_beat, daemon=True)
+    t.start()
+    return stop
 
 
 def _semaphore(clean_score: int) -> str:
@@ -57,6 +72,7 @@ def _parse_args() -> argparse.Namespace:
 async def main() -> None:
     args = _parse_args()
     settings = get_settings()
+    heartbeat = _start_heartbeat(30)
     db = SessionLocal()
     collection = get_products_collection(settings)
 
@@ -113,6 +129,7 @@ async def main() -> None:
             )
 
     finally:
+        heartbeat.set()
         db.close()
 
 
