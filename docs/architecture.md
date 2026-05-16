@@ -414,16 +414,17 @@ python -m scripts.index_products_chroma --batch-size 500 --offset 500
 python -m scripts.index_products_chroma
 ```
 
+**Estrategia de deduplicación:**
+- `load_all_products.py` usa skip (no update) si el barcode ya existe — preserva la fuente de mayor prioridad.
+- `index_products_chroma.py` usa upsert — idempotente, safe para re-ejecuciones parciales.
+
+
 **Variables de entorno requeridas:**
 
 ```env
 USDA_API_KEY=<key gratuita de https://fdc.nal.usda.gov/api-guide.html>
 # DEMO_KEY funciona para desarrollo con rate limit (~3 req/s)
 ```
-
-**Estrategia de deduplicación:**
-- `load_all_products.py` procesa fuentes en orden MX → Global → USDA. Si un barcode ya existe en DB, la inserción se **omite** (skip) — preserva la fuente de mayor prioridad.
-- `index_products_chroma.py` usa upsert — idempotente, safe para re-ejecuciones parciales.
 
 **Nota sobre OFF Global (Fase 2.1):** Con el filtro `labels_tags: en:organic,en:no-additives`, OFF Global retornó mayormente los mismos barcodes que OFF México. Los 15,570 productos nuevos son 100% USDA. OFF Global aportó 0 productos netos únicos. Para mayor yield, considerar relajar o eliminar el filtro `labels_tags` en futuras corridas.
 
