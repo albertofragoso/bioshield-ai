@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { logout } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/stores/auth";
 import { SessionExpiredDialog } from "@/components/SessionExpiredDialog";
+import { BottomNav } from "@/components/BottomNav";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -85,8 +86,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 relative z-10">{children}</main>
-
+      <main className="flex-1 relative z-10 pb-14 md:pb-0">{children}</main>
+      <BottomNav />
       <SessionExpiredDialog open={sessionExpired} onConfirm={handleSessionExpiredConfirm} />
     </div>
   );
