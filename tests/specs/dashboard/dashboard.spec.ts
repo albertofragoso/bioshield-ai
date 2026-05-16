@@ -53,7 +53,7 @@ test.describe("Feature: Dashboard", () => {
     await mockScanHistory(mockedPage, []);
     await mockedPage.goto("/");
 
-    await expect(mockedPage.getByText(/14d/i)).toBeVisible();
+    await expect(mockedPage.getByText(/14d/i).first()).toBeVisible();
   });
 
   test("edge — bottom nav visible on mobile viewport", async ({ mockedPage }) => {

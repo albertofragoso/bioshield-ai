@@ -93,9 +93,8 @@ async function applyDefaultMocks(page: Page) {
     });
   });
 
-  await page.route('**/scan/history', (route) => {
+  await page.route(/.*\/scan\/history.*/, (route) => {
     const override = mockOverrides['scan-history'];
-    // console.log('[DEBUG] scan/history route hit, override exists:', !!override);
     if (override) return override(route);
     route.fulfill({
       status: 200,
@@ -404,7 +403,7 @@ export function makeScanHistoryEntry(overrides = {}) {
   };
 }
 
-export async function mockScanHistory(page: Page, entries: any[] = []) {
+export async function mockScanHistory(page: Page, entries: any[] | null = null) {
   const defaultEntries = [
     makeScanHistoryEntry({ id: 'scan-1', product_name: 'Nutella', semaphore: 'YELLOW' }),
     makeScanHistoryEntry({ id: 'scan-2', product_barcode: 'photo-abc123', product_name: 'Producto Etiqueta', semaphore: 'BLUE', source: 'photo' }),
@@ -413,7 +412,7 @@ export async function mockScanHistory(page: Page, entries: any[] = []) {
   mockOverrides['scan-history'] = (route: any) => {
     route.fulfill({
       status: 200,
-      body: JSON.stringify(entries.length > 0 ? entries : defaultEntries),
+      body: JSON.stringify(entries !== null ? entries : defaultEntries),
     });
   };
 }
