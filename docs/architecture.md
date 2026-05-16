@@ -373,31 +373,56 @@ Separada de la collection `ingredients`. Cada documento es el ingredient profile
 
 **Nota:** `scan_history.result_json` (migration `a3f7c2d1e845`) ya existe — Fase 2 lo consume para extraer `flagged_ingredients[]` sin re-correr el pipeline.
 
-### 2.4 Ingesta OFF Mexico (Product Ingestion Pipeline)
+### 2.4 Pipeline de Ingesta Híbrida (Fase 2.1)
 
-**Scripts de ingesta (offline, no runtime):**
+Pipeline offline multi-fuente. **Resultado actual: 16,023 productos únicos en DB, 16,001 indexados en ChromaDB.**
 
-| Script | Entrada | Salida | Responsabilidad |
+**Scripts de ingesta (ejecutar una vez, sin cambios en runtime):**
+
+| Script | Fuente | Salida JSON | Prioridad |
 |---|---|---|---|
-| `scripts/ingest_off_mexico.py` | OFF Search API v2 (MX + health categories) | `scripts/data/off_products.json` | Fetch categorías de salud, mapeo de productos, deduplicación por barcode (última categoría gana) |
-| `scripts/load_products_to_db.py` | `off_products.json` | Tabla `products` | Upsert en DB, pre-computa `clean_score`, asigna `category` |
-| `scripts/compute_clean_scores.py` | Tabla `products` | Tabla `products` (clean_score actualizado) | Calcula clean_score según BIOMARKER_RULES para cada producto |
-| `scripts/index_products_chroma.py` | Tabla `products` | ChromaDB collection `products` | Genera ingredient profiles, embeddea con BGE-M3, indexa |
+| `scripts/ingest_off_mexico.py` | OFF Search API v2 (MX, health categories) | `scripts/data/off_products.json` | 1 (mayor) |
+| `scripts/ingest_off_global.py` | OFF Search API v2 (global, sin filtro de país) | `scripts/data/off_global_products.json` | 2 |
+| `scripts/ingest_usda.py` | USDA FoodData Central Branded API | `scripts/data/usda_products.json` | 3 (menor) |
+| `scripts/load_all_products.py` | Los tres JSON anteriores | Tabla `products` | — merge con prioridad MX > Global > USDA, skip si barcode existe |
+| `scripts/compute_clean_scores.py` | Tabla `products` | Tabla `products` (clean_score) | — |
+| `scripts/index_products_chroma.py` | Tabla `products` | ChromaDB `products` | — embeddings BGE-M3 |
 
-**Estrategia de deduplicación (last-wins):**
-- OFF Search API devuelve el mismo producto en múltiples categorías (ej. un yogurt aparece en `en:yogurts` Y `en:fermented-milks`).
-- Los scripts de ingesta NO deduplicán durante el fetch — procesan todas las categorías.
-- El upsert en `load_products_to_db` asigna la **última categoría procesada** al barcode (last-wins).
-- Esto evita bloqueos de DB y mantiene coherencia con la orden de procesamiento.
+**Orden de ejecución completo:**
 
-**Categorías de salud (ordenadas de general a específico):**
-- `en:plant-based-foods`, `en:plant-based-beverages`
-- `en:breakfast-cereals`, `en:whole-grain-foods`
-- `en:yogurts`, `en:fermented-milks`
-- `en:nuts`, `en:dried-fruits`, `en:legumes`
-- `en:waters`, `en:fruit-juices`, `en:herbal-teas`
-- `en:organic-foods`, `en:baby-foods`, `en:dietary-supplements`
-- **[CATEGORÍAS NUEVAS - pendiente]**
+```bash
+cd backend
+
+# Paso 1 — Fetch (pueden correr en paralelo)
+python -m scripts.ingest_off_mexico
+python -m scripts.ingest_off_global
+python -m scripts.ingest_usda          # requiere USDA_API_KEY en .env
+
+# Paso 2 — Carga a DB (requiere los tres JSON)
+python -m scripts.load_all_products
+
+# Paso 3 — Scoring
+python -m scripts.compute_clean_scores
+
+# Paso 4 — Indexado ChromaDB (BGE-M3, ~30 min sobre 16k productos)
+# Soporta batches para evitar OOM:
+python -m scripts.index_products_chroma --batch-size 500 --offset 0
+python -m scripts.index_products_chroma --batch-size 500 --offset 500
+# ... continuar hasta cubrir el total (ver log "Quedan X productos")
+# Sin args: procesa todo de una vez (puede fallar por memoria)
+python -m scripts.index_products_chroma
+```
+
+**Estrategia de deduplicación:**
+- `load_all_products.py` usa skip (no update) si el barcode ya existe — preserva la fuente de mayor prioridad.
+- `index_products_chroma.py` usa upsert — idempotente, safe para re-ejecuciones parciales.
+
+**Variables de entorno requeridas:**
+
+```env
+USDA_API_KEY=<key gratuita de https://fdc.nal.usda.gov/api-guide.html>
+# DEMO_KEY funciona para desarrollo con rate limit (~3 req/s)
+```
 
 **Función compartida: `build_product_profile()` en `rag.py`**
 
@@ -408,7 +433,42 @@ def build_product_profile(product: Product) -> str:
 ```
 Usada por:
 - `enrichment.py` — post-scan, cuando un producto nuevo se enriquece
-- `index_products_chroma.py` — bulk indexing de ingesta OFF
+- `index_products_chroma.py` — bulk indexing
+
+---
+
+### 2.5 Backup y Restauración de la Ingesta
+
+Los archivos de DB y vectores **no están en git** (`.gitignore`). Crear un backup después de cada pipeline completo evita re-ejecutar el proceso (~45–60 min en total con BGE-M3 local).
+
+**Archivos a respaldar:**
+
+| Archivo | Tamaño aprox. | Contenido |
+|---|---|---|
+| `backend/bioshield.db` | ~13 MB | SQLite con los 16k productos + clean_scores |
+| `backend/chroma_db/` | ~200 MB | Vectores BGE-M3 (1024-dim) de los 16k productos |
+
+**Crear backup:**
+
+```bash
+cd backend
+tar -czf ~/Desktop/bioshield_ingestion_backup_$(date +%Y-%m-%d).tar.gz \
+    bioshield.db chroma_db/
+# Resultado: ~145 MB comprimido
+```
+
+**Restaurar en otro equipo:**
+
+```bash
+# 1. Clonar el repo y configurar el venv normalmente
+# 2. Copiar el backup al equipo destino
+# 3. Extraer en backend/
+tar -xzf bioshield_ingestion_backup_YYYY-MM-DD.tar.gz \
+    -C /ruta/al/proyecto/backend/
+# El servidor ya puede arrancar con los datos listos — no se requiere re-indexar
+```
+
+**Nota:** Si solo se restaura `bioshield.db` (sin `chroma_db/`), el motor de alternativas no funcionará hasta re-ejecutar `index_products_chroma.py`.
 
 ---
 
