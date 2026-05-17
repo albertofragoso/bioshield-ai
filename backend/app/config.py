@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     use_local_embeddings: bool = False
     bge_model_name: str = "BAAI/bge-m3"
 
+    # USDA FoodData Central
+    usda_api_key: str = "DEMO_KEY"
+
     # Open Food Facts — read
     off_base_url: str = "https://world.openfoodfacts.org/api/v2"
     off_timeout_seconds: int = 10

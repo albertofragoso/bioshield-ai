@@ -89,7 +89,7 @@ def test_compute_clean_score_counts_banned_ingredients(db_session):
         id="test-rs-1",
         ingredient_id=ing.id,
         source_id=ds.id,
-        status="Banned",
+        status="BANNED",
     )
     db_session.add(status)
     db_session.flush()

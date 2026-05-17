@@ -1,5 +1,7 @@
 # BioShield Fase 2.0.1 — Product Ingestion Pipeline (Open Food Facts)
 
+> **SUPERSEDIDO — Fase 2.1:** Este spec describe el pipeline original solo-OFF-MX. A partir de Fase 2.1, el pipeline es multi-fuente (OFF MX + OFF Global + USDA Branded Foods). Ver spec vigente: `docs/superpowers/specs/2026-05-13-hybrid-ingestion-design.md`
+
 **Fecha:** 2026-05-12
 **Autor:** Alberto Fragoso
 **Estado:** Diseño aprobado — BLOQUEANTE para Fase 2.1 (Alternative Matching Feature)
