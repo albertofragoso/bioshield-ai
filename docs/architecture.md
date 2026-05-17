@@ -375,41 +375,57 @@ Separada de la collection `ingredients`. Cada documento es el ingredient profile
 
 ### 2.4 Pipeline de Ingesta Híbrida (Fase 2.1)
 
-**Resultado post-ejecución (2026-05-14):** 16,023 productos en DB — 431 OFF MX + 15,570 USDA + 22 legacy sin fuente.
+Pipeline offline multi-fuente. **Resultado post-ejecución (2026-05-14): 16,023 productos en DB — 431 OFF MX + 15,570 USDA + 22 legacy. 16,001 indexados en ChromaDB.**
 
-**Scripts de ingesta (offline, no runtime):**
+**Scripts de ingesta (ejecutar una vez, sin cambios en runtime):**
 
-| Script | Entrada | Salida | Responsabilidad |
+| Script | Fuente | Salida JSON | Prioridad |
 |---|---|---|---|
-| `scripts/ingest_off_mexico.py` | OFF Search API v2 (MX + health categories) | `scripts/data/off_products.json` | Fetch categorías de salud MX, mapeo de productos, `ingredients_source = "off_dump_mx"` |
-| `scripts/ingest_off_global.py` | OFF Search API v2 (global, sin filtro de país, 25 categorías health) | `scripts/data/off_global_products.json` | Igual que MX pero sin `countries_tags`; filtro de calidad `labels_tags: en:organic,en:no-additives`; `ingredients_source = "off_global"` |
-| `scripts/ingest_usda.py` | USDA FoodData Central API (`/fdc/v1/foods/search`, Branded Foods, 8 categorías) | `scripts/data/usda_products.json` | Fetch por query de categoría; requiere `USDA_API_KEY` en `.env`; `ingredients_source = "usda_branded"` |
-| `scripts/load_all_products.py` | Los 3 JSON anteriores | Tabla `products` | Script canónico de carga. Merge con prioridad MX > Global > USDA — skip si barcode ya existe |
-| `scripts/load_products_to_db.py` | `off_products.json` | Tabla `products` | **Deprecated** — solo OFF MX, mantenido por compatibilidad con pipeline anterior |
-| `scripts/compute_clean_scores.py` | Tabla `products` | Tabla `products` (clean_score actualizado) | Calcula clean_score según BIOMARKER_RULES para cada producto |
-| `scripts/index_products_chroma.py` | Tabla `products` | ChromaDB collection `products` | Genera ingredient profiles, embeddea con BGE-M3, indexa |
+| `scripts/ingest_off_mexico.py` | OFF Search API v2 (MX + health categories) | `scripts/data/off_products.json` | 1 (mayor) — `ingredients_source = "off_dump_mx"` |
+| `scripts/ingest_off_global.py` | OFF Search API v2 (global, sin filtro de país, 25 categorías) | `scripts/data/off_global_products.json` | 2 — filtro `labels_tags: en:organic,en:no-additives`; `ingredients_source = "off_global"` |
+| `scripts/ingest_usda.py` | USDA FoodData Central API (Branded Foods, 8 categorías) | `scripts/data/usda_products.json` | 3 (menor) — requiere `USDA_API_KEY`; `ingredients_source = "usda_branded"` |
+| `scripts/load_all_products.py` | Los 3 JSON anteriores | Tabla `products` | — script canónico, skip si barcode ya existe |
+| `scripts/load_products_to_db.py` | `off_products.json` | Tabla `products` | **Deprecated** — solo OFF MX, mantenido por compatibilidad |
+| `scripts/compute_clean_scores.py` | Tabla `products` | Tabla `products` (clean_score) | — |
+| `scripts/index_products_chroma.py` | Tabla `products` | ChromaDB `products` | — embeddings BGE-M3, upsert idempotente |
+
+**Orden de ejecución completo:**
+
+```bash
+cd backend
+
+# Paso 1 — Fetch (pueden correr en paralelo)
+python -m scripts.ingest_off_mexico
+python -m scripts.ingest_off_global
+python -m scripts.ingest_usda          # requiere USDA_API_KEY en .env
+
+# Paso 2 — Carga a DB (requiere los tres JSON)
+python -m scripts.load_all_products
+
+# Paso 3 — Scoring
+python -m scripts.compute_clean_scores
+
+# Paso 4 — Indexado ChromaDB (BGE-M3, ~30 min sobre 16k productos)
+# Soporta batches para evitar OOM:
+python -m scripts.index_products_chroma --batch-size 500 --offset 0
+python -m scripts.index_products_chroma --batch-size 500 --offset 500
+# ... continuar hasta cubrir el total (ver log "Quedan X productos")
+# Sin args: procesa todo de una vez (puede fallar por memoria en catálogos grandes)
+python -m scripts.index_products_chroma
+```
 
 **Variables de entorno requeridas:**
-- `USDA_API_KEY` en `.env` — API key de USDA FoodData Central (gratuita; `DEMO_KEY` válida para desarrollo)
 
-**Estrategia de deduplicación (skip, no last-wins):**
-- `load_all_products.py` procesa fuentes en orden MX → Global → USDA.
-- Si un barcode ya existe en DB, la inserción se **omite** (skip) — preserva la fuente de mayor prioridad.
-- Esto garantiza que OFF MX no se sobreescriba por datos USDA de menor prioridad.
+```env
+USDA_API_KEY=<key gratuita de https://fdc.nal.usda.gov/api-guide.html>
+# DEMO_KEY funciona para desarrollo con rate limit (~3 req/s)
+```
 
-**Nota sobre OFF Global:** Con el filtro `labels_tags: en:organic,en:no-additives`, OFF Global retornó mayormente los mismos barcodes que OFF México. Los 15,570 productos nuevos son 100% USDA. OFF Global aportó 0 productos netos únicos en la ejecución Fase 2.1.
+**Estrategia de deduplicación:**
+- `load_all_products.py` procesa fuentes en orden MX → Global → USDA. Si un barcode ya existe en DB, la inserción se **omite** (skip) — preserva la fuente de mayor prioridad.
+- `index_products_chroma.py` usa upsert — idempotente, safe para re-ejecuciones parciales.
 
-**Categorías de salud — `ingest_off_mexico.py` (15 categorías):**
-- `en:plant-based-foods`, `en:plant-based-beverages`
-- `en:breakfast-cereals`, `en:whole-grain-foods`
-- `en:yogurts`, `en:fermented-milks`
-- `en:nuts`, `en:dried-fruits`, `en:legumes`
-- `en:waters`, `en:fruit-juices`, `en:herbal-teas`
-- `en:organic-foods`, `en:baby-foods`, `en:dietary-supplements`
-
-**Categorías adicionales — `ingest_off_global.py` (25 categorías, incluye las 15 MX más):**
-- `en:snacks`, `en:condiments`, `en:dairy`, `en:sauces`, `en:frozen-foods`
-- `en:cereals`, `en:beverages`, `en:bread`, `en:chocolate`, `en:spreads`
+**Nota sobre OFF Global (Fase 2.1):** Con el filtro `labels_tags: en:organic,en:no-additives`, OFF Global retornó mayormente los mismos barcodes que OFF México. Los 15,570 productos nuevos son 100% USDA. OFF Global aportó 0 productos netos únicos. Para mayor yield, considerar relajar o eliminar el filtro `labels_tags` en futuras corridas.
 
 **Función compartida: `build_product_profile()` en `rag.py`**
 
@@ -420,7 +436,42 @@ def build_product_profile(product: Product) -> str:
 ```
 Usada por:
 - `enrichment.py` — post-scan, cuando un producto nuevo se enriquece
-- `index_products_chroma.py` — bulk indexing de ingesta OFF
+- `index_products_chroma.py` — bulk indexing
+
+---
+
+### 2.5 Backup y Restauración de la Ingesta
+
+Los archivos de DB y vectores **no están en git** (`.gitignore`). Crear un backup después de cada pipeline completo evita re-ejecutar el proceso (~45–60 min en total con BGE-M3 local).
+
+**Archivos a respaldar:**
+
+| Archivo | Tamaño aprox. | Contenido |
+|---|---|---|
+| `backend/bioshield.db` | ~13 MB | SQLite con los 16k productos + clean_scores |
+| `backend/chroma_db/` | ~200 MB | Vectores BGE-M3 (1024-dim) de los 16k productos |
+
+**Crear backup:**
+
+```bash
+cd backend
+tar -czf ~/Desktop/bioshield_ingestion_backup_$(date +%Y-%m-%d).tar.gz \
+    bioshield.db chroma_db/
+# Resultado: ~145 MB comprimido
+```
+
+**Restaurar en otro equipo:**
+
+```bash
+# 1. Clonar el repo y configurar el venv normalmente
+# 2. Copiar el backup al equipo destino
+# 3. Extraer en backend/
+tar -xzf bioshield_ingestion_backup_YYYY-MM-DD.tar.gz \
+    -C /ruta/al/proyecto/backend/
+# El servidor ya puede arrancar con los datos listos — no se requiere re-indexar
+```
+
+**Nota:** Si solo se restaura `bioshield.db` (sin `chroma_db/`), el motor de alternativas no funcionará hasta re-ejecutar `index_products_chroma.py`.
 
 ---
 
@@ -449,3 +500,13 @@ El pipeline de enriquecimiento convierte cada scan exitoso en una contribución 
 - `app/services/off_client.py` — `off_lookup_barcode()` para Ex.2
 - `app/routers/scan.py` — BackgroundTask wrappers `_run_enrich_task`, `_run_off_lookup_task`
 - `scripts/compute_clean_scores.py` — thin wrapper que llama `_compute_clean_score` de `enrichment.py`
+
+---
+
+## 4. Frontend — Home Dashboard
+
+### Componentes
+
+- `components/home/HomeOrbSection.tsx` — Panel izquierdo: orbe animado con mascota, CTA de scan, partículas, data stream
+- `components/home/HomeStatsPanel.tsx` — Panel derecho: stats pills, biosync card, historial reciente con stagger
+- `components/BottomNav.tsx` — Navegación fija inferior (mobile únicamente, `md:hidden`)
