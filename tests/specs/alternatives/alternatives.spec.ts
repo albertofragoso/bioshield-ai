@@ -185,4 +185,81 @@ test.describe("Alternative Matching (Fase 2)", () => {
     await page.getByText("Ver análisis completo →").click();
     await expect(page).toHaveURL(/\/scan\/FIX_YOGURT_001/);
   });
+
+  test("desktop layout shows two-column grid", async ({ page }) => {
+    await registerAndLogin(page, "alt-e2e-desktop@test.com", "password123");
+
+    await page.route(`${API}/scan/alternatives/**`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED" },
+          top_pick: {
+            product: { barcode: "FIX_YOGURT_001", name: "Activia Natural", brand: "Danone", clean_score: 0 },
+            clean_ingredients: ["Sin sucralosa", "Sin colorantes"],
+            biomarker_conflicts: [],
+            compatibility_pct: 95,
+            avatar_variant: "blue",
+          },
+          alternatives: [
+            {
+              product: { barcode: "FIX_YOGURT_002", name: "Lala Bio 100", brand: "Lala", clean_score: 1 },
+              avatar_variant: "yellow",
+              semaphore_precomputed: "YELLOW",
+            },
+          ],
+          has_biomarkers: false,
+          fallback_used: false,
+        }),
+      });
+    });
+
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await page.goto(`${BASE}/scan/FIX_YOGURT_BAD/alternatives`);
+    await page.waitForLoadState("networkidle");
+
+    const heroPanel = page.getByText("Comparación directa");
+    await expect(heroPanel).toBeVisible();
+
+    const ranking = page.getByText("Ranking por clean score");
+    await expect(ranking).toBeVisible();
+  });
+
+  test("mobile layout shows single column hero panel", async ({ page }) => {
+    await registerAndLogin(page, "alt-e2e-mobile@test.com", "password123");
+
+    await page.route(`${API}/scan/alternatives/**`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED" },
+          top_pick: {
+            product: { barcode: "FIX_YOGURT_001", name: "Activia Natural", brand: "Danone", clean_score: 0 },
+            clean_ingredients: ["Sin sucralosa", "Sin colorantes"],
+            biomarker_conflicts: [],
+            compatibility_pct: 95,
+            avatar_variant: "blue",
+          },
+          alternatives: [
+            {
+              product: { barcode: "FIX_YOGURT_002", name: "Lala Bio 100", brand: "Lala", clean_score: 1 },
+              avatar_variant: "yellow",
+              semaphore_precomputed: "YELLOW",
+            },
+          ],
+          has_biomarkers: false,
+          fallback_used: false,
+        }),
+      });
+    });
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(`${BASE}/scan/FIX_YOGURT_BAD/alternatives`);
+    await page.waitForLoadState("networkidle");
+
+    const heroPanel = page.getByText("Comparación directa");
+    await expect(heroPanel).toBeVisible();
+  });
 });
