@@ -347,6 +347,8 @@ class ScannedProductSummary(BaseModel):
     barcode: str
     name: str | None = None
     semaphore: SemaphoreColor
+    brand: str | None = None
+    clean_score: int
 
 
 class AlternativesResponse(BaseModel):
