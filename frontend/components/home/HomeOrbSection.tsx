@@ -133,8 +133,8 @@ export function HomeOrbSection({ className }: HomeOrbSectionProps) {
             src="/avatars/main.png"
             alt=""
             aria-hidden
-            width={78}
-            height={78}
+            width={96}
+            height={96}
             className="animate-avatar-float object-contain"
             style={{ filter: "drop-shadow(0 0 10px rgba(74,222,128,0.5))" }}
             priority

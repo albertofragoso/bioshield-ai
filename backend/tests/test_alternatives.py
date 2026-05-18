@@ -230,3 +230,39 @@ async def test_find_alternatives_chroma_failure_degrades_gracefully(db_session):
         )
 
     assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_scanned_product_summary_includes_brand_and_clean_score(db_session):
+    """ScannedProductSummary debe exponer brand y clean_score del producto escaneado."""
+    _make_product(db_session, "SCAN001", "Scanned Yogurt", "yogurts", clean_score=2)
+    _make_scan(db_session, "SCAN001", "YELLOW", ["sugar", "leche"], ["sugar"])
+
+    from app.config import Settings
+
+    settings = Settings(chroma_persist_directory="")
+
+    with (
+        patch("app.services.alternatives.embed_text", new_callable=AsyncMock) as mock_embed,
+        patch("app.services.alternatives.get_products_collection") as mock_coll,
+    ):
+        mock_embed.return_value = [0.1] * 1024
+        mock_coll.return_value.query.return_value = {"metadatas": [[]], "distances": [[]]}
+
+        result = await find_alternatives(
+            barcode="SCAN001",
+            db=db_session,
+            settings=settings,
+            active_biomarkers=[],
+            has_biomarkers=False,
+        )
+
+    assert result is not None
+    scanned = result.scanned_product
+    # brand puede ser None si el producto no tiene brand, pero el campo debe existir
+    assert hasattr(scanned, "brand")
+    assert scanned.brand == "TestBrand"
+    # clean_score debe ser int >= 0
+    assert isinstance(scanned.clean_score, int)
+    assert scanned.clean_score >= 0
+    assert scanned.clean_score == 2
