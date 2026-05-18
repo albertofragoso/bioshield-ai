@@ -82,7 +82,7 @@ test.describe("Alternative Matching (Fase 2)", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED" },
+          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED", brand: "Test Brand", clean_score: 40 },
           top_pick: {
             product: { barcode: "FIX_YOGURT_001", name: "Activia Natural", brand: "Danone", clean_score: 0 },
             clean_ingredients: ["Sin sucralosa", "Sin colorantes"],
@@ -104,9 +104,9 @@ test.describe("Alternative Matching (Fase 2)", () => {
     });
 
     await page.goto(`${BASE}/scan/FIX_YOGURT_BAD/alternatives`);
-    await expect(page.getByText("Mejor match para ti")).toBeVisible();
+    await expect(page.getByText("Comparación directa")).toBeVisible();
     await expect(page.getByText("Activia Natural")).toBeVisible();
-    await expect(page.getByText("Otras opciones")).toBeVisible();
+    await expect(page.getByText("Ranking por clean score")).toBeVisible();
     await expect(page.getByText("Lala Bio 100")).toBeVisible();
   });
 
@@ -118,7 +118,7 @@ test.describe("Alternative Matching (Fase 2)", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED" },
+          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED", brand: "Test Brand", clean_score: 40 },
           top_pick: {
             product: { barcode: "FIX_YOGURT_001", name: "Activia Natural", brand: "Danone", clean_score: 0 },
             clean_ingredients: ["Sin sucralosa"],
@@ -145,7 +145,7 @@ test.describe("Alternative Matching (Fase 2)", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          scanned_product: { barcode: "FIX_NOCAT_001", name: "Producto Sin Categoría", semaphore: "RED" },
+          scanned_product: { barcode: "FIX_NOCAT_001", name: "Producto Sin Categoría", semaphore: "RED", brand: "Test Brand", clean_score: 40 },
           top_pick: null,
           alternatives: [],
           has_biomarkers: false,
@@ -166,7 +166,7 @@ test.describe("Alternative Matching (Fase 2)", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED" },
+          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED", brand: "Test Brand", clean_score: 40 },
           top_pick: {
             product: { barcode: "FIX_YOGURT_001", name: "Activia Natural", brand: "Danone", clean_score: 0 },
             clean_ingredients: ["Sin sucralosa"],
@@ -194,7 +194,7 @@ test.describe("Alternative Matching (Fase 2)", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED" },
+          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED", brand: "Test Brand", clean_score: 40 },
           top_pick: {
             product: { barcode: "FIX_YOGURT_001", name: "Activia Natural", brand: "Danone", clean_score: 0 },
             clean_ingredients: ["Sin sucralosa", "Sin colorantes"],
@@ -234,7 +234,7 @@ test.describe("Alternative Matching (Fase 2)", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED" },
+          scanned_product: { barcode: "FIX_YOGURT_BAD", name: "Yogurt con Sucralosa", semaphore: "RED", brand: "Test Brand", clean_score: 40 },
           top_pick: {
             product: { barcode: "FIX_YOGURT_001", name: "Activia Natural", brand: "Danone", clean_score: 0 },
             clean_ingredients: ["Sin sucralosa", "Sin colorantes"],
