@@ -39,7 +39,7 @@ export function AlternativesRankingRow({ item, position }: AlternativesRankingRo
       </span>
       <AvatarGlow
         variant={avatar_variant}
-        size={44}
+        size={56}
         intensity="soft"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
