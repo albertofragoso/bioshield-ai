@@ -203,7 +203,9 @@ export interface AlternativeItem {
 export interface ScannedProductSummary {
   barcode: string;
   name: string | null;
+  brand: string | null;
   semaphore: SemaphoreColor;
+  clean_score: number;
 }
 
 export interface AlternativesResponse {
