@@ -278,7 +278,9 @@ async def find_alternatives(
         scanned_product=ScannedProductSummary(
             barcode=barcode,
             name=product_name,
+            brand=scanned_product.brand if scanned_product else None,
             semaphore=SemaphoreColor(scanned_semaphore),
+            clean_score=scanned_clean_score,
         ),
         top_pick=top_pick,
         alternatives=alternatives,
