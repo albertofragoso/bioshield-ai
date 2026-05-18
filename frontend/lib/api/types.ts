@@ -203,9 +203,7 @@ export interface AlternativeItem {
 export interface ScannedProductSummary {
   barcode: string;
   name: string | null;
-  brand: string | null;    // extendido — ver ScannedProductSummary en models.py
   semaphore: SemaphoreColor;
-  clean_score: number;     // extendido — para delta de mejora en hero panel
 }
 
 export interface AlternativesResponse {

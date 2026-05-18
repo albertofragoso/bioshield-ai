@@ -280,7 +280,7 @@ async def find_alternatives(
             name=product_name,
             brand=scanned_product.brand if scanned_product else None,
             semaphore=SemaphoreColor(scanned_semaphore),
-            clean_score=scanned_clean_score,
+            clean_score=(scanned_product.clean_score or 0) if scanned_product else 0,
         ),
         top_pick=top_pick,
         alternatives=alternatives,
