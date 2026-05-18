@@ -17,7 +17,7 @@ const DATA_LINES = ["01001101", "ADT:0.82", "E621:⚠", "USDA:OK"] as const;
 
 export function HomeOrbSection({ className }: HomeOrbSectionProps) {
   return (
-    <div className={`relative flex flex-col items-center justify-center gap-4 overflow-hidden ${className ?? ""}`}>
+    <div className={`relative flex flex-col items-center justify-center gap-2 overflow-hidden ${className ?? ""}`}>
       {/* Scan line periódica — usa keyframe scan-line existente en globals.css */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
@@ -67,32 +67,32 @@ export function HomeOrbSection({ className }: HomeOrbSectionProps) {
         href="/scan"
         aria-label="Escanear producto"
         className="animate-fade-up relative flex items-center justify-center"
-        style={{ width: 168, height: 168, animationDelay: "0.1s" }}
+        style={{ width: 260, height: 260, animationDelay: "0.1s" }}
       >
         {/* Pulse rings */}
         <div
           className="orb-ring animate-pulse-ring"
-          style={{ width: 118, height: 118, border: "1px solid rgba(74,222,128,0.3)" }}
+          style={{ width: 182, height: 182, border: "1px solid rgba(74,222,128,0.3)" }}
         />
         <div
           className="orb-ring animate-pulse-ring"
-          style={{ width: 118, height: 118, border: "1px solid rgba(74,222,128,0.18)", animationDelay: "0.85s" }}
+          style={{ width: 182, height: 182, border: "1px solid rgba(74,222,128,0.18)", animationDelay: "0.85s" }}
         />
 
         {/* Ring orbital exterior (CW) */}
         <div
           className="orb-ring bs-orbital-ring-outer"
-          style={{ width: 154, height: 154, border: "1px dashed rgba(74,222,128,0.14)" }}
+          style={{ width: 242, height: 242, border: "1px dashed rgba(74,222,128,0.14)" }}
         >
           <div
             className="absolute"
             style={{
-              width: 7,
-              height: 7,
+              width: 9,
+              height: 9,
               borderRadius: "50%",
               background: "#4ade80",
               boxShadow: "0 0 8px rgba(74,222,128,0.9), 0 0 16px rgba(74,222,128,0.4)",
-              top: -3.5,
+              top: -4.5,
               left: "50%",
               transform: "translateX(-50%)",
             }}
@@ -102,17 +102,17 @@ export function HomeOrbSection({ className }: HomeOrbSectionProps) {
         {/* Ring orbital interior (CCW) */}
         <div
           className="orb-ring bs-orbital-ring-inner"
-          style={{ width: 136, height: 136, border: "1px solid rgba(74,222,128,0.07)" }}
+          style={{ width: 212, height: 212, border: "1px solid rgba(74,222,128,0.07)" }}
         >
           <div
             className="absolute"
             style={{
-              width: 5,
-              height: 5,
+              width: 7,
+              height: 7,
               borderRadius: "50%",
               background: "rgba(74,222,128,0.5)",
               boxShadow: "0 0 5px rgba(74,222,128,0.5)",
-              bottom: -2.5,
+              bottom: -3.5,
               right: "18%",
             }}
           />
@@ -122,8 +122,8 @@ export function HomeOrbSection({ className }: HomeOrbSectionProps) {
         <div
           className="animate-glow-surge relative z-10 flex items-center justify-center overflow-hidden"
           style={{
-            width: 104,
-            height: 104,
+            width: 164,
+            height: 164,
             borderRadius: "50%",
             background: "radial-gradient(circle at 38% 34%, rgba(74,222,128,0.22) 0%, rgba(74,222,128,0.03) 70%)",
             border: "1.5px solid rgba(74,222,128,0.5)",
@@ -133,10 +133,10 @@ export function HomeOrbSection({ className }: HomeOrbSectionProps) {
             src="/avatars/main.png"
             alt=""
             aria-hidden
-            width={78}
-            height={78}
+            width={126}
+            height={126}
             className="animate-avatar-float object-contain"
-            style={{ filter: "drop-shadow(0 0 10px rgba(74,222,128,0.5))" }}
+            style={{ filter: "drop-shadow(0 0 14px rgba(74,222,128,0.6))" }}
             priority
           />
         </div>

@@ -306,6 +306,32 @@ async def link_photo_barcode(
     response = ScanResponse.model_validate(history.result_json)
     response.product_barcode = real_product.barcode
     response.show_barcode_cta = False
+
+    # Persiste ScanHistory para el barcode real; find_alternatives lo necesita.
+    existing_real = db.scalar(
+        select(ScanHistory)
+        .where(
+            ScanHistory.product_barcode == real_product.barcode,
+            ScanHistory.user_id == current_user.id,
+        )
+        .order_by(ScanHistory.scanned_at.desc())
+    )
+    if existing_real is None:
+        new_result_json = {**history.result_json, "product_barcode": real_product.barcode}
+        new_result_json.pop("show_barcode_cta", None)
+        db.add(
+            ScanHistory(
+                user_id=current_user.id,
+                product_barcode=real_product.barcode,
+                ingredient_id=history.ingredient_id,
+                semaphore_result=history.semaphore_result,
+                confidence_score=history.confidence_score or 0.0,
+                conflict_severity=history.conflict_severity,
+                result_json=new_result_json,
+            )
+        )
+        db.commit()
+
     return response
 
 
