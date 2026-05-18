@@ -10,6 +10,14 @@ const SEMAPHORE_COLORS: Record<string, string> = {
   GRAY:   "#9ca3af",
 };
 
+const SEMAPHORE_BLOCK: Record<string, { bg: string; border: string }> = {
+  BLUE:   { bg: "rgba(34,197,94,.05)",    border: "1px solid rgba(34,197,94,.22)" },
+  YELLOW: { bg: "rgba(250,204,21,.05)",   border: "1px solid rgba(250,204,21,.2)" },
+  ORANGE: { bg: "rgba(251,146,60,.05)",   border: "1px solid rgba(251,146,60,.18)" },
+  RED:    { bg: "rgba(248,113,113,.05)",  border: "1px solid rgba(248,113,113,.18)" },
+  GRAY:   { bg: "rgba(156,163,175,.05)",  border: "1px solid rgba(156,163,175,.15)" },
+};
+
 interface AlternativesHeroPanelProps {
   data: AlternativesResponse;
 }
@@ -40,7 +48,10 @@ export function AlternativesHeroPanel({ data }: AlternativesHeroPanelProps) {
         <div className="grid gap-2" style={{ gridTemplateColumns: "1fr 32px 1fr" }}>
           <div
             className="flex flex-col items-center gap-2 rounded-[14px] p-3 text-center"
-            style={{ background: "rgba(248,113,113,.05)", border: "1px solid rgba(248,113,113,.18)" }}
+            style={{
+              background: SEMAPHORE_BLOCK[scanned_product.semaphore]?.bg ?? SEMAPHORE_BLOCK.GRAY.bg,
+              border: SEMAPHORE_BLOCK[scanned_product.semaphore]?.border ?? SEMAPHORE_BLOCK.GRAY.border,
+            }}
           >
             <AvatarGlow
               variant={scannedAvatarVariant}
@@ -83,7 +94,15 @@ export function AlternativesHeroPanel({ data }: AlternativesHeroPanelProps) {
             <span className="text-[20px] font-extrabold leading-none text-[#22c55e]">
               {top_pick.product.clean_score}
             </span>
-            <span className="text-[10px] text-[#22c55e]">0 conflictos</span>
+            {has_biomarkers ? (
+              <span className="text-[10px] text-[#22c55e]">
+                {top_pick.biomarker_conflicts.length === 0
+                  ? "0 conflictos"
+                  : `${top_pick.biomarker_conflicts.length} conflicto${top_pick.biomarker_conflicts.length !== 1 ? "s" : ""}`}
+              </span>
+            ) : (
+              <span className="text-[10px] text-[#475569]">Sin biomarcadores</span>
+            )}
           </div>
         </div>
 
