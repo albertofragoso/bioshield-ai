@@ -1,12 +1,6 @@
 import path from "node:path";
-import {
-  test,
-  expect,
-  mockScanPhoto,
-  mockScanPhotoError,
-  mockScanResultGet,
-  makeScanResponse,
-} from "../../fixtures";
+import { test, expect, mockScanPhotoError, mockScanResultGet, makeScanResponse } from "../../fixtures";
+import { mockScanPhoto } from "../../fixtures/api-mocks";
 
 const FIXTURE = path.resolve(__dirname, "../../fixtures/files/nutrition-label.png");
 
