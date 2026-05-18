@@ -1,10 +1,10 @@
-"""Ingest products from Open Food Facts Search API v2 — Mexico market.
+"""Ingest products from Open Food Facts Search API v2 — global catalog.
 
-Queries by country (en:mexico) + health categories. Extracts products
-with valid barcode and ingredients. Outputs scripts/data/off_products.json.
+Queries by health categories + quality labels (no country restriction).
+Outputs scripts/data/off_global_products.json.
 
 Usage:
-    cd backend && python -m scripts.ingest_off_mexico
+    cd backend && python -m scripts.ingest_off_global
 """
 import json
 import logging
@@ -19,24 +19,36 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 OFF_SEARCH_URL = "https://search.openfoodfacts.org/search"
-OUTPUT_PATH = Path(__file__).parent / "data" / "off_products.json"
+OUTPUT_PATH = Path(__file__).parent / "data" / "off_global_products.json"
 
 HEALTH_CATEGORIES = [
-    "en:plant-based-foods",      # general
-    "en:organic-foods",          # general
-    "en:baby-foods",             # general
-    "en:dietary-supplements",    # general
-    "en:plant-based-beverages",  # general
-    "en:waters",                 # específico
-    "en:fruit-juices",           # específico
-    "en:herbal-teas",            # específico
-    "en:legumes",                # específico
-    "en:nuts",                   # específico
-    "en:dried-fruits",           # específico
-    "en:whole-grain-foods",      # específico
-    "en:breakfast-cereals",      # específico (sub de whole-grain)
-    "en:fermented-milks",        # específico
-    "en:yogurts",                # más específico (sub de fermented-milks)
+    # Categorías del script MX — se mantienen para consistencia de cobertura
+    "en:plant-based-foods",
+    "en:organic-foods",
+    "en:baby-foods",
+    "en:dietary-supplements",
+    "en:plant-based-beverages",
+    "en:waters",
+    "en:fruit-juices",
+    "en:herbal-teas",
+    "en:legumes",
+    "en:nuts",
+    "en:dried-fruits",
+    "en:whole-grain-foods",
+    "en:breakfast-cereals",
+    "en:fermented-milks",
+    "en:yogurts",
+    # Categorías adicionales para ampliar cobertura global
+    "en:snacks",
+    "en:condiments",
+    "en:dairy",
+    "en:sauces",
+    "en:frozen-foods",
+    "en:cereals",
+    "en:beverages",
+    "en:bread",
+    "en:chocolate",
+    "en:spreads",
 ]
 
 _FIELDS = ",".join([
@@ -51,21 +63,24 @@ _FIELDS = ",".join([
 ])
 
 _PAGE_SIZE = 100
-_MAX_PAGES = 5  # up to 500 products per category
+_MAX_PAGES = 5
 _HEADERS = {"User-Agent": "BioShieldAI/1.0 (isc.albertofragoso@gmail.com)"}
 
 
 def _fetch_page(category: str, page: int) -> dict:
+    # Sin countries_tags — diferencia clave respecto al script de México
+    # Lista de tuplas para enviar labels_tags dos veces (API v2 no acepta valor separado por comas)
     resp = requests.get(
         OFF_SEARCH_URL,
-        params={
-            "countries_tags": "en:mexico",
-            "categories_tags": category,
-            "fields": _FIELDS,
-            "page_size": _PAGE_SIZE,
-            "page": page,
-            "sort_by": "unique_scans_n",
-        },
+        params=[
+            ("categories_tags", category),
+            ("labels_tags", "en:organic"),
+            ("labels_tags", "en:no-additives"),
+            ("fields", _FIELDS),
+            ("page_size", _PAGE_SIZE),
+            ("page", page),
+            ("sort_by", "unique_scans_n"),
+        ],
         headers=_HEADERS,
         timeout=30,
     )
@@ -74,13 +89,12 @@ def _fetch_page(category: str, page: int) -> dict:
 
 
 def _tags_to_text(tags: list) -> str:
-    """Convert ingredients_tags like ['en:wheat-flour', ...] to readable text."""
+    """Convierte ingredients_tags como ['en:wheat-flour', ...] a texto legible."""
     names = []
     for tag in tags or []:
-        # Strip language prefix (e.g. 'en:', 'es:')
+        # Eliminar prefijo de idioma (ej. 'en:', 'es:')
         if ":" in tag:
             tag = tag.split(":", 1)[1]
-        # Replace hyphens with spaces and title-case
         names.append(tag.replace("-", " "))
     return ", ".join(names)
 
@@ -92,7 +106,7 @@ def _map_product(hit: dict, category: str) -> dict | None:
     if not barcode or not name:
         return None
 
-    # Prefer free-text ingredients; fall back to structured tags
+    # Preferir texto libre de ingredientes; fallback a tags estructurados
     ingredients_text = (hit.get("ingredients_text") or "").strip()
     if not ingredients_text:
         tags = hit.get("ingredients_tags") or []
@@ -119,7 +133,7 @@ def _map_product(hit: dict, category: str) -> dict | None:
         "category": category.replace("en:", ""),
         "image_url": hit.get("image_front_url") or None,
         "ingredients_json": ingredients_json,
-        "ingredients_source": "off_dump_mx",
+        "ingredients_source": "off_global",
     }
 
 
@@ -167,7 +181,7 @@ def main() -> None:
                     continue
 
                 if product["barcode"] in seen_index:
-                    # Reemplazar con la categoría más reciente (más específica por orden de lista)
+                    # Reemplazar con categoría más reciente (más específica por orden de lista)
                     products[seen_index[product["barcode"]]] = product
                     stats["category_updated"] += 1
                 else:

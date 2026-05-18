@@ -1,5 +1,7 @@
 # Alternative Matching — Implementation Plan
 
+> **Actualizado Fase 2.1:** El pipeline de ingesta es ahora multi-fuente (OFF MX + OFF Global + USDA). Script canónico: `load_all_products.py`. Ver `docs/superpowers/specs/2026-05-13-hybrid-ingestion-design.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Dado un producto con semáforo YELLOW/ORANGE/RED, mostrar alternativas reales del mercado mexicano con ingredientes más limpios, priorizadas por compatibilidad con los biomarcadores del usuario.

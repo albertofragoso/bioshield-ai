@@ -152,11 +152,11 @@ async def find_alternatives(
     # ── 2. Load scanned product to get category + clean_score ────────────────
     scanned_product = db.scalar(select(Product).where(Product.barcode == barcode))
     category = scanned_product.category if scanned_product else None
-    scanned_clean_score = scanned_product.clean_score if scanned_product else 0
 
     fallback_used = category is None
 
     # ── 3. SQL first pass ────────────────────────────────────────────────────
+    # No filtramos por clean_score aquí — ChromaDB reordena por similaridad
     if not fallback_used:
         candidates = list(
             db.scalars(
@@ -164,7 +164,6 @@ async def find_alternatives(
                 .where(
                     Product.category == category,
                     Product.barcode != barcode,
-                    Product.clean_score < scanned_clean_score,
                 )
                 .order_by(Product.clean_score.asc())
                 .limit(20)
@@ -176,18 +175,31 @@ async def find_alternatives(
     # ── 4. ChromaDB re-rank ──────────────────────────────────────────────────
     reranked: list[Product] = candidates
 
-    if flagged_ingredients:
-        query_text = (
-            f"categoría: {category or 'alimento'} sin {' sin '.join(flagged_ingredients[:5])}"
-        )
+    # Activar cuando hay ingredientes problemáticos O cuando SQL no devolvió candidatos
+    if flagged_ingredients or not candidates:
+        if flagged_ingredients:
+            query_text = (
+                f"producto: {product_name or category or 'alimento'} "
+                f"sin {' sin '.join(flagged_ingredients[:5])}"
+            )
+        else:
+            query_text = (
+                f"producto: {product_name or 'alimento'} "
+                f"ingredientes: {', '.join(all_ingredients[:8])}"
+            )
         try:
             embedding = await embed_text(query_text, settings)
             collection = get_products_collection(settings)
-            candidate_barcodes = [c.barcode for c in candidates] or None
-            where_filter = {"barcode": {"$in": candidate_barcodes}} if candidate_barcodes else None
+            if candidates:
+                candidate_barcodes = [c.barcode for c in candidates]
+                where_filter: dict | None = {"barcode": {"$in": candidate_barcodes}}
+                n_results = min(5, len(candidates))
+            else:
+                where_filter = None
+                n_results = 5
             results = collection.query(
                 query_embeddings=[embedding],  # type: ignore[arg-type]
-                n_results=min(5, max(1, len(candidates))) if candidates else 1,
+                n_results=n_results,
                 where=where_filter,  # type: ignore[arg-type]
                 include=["metadatas", "distances"],  # type: ignore[list-item]
             )
@@ -196,10 +208,22 @@ async def find_alternatives(
                 str(m["barcode"])
                 for m in (metadatas[0] if metadatas else [])  # type: ignore[index]
             ]
-            barcode_to_product = {c.barcode: c for c in candidates}
-            reranked = [barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product]
-            seen = set(ranked_barcodes)
-            reranked += [c for c in candidates if c.barcode not in seen]
+            if candidates:
+                barcode_to_product = {c.barcode: c for c in candidates}
+                reranked = [
+                    barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product
+                ]
+                seen = set(ranked_barcodes)
+                reranked += [c for c in candidates if c.barcode not in seen]
+            else:
+                # Fallback: barcodes retornados por ChromaDB → buscar en DB
+                fetched = list(
+                    db.scalars(select(Product).where(Product.barcode.in_(ranked_barcodes)))
+                )
+                barcode_to_product = {p.barcode: p for p in fetched}
+                reranked = [
+                    barcode_to_product[b] for b in ranked_barcodes if b in barcode_to_product
+                ]
         except Exception as exc:
             logger.warning("ChromaDB re-rank failed, falling back to SQL order: %s", exc)
 
@@ -256,7 +280,7 @@ async def find_alternatives(
             name=product_name,
             brand=scanned_product.brand if scanned_product else None,
             semaphore=SemaphoreColor(scanned_semaphore),
-            clean_score=scanned_clean_score,
+            clean_score=(scanned_product.clean_score or 0) if scanned_product else 0,
         ),
         top_pick=top_pick,
         alternatives=alternatives,

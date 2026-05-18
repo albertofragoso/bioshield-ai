@@ -344,10 +344,19 @@ class AlternativeItem(BaseModel):
 
 
 class ScannedProductSummary(BaseModel):
+    """
+    Resumen del producto escaneado incluido en AlternativesResponse.
+
+    Campos extendidos respecto a la versión inicial:
+    - brand: identifica visualmente el producto en el hero panel de comparación.
+    - clean_score: permite calcular el delta de mejora vs el top pick en el
+      frontend. El score ya existía en el objeto Product cargado por el servicio
+      de alternatives — solo se expone aquí para no requerir un segundo query.
+    """
     barcode: str
     name: str | None = None
-    semaphore: SemaphoreColor
     brand: str | None = None
+    semaphore: SemaphoreColor
     clean_score: int
 
 

@@ -8,8 +8,8 @@ import { useEffect } from "react";
 import { getAlternatives } from "@/lib/api/scan";
 import { recordAnalyticsEvent } from "@/lib/api/analytics";
 import { AILoadingState, ALTERNATIVES_PHASES } from "@/components/AILoadingState";
-import { AlternativesHeroPanel } from "@/components/AlternativesHeroPanel";
-import { AlternativesRankingList } from "@/components/AlternativesRankingList";
+import { AlternativeTopPick } from "@/components/AlternativeTopPick";
+import { AlternativeRow } from "@/components/AlternativeRow";
 import { AvatarGlow } from "@/components/AvatarGlow";
 import type { AlternativesResponse } from "@/lib/api/types";
 
@@ -72,7 +72,7 @@ export default function AlternativesPage() {
   const isEmpty = data && !data.top_pick && data.alternatives.length === 0;
 
   return (
-    <div className="relative z-10 py-6 mx-auto w-full max-w-[480px] px-4 md:max-w-[1080px] md:px-8 flex flex-col gap-5">
+    <div className="relative z-10 px-4 py-6 max-w-[480px] mx-auto flex flex-col gap-5">
       {/* Back nav */}
       <Link
         href={`/scan/${barcode}`}
@@ -118,29 +118,38 @@ export default function AlternativesPage() {
       {/* Empty */}
       {!isLoading && isEmpty && <EmptyState />}
 
-      {/* Results — layout two-column en desktop, single-column en mobile */}
+      {/* Results */}
       {data && !isEmpty && (
-        <div className="flex flex-col gap-5 md:grid md:gap-7" style={{ gridTemplateColumns: "380px 1fr" }}>
-          <AlternativesHeroPanel data={data} />
-          {data.alternatives.length > 0 ? (
-            <AlternativesRankingList
-              alternatives={data.alternatives}
-              fallbackUsed={data.fallback_used}
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-4 py-12 text-center">
-              <AvatarGlow variant="gray" size={80} intensity="soft" />
-              <p className="text-[14px] text-[#64748b]">
-                No encontramos alternativas en esta categoría
+        <>
+          {data.top_pick && (
+            <AlternativeTopPick data={data.top_pick} hasBiomarkers={data.has_biomarkers} />
+          )}
+
+          {data.alternatives.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="font-mono text-[10px] font-semibold text-[#64748b] uppercase tracking-[0.1em]">
+                Otras opciones · semáforo general
               </p>
-              {!data.has_biomarkers && (
-                <p className="text-[12px] text-[#475569]">
-                  Activa BioSync para personalización completa
-                </p>
-              )}
+              {data.alternatives.map((alt) => (
+                <div
+                  key={alt.product.barcode}
+                  onClick={() =>
+                    recordAnalyticsEvent({
+                      event_type: "alt_tapped",
+                      payload: { barcode: alt.product.barcode },
+                    })
+                  }
+                >
+                  <AlternativeRow item={alt} />
+                </div>
+              ))}
             </div>
           )}
-        </div>
+
+          <p className="text-[11px] text-[#334155] text-center mt-1">
+            Toca cualquier opción para ver su análisis completo
+          </p>
+        </>
       )}
     </div>
   );
