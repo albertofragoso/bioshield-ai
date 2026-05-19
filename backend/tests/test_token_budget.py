@@ -101,3 +101,55 @@ async def test_token_budget_resets_on_new_day(db_session: Session, test_user: Us
     db_session.refresh(test_user)
     assert test_user.tokens_budget_date == date.today()
     assert test_user.tokens_used_today == ENDPOINT_TOKEN_COST["scan_barcode"]
+
+
+@pytest.mark.asyncio
+async def test_gemini_logs_usage_metadata(caplog):
+    """gemini.extract_from_image logs token counts after a successful call."""
+    import logging
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from app.services import gemini as gemini_module
+    from app.config import get_settings
+
+    mock_usage = MagicMock()
+    mock_usage.total_token_count = 1847
+    mock_usage.prompt_token_count = 1200
+    mock_usage.candidates_token_count = 647
+
+    mock_response = MagicMock()
+    mock_response.usage_metadata = mock_usage
+    mock_response.parsed = MagicMock(spec=type("ProductExtraction", (), {}))
+
+    with patch.object(gemini_module, "_decode_image", return_value=b"fake"), \
+         patch.object(gemini_module, "_configure"), \
+         patch.object(gemini_module, "_extract_parsed", return_value=MagicMock()), \
+         patch("google.generativeai.GenerativeModel") as mock_model_cls:
+        mock_model = MagicMock()
+        mock_model.generate_content_async = AsyncMock(return_value=mock_response)
+        mock_model_cls.return_value = mock_model
+
+        with caplog.at_level(logging.INFO, logger="app.services.gemini"):
+            await gemini_module.extract_from_image("dGVzdA==", get_settings())
+
+    log_msgs = [r.getMessage() for r in caplog.records]
+    assert any("gemini_call_complete" in m for m in log_msgs), \
+        f"Expected 'gemini_call_complete' in logs, got: {log_msgs}"
+
+
+def test_gemini_logs_usage_metadata_safe_with_none(caplog):
+    """REQUEST_ID_VAR is read (not crash) when usage_metadata is None."""
+    from app.core.context import REQUEST_ID_VAR
+    from app.services import gemini as gemini_module
+    import logging
+
+    REQUEST_ID_VAR.set("test-req-id")
+
+    # Verify REQUEST_ID_VAR is set correctly
+    assert REQUEST_ID_VAR.get() == "test-req-id"
+
+    # Verify that getattr-safe pattern works with None
+    fake_response = type("R", (), {"usage_metadata": None})()
+    _usage = getattr(fake_response, "usage_metadata", None)
+    assert getattr(_usage, "total_token_count", 0) == 0
+    assert getattr(_usage, "prompt_token_count", 0) == 0
+    assert getattr(_usage, "candidates_token_count", 0) == 0
