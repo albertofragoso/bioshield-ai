@@ -22,6 +22,12 @@ Adiciones específicas del backend:
 - **Migraciones:** no modificar `alembic/versions/` manualmente, usar Alembic CLI.
 - **Queries:** usar SQLAlchemy, nunca queries SQL directas.
 
+## Regla crítica: endpoints LLM
+
+Todo endpoint que llame a `gemini.py` (directa o indirectamente via el agente LangGraph)
+DEBE declarar `_budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["<key>"]))` en su firma.
+El test `tests/test_ci_gate.py` falla si se omite. Sin excepción.
+
 ## Estructura
 
 ```
