@@ -4,13 +4,14 @@ Compatible with SQLite (dev) and PostgreSQL (prod).
 UUID fields use String(36); JSONB uses JSON; BYTEA uses LargeBinary.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date as _date, datetime, timedelta
 from uuid import uuid4
 
 from sqlalchemy import (
     JSON,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -21,6 +22,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -52,6 +54,12 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    tokens_used_today: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    tokens_budget_date: Mapped[_date] = mapped_column(
+        Date, nullable=False, server_default=func.current_date()
+    )
 
     biomarkers: Mapped[list["Biomarker"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
