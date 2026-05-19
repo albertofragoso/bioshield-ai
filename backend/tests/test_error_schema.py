@@ -20,3 +20,28 @@ def test_error_response_all_fields():
     schema = ErrorResponse(error="rate_limit_exceeded", message="slow down", detail=None)
     assert schema.error == "rate_limit_exceeded"
     assert schema.message == "slow down"
+
+
+from app.middleware.rate_limit import _seconds_until_midnight_utc
+
+
+def test_seconds_until_midnight_utc_is_positive():
+    secs = _seconds_until_midnight_utc()
+    assert 0 < secs <= 86400
+
+
+def test_rate_limit_429_has_correct_schema():
+    from unittest.mock import MagicMock
+    from app.middleware.rate_limit import rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+
+    mock_request = MagicMock()
+    mock_exc = MagicMock(spec=RateLimitExceeded)
+    mock_exc.detail = "20 per 1 minute"
+    response = rate_limit_exceeded_handler(mock_request, mock_exc)
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "60"
+    import json
+    body = json.loads(response.body)
+    assert body["error"] == "rate_limit_exceeded"
+    assert "message" in body

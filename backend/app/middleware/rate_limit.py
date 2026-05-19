@@ -3,8 +3,11 @@
 Limits:
 - Auth endpoints (register/login): 10 req/min per IP  — prevents credential stuffing
 - Scan endpoints (barcode/photo):  20 req/min per user — controls Gemini API cost
+- Biosync extract:                  5 req/min per user — Gemini Vision on full PDF
 - Global fallback:                 60 req/min per IP
 """
+
+from datetime import UTC, datetime, time, timedelta
 
 from fastapi import Request
 from slowapi import Limiter
@@ -41,11 +44,19 @@ def _get_user_or_ip(request: Request) -> str:
     return get_remote_address(request)
 
 
+def _seconds_until_midnight_utc() -> int:
+    """Seconds from now until 00:00:00 UTC (when daily token budget resets)."""
+    now = datetime.now(UTC)
+    midnight = datetime.combine(now.date() + timedelta(days=1), time.min, tzinfo=UTC)
+    return max(1, int((midnight - now).total_seconds()))
+
+
 limiter = Limiter(key_func=_get_user_or_ip, default_limits=["60/minute"])
 
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
     return JSONResponse(
         status_code=429,
-        content={"detail": f"Rate limit exceeded: {exc.detail}. Try again later."},
+        content={"error": "rate_limit_exceeded", "message": str(exc.detail)},
+        headers={"Retry-After": "60"},
     )
