@@ -347,8 +347,12 @@ def test_build_product_profile_base_fields():
 
 def test_build_product_profile_includes_ingredients_when_present():
     p = Product(
-        barcode="123", name="Avena", brand="Quaker", category="cereals",
-        clean_score=1, ingredients_json=["Avena integral", "Azúcar"],
+        barcode="123",
+        name="Avena",
+        brand="Quaker",
+        category="cereals",
+        clean_score=1,
+        ingredients_json=["Avena integral", "Azúcar"],
     )
     profile = build_product_profile(p)
     assert "ingredientes: Avena integral, Azúcar" in profile
@@ -356,7 +360,11 @@ def test_build_product_profile_includes_ingredients_when_present():
 
 def test_build_product_profile_caps_ingredients_at_20():
     p = Product(
-        barcode="123", name="X", brand="Y", category="z", clean_score=0,
+        barcode="123",
+        name="X",
+        brand="Y",
+        category="z",
+        clean_score=0,
         ingredients_json=[f"ing{i}" for i in range(25)],
     )
     profile = build_product_profile(p)

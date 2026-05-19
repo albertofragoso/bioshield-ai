@@ -1,4 +1,5 @@
 """Tests for the ingredient text parser."""
+
 from scripts.utils.ingredient_parser import parse_ingredients
 
 

@@ -1,4 +1,5 @@
 """CI gate: every router function calling Gemini must declare token_budget dependency."""
+
 import ast
 import pathlib
 

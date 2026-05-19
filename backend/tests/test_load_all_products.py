@@ -1,4 +1,5 @@
 """Tests for load_all_products — multi-source merge with priority-by-barcode."""
+
 import json
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -65,8 +66,13 @@ def test_priority_preserved_across_sources(tmp_path):
 
     mx = tmp_path / "off_mx_products.json"
     usda = tmp_path / "usda_products.json"
-    _write_json(mx, [_make_product(barcode="SHARED", name="MX Version", ingredients_source="off_dump_mx")])
-    _write_json(usda, [_make_product(barcode="SHARED", name="USDA Version", ingredients_source="usda_branded")])
+    _write_json(
+        mx, [_make_product(barcode="SHARED", name="MX Version", ingredients_source="off_dump_mx")]
+    )
+    _write_json(
+        usda,
+        [_make_product(barcode="SHARED", name="USDA Version", ingredients_source="usda_branded")],
+    )
 
     inserted_names: list[str] = []
 
@@ -75,6 +81,7 @@ def test_priority_preserved_across_sources(tmp_path):
 
     # Simula que tras insertar MX, USDA lo encuentra como existente
     call_count = {"n": 0}
+
     def mock_scalar(stmt):
         call_count["n"] += 1
         # Primera llamada (MX): barcode no existe → insert

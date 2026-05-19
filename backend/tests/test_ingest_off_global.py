@@ -2,6 +2,7 @@
 
 HTTP calls are mocked — no network required.
 """
+
 import json
 from unittest.mock import patch
 

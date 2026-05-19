@@ -107,10 +107,12 @@ async def test_gemini_logs_usage_metadata(caplog):
     mock_response.usage_metadata = mock_usage
     mock_response.parsed = MagicMock(spec=type("ProductExtraction", (), {}))
 
-    with patch.object(gemini_module, "_decode_image", return_value=b"fake"), \
-         patch.object(gemini_module, "_configure"), \
-         patch.object(gemini_module, "_extract_parsed", return_value=MagicMock()), \
-         patch("google.generativeai.GenerativeModel") as mock_model_cls:
+    with (
+        patch.object(gemini_module, "_decode_image", return_value=b"fake"),
+        patch.object(gemini_module, "_configure"),
+        patch.object(gemini_module, "_extract_parsed", return_value=MagicMock()),
+        patch("google.generativeai.GenerativeModel") as mock_model_cls,
+    ):
         mock_model = MagicMock()
         mock_model.generate_content_async = AsyncMock(return_value=mock_response)
         mock_model_cls.return_value = mock_model
@@ -119,8 +121,9 @@ async def test_gemini_logs_usage_metadata(caplog):
             await gemini_module.extract_from_image("dGVzdA==", get_settings())
 
     log_msgs = [r.getMessage() for r in caplog.records]
-    assert any("gemini_call_complete" in m for m in log_msgs), \
+    assert any("gemini_call_complete" in m for m in log_msgs), (
         f"Expected 'gemini_call_complete' in logs, got: {log_msgs}"
+    )
 
 
 def test_gemini_logs_usage_metadata_safe_with_none(caplog):

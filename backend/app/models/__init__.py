@@ -55,9 +55,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
-    tokens_used_today: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default="0"
-    )
+    tokens_used_today: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     tokens_budget_date: Mapped[_date] = mapped_column(
         Date, nullable=False, server_default=func.current_date()
     )

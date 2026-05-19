@@ -2,6 +2,7 @@
 
 Uses in-memory SQLite — no file I/O, no network.
 """
+
 import json
 
 import pytest
@@ -95,10 +96,7 @@ def test_missing_file_exits_cleanly(mem_db, tmp_path):
 
 
 def test_inserts_multiple_products(mem_db, tmp_path):
-    products = [
-        {**_PRODUCT, "barcode": f"BC{i}", "name": f"Product {i}"}
-        for i in range(5)
-    ]
+    products = [{**_PRODUCT, "barcode": f"BC{i}", "name": f"Product {i}"} for i in range(5)]
     _run_load(mem_db, tmp_path, products)
 
     count = mem_db.scalar(select(func.count()).select_from(Product))

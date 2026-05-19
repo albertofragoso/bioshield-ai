@@ -75,7 +75,7 @@ def token_budget(estimated_tokens: int):
         )
         db.commit()
 
-        if result.rowcount == 0:  # type: ignore[union-attr]
+        if result.rowcount == 0:  # type: ignore[attr-defined]
             retry_after = _seconds_until_midnight_utc()
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
