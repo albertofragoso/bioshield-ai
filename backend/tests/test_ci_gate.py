@@ -58,7 +58,7 @@ def test_all_gemini_endpoints_have_token_budget():
             continue
         tree = ast.parse(router_file.read_text())
         for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 continue
             if _function_calls_gemini(node) and not _function_has_token_budget(node):
                 violations.append(f"{router_file.name}::{node.name}")

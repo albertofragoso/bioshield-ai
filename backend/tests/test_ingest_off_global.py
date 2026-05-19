@@ -3,10 +3,7 @@
 HTTP calls are mocked — no network required.
 """
 import json
-from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 
 def _make_hit(
@@ -71,8 +68,9 @@ def test_map_product_prefers_spanish_name():
 
 def test_fetch_page_excludes_countries_tags():
     """Verifica que el request NO incluye countries_tags (diferencia clave vs MX)."""
-    from scripts.ingest_off_global import _fetch_page
     import requests
+
+    from scripts.ingest_off_global import _fetch_page
 
     with patch.object(requests, "get") as mock_get:
         mock_get.return_value.json.return_value = {"hits": [], "count": 0}
@@ -121,8 +119,9 @@ def test_main_writes_json_and_deduplicates(tmp_path):
 
 
 def test_main_skips_http_errors(tmp_path):
-    from scripts.ingest_off_global import main as ingest_main
     import requests
+
+    from scripts.ingest_off_global import main as ingest_main
 
     def fake_fetch(category, page):
         raise requests.RequestException("timeout")

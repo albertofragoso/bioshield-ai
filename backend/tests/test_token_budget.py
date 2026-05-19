@@ -5,38 +5,24 @@ from datetime import date, timedelta
 import bcrypt
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.dependencies.token_budget import ENDPOINT_TOKEN_COST, token_budget
 from app.models import User
-from app.models.base import SessionLocal
 
 
 def _hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 
-def test_user_has_token_budget_columns():
-    """After migration, users table must have the two new columns."""
-    engine = create_engine(
-        "sqlite:///./bioshield.db",
-        connect_args={"check_same_thread": False},
-    )
-    inspector = inspect(engine)
+def test_user_has_token_budget_columns(test_engine):
+    """ORM model must define the two token budget columns (verified against in-memory schema)."""
+    inspector = inspect(test_engine)
     cols = {c["name"] for c in inspector.get_columns("users")}
     assert "tokens_used_today" in cols
     assert "tokens_budget_date" in cols
-    engine.dispose()
-
-
-@pytest.fixture
-def db_session():
-    db = SessionLocal()
-    yield db
-    db.rollback()
-    db.close()
 
 
 @pytest.fixture
@@ -108,8 +94,9 @@ async def test_gemini_logs_usage_metadata(caplog):
     """gemini.extract_from_image logs token counts after a successful call."""
     import logging
     from unittest.mock import AsyncMock, MagicMock, patch
-    from app.services import gemini as gemini_module
+
     from app.config import get_settings
+    from app.services import gemini as gemini_module
 
     mock_usage = MagicMock()
     mock_usage.total_token_count = 1847
@@ -138,9 +125,8 @@ async def test_gemini_logs_usage_metadata(caplog):
 
 def test_gemini_logs_usage_metadata_safe_with_none(caplog):
     """REQUEST_ID_VAR is read (not crash) when usage_metadata is None."""
+
     from app.core.context import REQUEST_ID_VAR
-    from app.services import gemini as gemini_module
-    import logging
 
     REQUEST_ID_VAR.set("test-req-id")
 

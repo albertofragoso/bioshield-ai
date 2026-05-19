@@ -1,9 +1,7 @@
 """Tests for load_all_products — multi-source merge with priority-by-barcode."""
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
-
-import pytest
+from unittest.mock import MagicMock
 
 
 def _write_json(path: Path, data: list) -> None:

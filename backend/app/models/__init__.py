@@ -4,7 +4,8 @@ Compatible with SQLite (dev) and PostgreSQL (prod).
 UUID fields use String(36); JSONB uses JSON; BYTEA uses LargeBinary.
 """
 
-from datetime import UTC, date as _date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from datetime import date as _date
 from uuid import uuid4
 
 from sqlalchemy import (

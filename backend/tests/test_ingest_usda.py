@@ -3,10 +3,7 @@
 HTTP calls are mocked — no network required.
 """
 import json
-from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 
 def _make_food(
@@ -92,8 +89,9 @@ def test_map_food_allows_empty_market_country():
 
 
 def test_fetch_page_posts_correct_payload():
-    from scripts.ingest_usda import _fetch_page
     import requests
+
+    from scripts.ingest_usda import _fetch_page
 
     with patch.object(requests, "post") as mock_post:
         mock_post.return_value.json.return_value = {"foods": [], "totalHits": 0}
@@ -130,8 +128,9 @@ def test_main_writes_json_and_deduplicates(tmp_path):
 
 
 def test_main_skips_http_errors(tmp_path):
-    from scripts.ingest_usda import main as ingest_main
     import requests
+
+    from scripts.ingest_usda import main as ingest_main
 
     def fake_fetch(query, page):
         raise requests.RequestException("timeout")

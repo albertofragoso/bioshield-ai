@@ -28,8 +28,9 @@ def _write_input(tmp_path, products: list[dict]) -> object:
 
 
 def _run_load(mem_db, tmp_path, products):
-    import scripts.load_products_to_db as loader
     from unittest.mock import patch
+
+    import scripts.load_products_to_db as loader
 
     path = _write_input(tmp_path, products)
     with (
@@ -81,8 +82,9 @@ def test_idempotent_run(mem_db, tmp_path):
 
 
 def test_missing_file_exits_cleanly(mem_db, tmp_path):
-    import scripts.load_products_to_db as loader
     from unittest.mock import patch
+
+    import scripts.load_products_to_db as loader
 
     missing = tmp_path / "nonexistent.json"
     with (

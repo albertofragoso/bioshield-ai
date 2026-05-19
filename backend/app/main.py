@@ -55,7 +55,7 @@ async def add_security_headers(request, call_next):
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     _log = logging.getLogger("app.main")
     _log.exception("unhandled_exception", exc_info=exc)
-    rid = getattr(request.state, "request_id", None) or REQUEST_ID_VAR.get("unknown")
+    rid: str = getattr(request.state, "request_id", None) or REQUEST_ID_VAR.get() or "unknown"
     return JSONResponse(
         status_code=500,
         content={"error": "internal_error", "message": "An unexpected error occurred"},

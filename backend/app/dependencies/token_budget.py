@@ -12,6 +12,7 @@ from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import text
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -49,7 +50,7 @@ def token_budget(estimated_tokens: int):
     ) -> User:
         today = date.today()
 
-        result = db.execute(
+        result: CursorResult = db.execute(
             text("""
                 UPDATE users
                 SET

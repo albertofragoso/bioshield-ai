@@ -1,4 +1,9 @@
+from fastapi.testclient import TestClient
+
 from app.core.context import REQUEST_ID_VAR
+from app.main import app
+
+client = TestClient(app)
 
 
 def test_request_id_var_default_is_none():
@@ -10,12 +15,6 @@ def test_request_id_var_set_and_get():
     assert REQUEST_ID_VAR.get() == "abc-123"
     REQUEST_ID_VAR.reset(token)
     assert REQUEST_ID_VAR.get() is None
-
-
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
 
 
 def test_health_response_has_request_id_header():
