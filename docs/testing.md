@@ -9,7 +9,7 @@ NO se duplican entre sí.
 │    tests/specs-integration/ · ~5 smoke tests · nightly      │
 ├─────────────────────────────────────────────────────────────┤
 │ 2. Frontend E2E — mock backend [implementado]              │
-│    tests/specs/ · ~50 tests · cada PR                       │
+│    tests/specs/ · ~68 tests · cada PR                       │
 ├─────────────────────────────────────────────────────────────┤
 │ 1. Backend unit + integration [implementado]               │
 │    backend/tests/ · pytest + httpx ASGI · cada PR           │

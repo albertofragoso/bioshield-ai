@@ -1,13 +1,21 @@
-from fastapi import FastAPI
+import logging
+import logging.config
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import get_settings
+from app.core.context import REQUEST_ID_VAR
+from app.middleware.logging import LOGGING_CONFIG, RequestIDMiddleware
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
 from app.routers import analytics, auth, biosync, scan
 
 settings = get_settings()
+
+logging.config.dictConfig(LOGGING_CONFIG)
 
 app = FastAPI(
     title=settings.app_name,
@@ -21,6 +29,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # type: ignore
 
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -40,6 +49,18 @@ async def add_security_headers(request, call_next):
     if not settings.debug:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    _log = logging.getLogger("app.main")
+    _log.exception("unhandled_exception", exc_info=exc)
+    rid: str = getattr(request.state, "request_id", None) or REQUEST_ID_VAR.get() or "unknown"
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_error", "message": "An unexpected error occurred"},
+        headers={"X-Request-ID": rid},
+    )
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])

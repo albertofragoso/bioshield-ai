@@ -4,6 +4,7 @@
 
 import type { Page, Route } from "@playwright/test";
 import {
+  makeAlternativesResponse,
   makeBiomarkerExtraction,
   makeBiomarkerStatus,
   makeOFFContributeResponse,
@@ -13,6 +14,7 @@ import {
   makeUser,
 } from "./factories";
 import type {
+  AlternativesResponse,
   BiomarkerExtractionResult,
   BiomarkerStatusResponse,
   OFFContributeResponse,
@@ -181,6 +183,16 @@ export async function mockBiosyncStatus(
 
 export async function mockBiosyncDelete(page: Page) {
   await page.route("**/biosync/data", (route) => route.fulfill({ status: 204 }));
+}
+
+// ── Alternatives ─────────────────────────────────────────────────────────────
+
+export async function mockAlternatives(
+  page: Page,
+  barcode: string,
+  response: AlternativesResponse = makeAlternativesResponse(),
+) {
+  await page.route(`**/scan/alternatives/${barcode}`, (route) => json(route, 200, response));
 }
 
 // ── Default mock layer ────────────────────────────────────────────────────────

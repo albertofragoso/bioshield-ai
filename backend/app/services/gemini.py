@@ -26,6 +26,7 @@ from app.agents.prompts import (
     RECONCILER_PROMPT,
 )
 from app.config import Settings
+from app.core.context import REQUEST_ID_VAR
 from app.schemas.models import (
     ConflictSeverity,
     ConflictType,
@@ -185,6 +186,17 @@ async def extract_from_image(image_b64: str, settings: Settings) -> ProductExtra
             detail="Gemini API unavailable",
         ) from exc
 
+    _usage = getattr(response, "usage_metadata", None)
+    logger.info(
+        "gemini_call_complete",
+        extra={
+            "request_id": REQUEST_ID_VAR.get(),
+            "tokens_total": getattr(_usage, "total_token_count", 0),
+            "tokens_prompt": getattr(_usage, "prompt_token_count", 0),
+            "tokens_output": getattr(_usage, "candidates_token_count", 0),
+            "model": settings.gemini_model,
+        },
+    )
     return _extract_parsed(response, ProductExtraction)
 
 
@@ -223,6 +235,17 @@ async def reconcile_ingredient(
         logger.error("Gemini API error during reconciliation: %s", exc)
         return None
 
+    _usage = getattr(response, "usage_metadata", None)
+    logger.info(
+        "gemini_call_complete",
+        extra={
+            "request_id": REQUEST_ID_VAR.get(),
+            "tokens_total": getattr(_usage, "total_token_count", 0),
+            "tokens_prompt": getattr(_usage, "prompt_token_count", 0),
+            "tokens_output": getattr(_usage, "candidates_token_count", 0),
+            "model": settings.gemini_model,
+        },
+    )
     parsed = _extract_parsed(response, _ReconcilerResponse)
     if parsed.conflict_type is None or parsed.severity is None:
         return None
@@ -257,6 +280,17 @@ async def extract_biomarkers_from_images(
             generation_config={
                 "response_mime_type": "application/json",
                 "response_schema": _gemini_schema(GeminiBiomarkerExtraction),
+            },
+        )
+        _usage = getattr(response, "usage_metadata", None)
+        logger.info(
+            "gemini_call_complete",
+            extra={
+                "request_id": REQUEST_ID_VAR.get(),
+                "tokens_total": getattr(_usage, "total_token_count", 0),
+                "tokens_prompt": getattr(_usage, "prompt_token_count", 0),
+                "tokens_output": getattr(_usage, "candidates_token_count", 0),
+                "model": settings.gemini_model,
             },
         )
         return _extract_parsed(response, GeminiBiomarkerExtraction)
@@ -304,6 +338,17 @@ async def extract_biomarkers_from_pdf(
             generation_config={
                 "response_mime_type": "application/json",
                 "response_schema": _gemini_schema(GeminiBiomarkerExtraction),
+            },
+        )
+        _usage = getattr(response, "usage_metadata", None)
+        logger.info(
+            "gemini_call_complete",
+            extra={
+                "request_id": REQUEST_ID_VAR.get(),
+                "tokens_total": getattr(_usage, "total_token_count", 0),
+                "tokens_prompt": getattr(_usage, "prompt_token_count", 0),
+                "tokens_output": getattr(_usage, "candidates_token_count", 0),
+                "model": settings.gemini_model,
             },
         )
         return _extract_parsed(response, GeminiBiomarkerExtraction)
@@ -384,6 +429,17 @@ async def generate_personalized_insight(
             generation_config={
                 "response_mime_type": "application/json",
                 "response_schema": _gemini_schema(PersonalizedInsightCopy),
+            },
+        )
+        _usage = getattr(response, "usage_metadata", None)
+        logger.info(
+            "gemini_call_complete",
+            extra={
+                "request_id": REQUEST_ID_VAR.get(),
+                "tokens_total": getattr(_usage, "total_token_count", 0),
+                "tokens_prompt": getattr(_usage, "prompt_token_count", 0),
+                "tokens_output": getattr(_usage, "candidates_token_count", 0),
+                "model": settings.gemini_model,
             },
         )
         return _extract_parsed(response, PersonalizedInsightCopy)

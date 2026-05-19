@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.dependencies.token_budget import ENDPOINT_TOKEN_COST, token_budget
 from app.middleware.auth import get_current_user
 from app.middleware.rate_limit import limiter
 from app.models import Biomarker, User
@@ -49,12 +50,13 @@ _MAX_PDF_PAGES = 5
     response_model=BiomarkerExtractionResult,
     status_code=status.HTTP_200_OK,
 )
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def extract_biomarkers(
     request: Request,
     file: UploadFile,
     current_user: User = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
+    _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["biosync_extract"])),
 ):
     if file.content_type not in ("application/pdf", "application/octet-stream"):
         raise HTTPException(

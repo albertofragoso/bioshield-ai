@@ -2,6 +2,7 @@
 
 Uses in-memory SQLite — no file I/O, no network.
 """
+
 import json
 
 import pytest
@@ -28,8 +29,9 @@ def _write_input(tmp_path, products: list[dict]) -> object:
 
 
 def _run_load(mem_db, tmp_path, products):
-    import scripts.load_products_to_db as loader
     from unittest.mock import patch
+
+    import scripts.load_products_to_db as loader
 
     path = _write_input(tmp_path, products)
     with (
@@ -81,8 +83,9 @@ def test_idempotent_run(mem_db, tmp_path):
 
 
 def test_missing_file_exits_cleanly(mem_db, tmp_path):
-    import scripts.load_products_to_db as loader
     from unittest.mock import patch
+
+    import scripts.load_products_to_db as loader
 
     missing = tmp_path / "nonexistent.json"
     with (
@@ -93,10 +96,7 @@ def test_missing_file_exits_cleanly(mem_db, tmp_path):
 
 
 def test_inserts_multiple_products(mem_db, tmp_path):
-    products = [
-        {**_PRODUCT, "barcode": f"BC{i}", "name": f"Product {i}"}
-        for i in range(5)
-    ]
+    products = [{**_PRODUCT, "barcode": f"BC{i}", "name": f"Product {i}"} for i in range(5)]
     _run_load(mem_db, tmp_path, products)
 
     count = mem_db.scalar(select(func.count()).select_from(Product))

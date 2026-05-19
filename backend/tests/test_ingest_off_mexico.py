@@ -2,11 +2,9 @@
 
 HTTP calls are mocked — no network required.
 """
-import json
-from pathlib import Path
-from unittest.mock import patch
 
-import pytest
+import json
+from unittest.mock import patch
 
 
 def _make_hit(
@@ -105,8 +103,9 @@ def test_main_writes_json_and_deduplicates(tmp_path):
 
 
 def test_main_skips_http_errors(tmp_path):
-    from scripts.ingest_off_mexico import main as ingest_main
     import requests
+
+    from scripts.ingest_off_mexico import main as ingest_main
 
     def fake_fetch(category, page):
         raise requests.RequestException("timeout")

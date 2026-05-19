@@ -136,6 +136,8 @@ Gestión de cuentas de usuario.
 | `email` | `VARCHAR(255)` | `UNIQUE, NOT NULL` | Correo electrónico |
 | `password_hash` | `VARCHAR(255)` | `NOT NULL` | Hash bcrypt de la contraseña |
 | `created_at` | `TIMESTAMP` | `DEFAULT NOW()` | Fecha de registro |
+| `tokens_used_today` | `INTEGER` | `NOT NULL DEFAULT 0` | daily AI token counter |
+| `tokens_budget_date` | `DATE` | `NOT NULL DEFAULT CURRENT_DATE` | reset date tracker |
 
 ---
 
@@ -511,3 +513,12 @@ El pipeline de enriquecimiento convierte cada scan exitoso en una contribución 
 - `components/home/HomeOrbSection.tsx` — Panel izquierdo: orbe animado con mascota, CTA de scan, partículas, data stream
 - `components/home/HomeStatsPanel.tsx` — Panel derecho: stats pills, biosync card, historial reciente con stagger
 - `components/BottomNav.tsx` — Navegación fija inferior (mobile únicamente, `md:hidden`)
+
+---
+
+## 5. Observability
+
+- **Request IDs:** `RequestIDMiddleware` generates UUID per request, stored in `X-Request-ID` response header and propagated via `contextvars.ContextVar` (`REQUEST_ID_VAR`) to services and background tasks.
+- **JSON logging:** stdlib `logging.config.dictConfig` formats all log output as JSON (no new dependencies). Each log line includes `ts`, `level`, `logger`, `request_id`, `msg`.
+- **Token usage:** `gemini.py` logs `gemini_call_complete` with `tokens_total`, `tokens_prompt`, `tokens_output`, `model` after each Gemini call.
+- **Token budget:** Atomic SQL UPDATE on `users` table enforces per-user daily cap (`DAILY_TOKEN_BUDGET` env, default 50,000). No cron job — reset happens inline on first call of the new day.

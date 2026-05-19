@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     off_contrib_timeout_seconds: int = 15
     off_contrib_sync_for_tests: bool = False  # ejecutar background task sincrónicamente en pytest
 
+    # Token budget
+    daily_token_budget: int = 50_000  # env: DAILY_TOKEN_BUDGET
+
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000"]
 

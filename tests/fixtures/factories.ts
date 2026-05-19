@@ -3,6 +3,10 @@
 // Style: arrow functions with Partial<T> overrides, no randomization.
 
 import type {
+  AlternativeItem,
+  AlternativeProductOut,
+  AlternativesResponse,
+  AlternativeTopPick,
   Biomarker,
   BiomarkerExtractionResult,
   BiomarkerStatusResponse,
@@ -13,6 +17,7 @@ import type {
   PersonalizedInsight,
   ScanHistoryEntry,
   ScanResponse,
+  ScannedProductSummary,
   TokenResponse,
   UserResponse,
 } from "../../frontend/lib/api/types";
@@ -20,10 +25,9 @@ import type {
 const FIXED_NOW = "2026-04-28T12:00:00Z";
 const FIXED_USER_ID = "00000000-0000-4000-8000-000000000001";
 const FIXED_BIOSYNC_ID = "00000000-0000-4000-8000-000000000002";
+const TEST_EMAIL = "test@example.com";
 
 export const NUTELLA_BARCODE = "3017620422003";
-export const TEST_EMAIL = "test@bioshield.dev";
-export const TEST_PASSWORD = "Test1234!";
 
 export const makeUser = (overrides: Partial<UserResponse> = {}): UserResponse => ({
   id: FIXED_USER_ID,
@@ -173,6 +177,50 @@ export const makeMixedHistory = (): ScanHistoryEntry[] => [
   makeScanHistoryEntry({ id: "s3", semaphore: "BLUE", scanned_at: "2026-04-27T15:00:00Z" }),
   makeScanHistoryEntry({ id: "s4", semaphore: "ORANGE", scanned_at: "2026-04-25T12:00:00Z" }),
 ];
+
+export const makeAlternativeProduct = (
+  overrides: Partial<AlternativeProductOut> = {},
+): AlternativeProductOut => ({
+  barcode: "FIX_YOGURT_001",
+  name: "Activia Natural",
+  brand: "Danone",
+  clean_score: 0,
+  ...overrides,
+});
+
+export const makeAlternativesResponse = (
+  overrides: Partial<AlternativesResponse> = {},
+): AlternativesResponse => ({
+  scanned_product: {
+    barcode: "FIX_YOGURT_BAD",
+    name: "Yogurt con Sucralosa",
+    brand: null,
+    semaphore: "RED",
+    clean_score: 5,
+  },
+  top_pick: {
+    product: makeAlternativeProduct(),
+    clean_ingredients: ["Sin sucralosa", "Sin colorantes"],
+    biomarker_conflicts: [],
+    compatibility_pct: 95,
+    avatar_variant: "blue",
+  },
+  alternatives: [
+    {
+      product: makeAlternativeProduct({
+        barcode: "FIX_YOGURT_002",
+        name: "Lala Bio 100",
+        brand: "Lala",
+        clean_score: 1,
+      }),
+      avatar_variant: "yellow",
+      semaphore_precomputed: "YELLOW",
+    },
+  ],
+  has_biomarkers: false,
+  fallback_used: false,
+  ...overrides,
+});
 
 export const makeOFFContributeResponse = (
   overrides: Partial<OFFContributeResponse> = {},

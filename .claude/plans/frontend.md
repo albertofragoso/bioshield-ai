@@ -1159,8 +1159,8 @@ Después de implementar, validar con estos casos en navegador real (Chrome + Saf
 | D.7.7 — Dashboard real | ✅ done | — |
 | D.7.8 — Historial | ✅ done | — |
 | D.7.9 — Polish global (shimmer + ErrorPage pulido) | ✅ done | — |
-| E — Verificación E2E | pendiente | Todo lo anterior |
-| **Total pendiente** | **~0.5-1 día (solo E2E)** | Backend listo |
+| E — Verificación E2E | ✅ COMPLETO (2026-05-18) | Todo lo anterior |
+| **Total pendiente** | **0 — Fase 7 cerrada** | — |
 
 ---
 
