@@ -12,7 +12,6 @@ from datetime import UTC, date, datetime, time, timedelta
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import text
-from sqlalchemy.engine import CursorResult
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -50,7 +49,7 @@ def token_budget(estimated_tokens: int):
     ) -> User:
         today = date.today()
 
-        result: CursorResult = db.execute(
+        result = db.execute(
             text("""
                 UPDATE users
                 SET
@@ -76,7 +75,7 @@ def token_budget(estimated_tokens: int):
         )
         db.commit()
 
-        if result.rowcount == 0:
+        if result.rowcount == 0:  # type: ignore[union-attr]
             retry_after = _seconds_until_midnight_utc()
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,

@@ -307,7 +307,7 @@ async def test_delete_scrubs_scan_history_phi(client, db_session):
 
 
 def test_biosync_extract_has_token_budget_dep():
-    import inspect
+    import inspect  # noqa: I001
     from app.routers.biosync import extract_biomarkers
     source = inspect.getsource(extract_biomarkers)
     assert "token_budget" in source, "/biosync/extract missing token_budget dependency"
@@ -315,7 +315,7 @@ def test_biosync_extract_has_token_budget_dep():
 
 def test_biosync_extract_rate_limit_is_5_per_min():
     """The extract endpoint must have the 5/minute limit (PDF + Gemini = expensive)."""
-    import inspect
+    import inspect  # noqa: I001
     from app.routers.biosync import extract_biomarkers
     source = inspect.getsource(extract_biomarkers)
     # The limiter decorator is applied at class level, check the decorator context
