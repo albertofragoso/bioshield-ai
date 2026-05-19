@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.agents.graph import build_scan_graph
 from app.config import Settings, get_settings
+from app.dependencies.token_budget import ENDPOINT_TOKEN_COST, token_budget
 from app.middleware.auth import get_current_user
 from app.middleware.rate_limit import limiter
 from app.models import Ingredient, OFFContribution, Product, ScanHistory, User
@@ -156,6 +157,7 @@ async def scan_barcode(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["scan_barcode"])),
 ):
     graph = build_scan_graph(db, settings)
     final_state = await graph.ainvoke({"barcode": body.barcode, "user_id": current_user.id})
@@ -206,6 +208,7 @@ async def scan_photo(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["scan_photo"])),
 ):
     graph = build_scan_graph(db, settings)
     final_state = await graph.ainvoke({"image_b64": body.image_base64, "user_id": current_user.id})

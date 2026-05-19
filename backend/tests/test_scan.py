@@ -463,3 +463,21 @@ async def test_contribute_without_scan_history_id_accepted(client, monkeypatch):
         },
     )
     assert response.status_code == 202
+
+
+def test_scan_photo_has_token_budget_dep():
+    import inspect
+
+    from app.routers.scan import scan_photo
+
+    source = inspect.getsource(scan_photo)
+    assert "token_budget" in source, "/scan/photo missing token_budget dependency"
+
+
+def test_scan_barcode_has_token_budget_dep():
+    import inspect
+
+    from app.routers.scan import scan_barcode
+
+    source = inspect.getsource(scan_barcode)
+    assert "token_budget" in source, "/scan/barcode missing token_budget dependency"
