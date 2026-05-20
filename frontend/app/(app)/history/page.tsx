@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Search, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SemaphoreBadge } from "@/components/semaphore/SemaphoreBadge";
-import { getScanHistory } from "@/lib/api/scan";
+import { getScanHistory, getScanResult } from "@/lib/api/scan";
 import type { ScanHistoryEntry, SemaphoreColor } from "@/lib/api/types";
 
 type FilterTab = "all" | SemaphoreColor;
@@ -251,6 +251,7 @@ export default function HistoryPage() {
 /* ── Sub-components ───────────────────────────────────────── */
 
 function HistoryItemRow({ item, last }: { item: ScanHistoryEntry; last: boolean }) {
+  const queryClient = useQueryClient();
   return (
     <Link
       href={`/scan/${item.product_barcode}`}
@@ -258,7 +259,15 @@ function HistoryItemRow({ item, last }: { item: ScanHistoryEntry; last: boolean 
       style={{
         borderBottom: last ? "none" : "1px solid rgba(74,222,128,.08)",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(74,222,128,.04)")}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(74,222,128,.04)";
+        if (!item.product_barcode) return;
+        queryClient.prefetchQuery({
+          queryKey: ["scan", item.product_barcode],
+          queryFn: () => getScanResult(item.product_barcode),
+          staleTime: 30 * 60 * 1000,
+        });
+      }}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       <SemaphoreBadge color={item.semaphore} size={40} />
