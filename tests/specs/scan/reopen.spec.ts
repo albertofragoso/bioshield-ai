@@ -7,10 +7,13 @@ import {
   NUTELLA_BARCODE,
 } from "../../fixtures";
 
-test.describe("Feature: Scan reopen (GET not POST)", () => {
-  test("reopen — navigating to scan result calls GET not POST", async ({ mockedPage }) => {
+test.describe("Feature: Scan reopen", () => {
+  test("happy path — direct navigation calls GET not POST", async ({ mockedPage }) => {
     let postCalled = false;
-    await mockedPage.route("**/scan/barcode", () => { postCalled = true; });
+    await mockedPage.route("**/scan/barcode", async (route) => {
+      postCalled = true;
+      await route.continue();
+    });
 
     const scanResponse = makeScanResponse();
     await mockScanResultGet(mockedPage, scanResponse);
@@ -21,7 +24,7 @@ test.describe("Feature: Scan reopen (GET not POST)", () => {
     expect(postCalled).toBe(false);
   });
 
-  test("reopen — personalized insights render on direct navigation", async ({ mockedPage }) => {
+  test("edge — personalized insights render on direct navigation", async ({ mockedPage }) => {
     const alert = makePersonalizedInsight({ kind: "alert" });
     const scanResponse = makeScanResponse({ personalized_insights: [alert] });
     await mockScanResultGet(mockedPage, scanResponse);
