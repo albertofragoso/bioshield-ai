@@ -19,12 +19,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("""
-        UPDATE scan_history
-        SET result_json = JSON_SET(result_json, '$.personalized_insights', JSON_ARRAY())
-        WHERE JSON_EXTRACT(result_json, '$.personalized_insights') IS NULL
-          AND result_json IS NOT NULL
-    """)
+    conn = op.get_bind()
+    if conn.dialect.name == "postgresql":
+        op.execute("""
+            UPDATE scan_history
+            SET result_json = (result_json::jsonb || '{"personalized_insights":[]}'::jsonb)
+            WHERE result_json IS NOT NULL
+              AND (result_json::jsonb -> 'personalized_insights') IS NULL
+        """)
+    else:
+        op.execute("""
+            UPDATE scan_history
+            SET result_json = JSON_SET(result_json, '$.personalized_insights', JSON_ARRAY())
+            WHERE JSON_EXTRACT(result_json, '$.personalized_insights') IS NULL
+              AND result_json IS NOT NULL
+        """)
 
 
 def downgrade() -> None:
