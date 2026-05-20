@@ -405,7 +405,7 @@ function ScanResultInner() {
       {/* ── Row 2: Para Ti — fila dedicada ── */}
       <div className="pt-2" style={{ borderTop: "1px solid rgba(74,222,128,.08)" }}>
         {data.personalized_insights.length > 0 ? (
-          <ParaTiSection insights={data.personalized_insights} />
+          <ParaTiSection insights={data.personalized_insights} scannedAt={data.scanned_at} />
         ) : !bioStatus?.has_data ? (
           <div className="max-w-[480px]">
             <BiomarkerEmptyState />
@@ -593,7 +593,7 @@ const INSIGHT_BORDER: Record<string, string> = {
 
 // ── Para ti — section ────────────────────────────────────────────────────────
 
-function ParaTiSection({ insights }: { insights: PersonalizedInsight[] }) {
+function ParaTiSection({ insights, scannedAt }: { insights: PersonalizedInsight[], scannedAt: string }) {
   const alerts = insights.filter((i) => i.kind === "alert");
   const watches = insights.filter((i) => i.kind === "watch");
   const initialTab: "alerts" | "watches" = alerts.length > 0 ? "alerts" : "watches";
@@ -625,6 +625,9 @@ function ParaTiSection({ insights }: { insights: PersonalizedInsight[] }) {
           <h2 className="font-sans font-semibold text-base text-foreground">Para ti</h2>
           <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.06em] mt-0.5">
             Cruce con tus biomarcadores recientes
+          </p>
+          <p className="font-mono text-[9px] text-subtext">
+            Basado en biomarkers del {new Date(scannedAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
           </p>
         </div>
         <div className="sm:w-64 shrink-0">
