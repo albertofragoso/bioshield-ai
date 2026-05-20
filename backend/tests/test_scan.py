@@ -579,6 +579,7 @@ async def test_scan_result_accepts_photo_id(client, db_session):
     assert response.status_code == 200
     assert response.json()["product_barcode"] == photo_barcode
     assert response.json()["source"] == "photo"
+    assert response.json()["personalized_insights"] == []
 
 
 async def test_persist_scan_history_stores_personalized_insights(client, db_session, monkeypatch):
