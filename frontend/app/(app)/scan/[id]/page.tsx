@@ -2,8 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense, useEffect, useRef, useState } from "react";
-import { getScanResult, linkPhotoToBarcode, scanBarcode } from "@/lib/api/scan";
+import { Suspense, useRef, useState } from "react";
+import { getScanResult, linkPhotoToBarcode } from "@/lib/api/scan";
 import { getBiomarkerStatus } from "@/lib/api/biosync";
 import type { BiomarkerStatusResponse } from "@/lib/api/types";
 import Image from "next/image";
@@ -191,16 +191,16 @@ export default function ScanResultPage() {
 function ScanResultInner() {
   const rawId = useParams<{ id: string }>().id;
   const id = decodeURIComponent(rawId);
-  const isPhotoScan = id.startsWith("photo-");
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, isFetching } = useQuery<ScanResponse>({
     queryKey: ["scan", id],
-    queryFn: () => (isPhotoScan ? getScanResult(id) : scanBarcode(id)),
+    queryFn: () => getScanResult(id),
     initialData: () => queryClient.getQueryData<ScanResponse>(["scan", id]),
     initialDataUpdatedAt: () => queryClient.getQueryState(["scan", id])?.dataUpdatedAt,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: bioStatus } = useQuery<BiomarkerStatusResponse>({
@@ -209,21 +209,6 @@ function ScanResultInner() {
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
-
-  // Refetch once when both data and bioStatus are ready, biomarkers exist, but no insights yet.
-  // Using a ref prevents re-triggering after the refetch completes.
-  const hasTriggeredRefetch = useRef(false);
-  useEffect(() => {
-    if (
-      !hasTriggeredRefetch.current &&
-      data !== undefined &&
-      bioStatus?.has_data === true &&
-      data.personalized_insights.length === 0
-    ) {
-      hasTriggeredRefetch.current = true;
-      queryClient.invalidateQueries({ queryKey: ["scan", id] });
-    }
-  }, [data, bioStatus?.has_data, id]);
 
   if (isLoading) return <LoadingState />;
   if (isError || !data) return <NoCacheState />;
