@@ -1,7 +1,7 @@
 # PRD v6.0: BioShield AI – Sistema de Transparencia Metabólica & Reality Engineering
 
-**Estatus:** MVP Completado y Demostrable — Fase 1 (Backend + Frontend) ✅  
-**Última actualización:** 2026-05-05 (sesión cierre Fase 7)  
+**Estatus:** MVP Completado y Demostrable — Fase 1 + Production Hardening ✅  
+**Última actualización:** 2026-05-20 (PR #21 hardening + PR #22 scan pipeline fix)  
 **Autor:** Alberto Fragoso  
 **Stack Core:** Next.js 15 (Frontend), FastAPI (Backend), LangGraph, ChromaDB, Gemini 2.5 Flash, BGE-M3, Open Food Facts API.  
 **Licencia:** MIT License (Software) / ODbL (Datos).
@@ -14,7 +14,7 @@
 - **Next.js 15 (App Router)** desplegado en Vercel. TypeScript strict, dark-only design (no light mode).
 - **Gestión de estado:**
   - **Client:** Zustand para auth (`user`, `isAuthenticated`).
-  - **Server:** TanStack Query v5 para cache de scans por barcode (5 min staleTime), mutations (upload/delete), refetch automático.
+  - **Server:** TanStack Query v5 para cache de scans por barcode (30 min staleTime, `refetchOnWindowFocus: false` — scan results son inmutables), mutations (upload/delete).
 - **UI:** Tailwind CSS v4 + shadcn/ui primitivos (Radix). Design tokens en `globals.css` (semáforo 5 colores dark-adjusted WCAG AA, hex-grid SVG, scanlines, animaciones: wobble, pulse-glow, scan-line, shimmer).
 - **Iconografía:** Lucide React (HelpCircle/CheckCircle/AlertCircle/AlertTriangle/ShieldAlert para semáforo).
 - **Avatares:** 12 PNG (992×1063px, fondo alpha transparente): main, welcome, progress, success, profile, support + semáforo gray/blue/yellow/orange/red.
@@ -48,7 +48,7 @@
 1. Usuario abre `/scan` tab "Código de barras".
 2. Cámara abre, lector @zxing detecta barcode (0–5s).
 3. `POST /scan/barcode {barcode: "8-14 dígitos"}` → Off API lookup.
-4. **Éxito:** `/scan/[barcode]` con semáforo + ingredientes (cache TanStack Query por 5 min).
+4. **Éxito:** `/scan/[barcode]` con semáforo + ingredientes (cache TanStack Query por 30 min).
 5. **Error 404:** modal "No encontramos este producto. ¿Intentar con foto?" → tab foto automático.
 
 ### 2.2 · Escaneo de productos (foto etiqueta)
@@ -151,7 +151,7 @@ class PersonalizedInsightCopy(BaseModel):
 | Estrategia | Nivel | Implementación | TTL |
 |---|---|---|---|
 | **Backend API** | `/scan` responses | SQLite/Postgres persistence | Indefinido (JOIN con scan_history) |
-| **Frontend Query** | Barcode results | TanStack Query `["scan", barcode]` | 5 min (staleTime) |
+| **Frontend Query** | Barcode results | TanStack Query `["scan", barcode]` | 30 min (staleTime) |
 | **Frontend LRU** | Text embeddings | `@lru_cache(maxsize=256)` en backend | Process lifetime |
 | **Chromadb Index** | Vector search | Persistent client con volumen Docker | Indefinido (índice completo) |
 
@@ -183,10 +183,20 @@ class PersonalizedInsightCopy(BaseModel):
 - ✅ LangGraph: 7 nodos, semáforo 5 colores, BIOMARKER_RULES (11 reglas).
 - ✅ Frontend: Dark-only Next.js 15, TanStack Query, Zustand, 8 pantallas (login, register, dashboard, scan, result, biosync, history, globals).
 - ✅ Design tokens: semáforo dark-adjusted WCAG AA, hex-grid + scanlines, 12 avatares PNG, animaciones.
-- ⏳ E2E testing: Playwright pendiente (~4-6h, 36+ casos).
-- ⏳ Legal: Documentos públicos (Privacidad/T&C) pendientes (~2-3h redacción legal).
+- ✅ E2E testing: Playwright — 32/32 critical tests passing (PR #7).
+- ✅ Legal: Privacy Policy + T&C publicados (PR #10).
 
-**Bloqueante de lanzamiento (Fase 2):** Política de Privacidad + Términos de Uso publicados y aceptados por usuario.
+### Fase 1.5 — Production Hardening (Cerrado ✅, PR #21 + #22)
+**Estado:** Mergeado 2026-05-20.  
+**Entregables:**
+- ✅ Structured JSON logging + `request_id` ContextVar propagado por async boundaries.
+- ✅ Unified error schema (`ErrorResponse`) + global exception handler.
+- ✅ Per-user daily token budget — atomic SQL UPDATE, no read-modify-write.
+- ✅ Rate limiting dinámico — `Retry-After` calculado hasta medianoche UTC.
+- ✅ Scan pipeline fix: `personalized_insights` persistidos en DB, `queryFn` usa GET no POST, `staleTime: 30min`, `refetchOnWindowFocus: false`.
+- ✅ Prefetch en hover de historial (navegación instantánea).
+- ✅ Optimistic UI en OFFContributeToggle con rollback en error.
+- ✅ Alembic migration para rows históricas sin `personalized_insights`.
 
 ### Fase 2 — Alternative Matching (Health-Conscious)
 
