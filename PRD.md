@@ -168,7 +168,7 @@ class PersonalizedInsightCopy(BaseModel):
 | **Vendor Lock-in (Gemini)** | Alto | BGE-M3 primary, Gemini fallback. Arquitectura modular para swap. | ✅ Mitigado (BGE-M3 primary) |
 | **Free tier Gemini quota** | Alto | Lock + backoff en embeddings. Mock en tests. Staging con tier pagado. | ⏳ Dev mitigation; prod upgrade path |
 | **HITL threshold (0.7)** | Medio | Sin calibración post-dogfood. Ground truth 200+ pares. | ⏳ Post-MVP |
-| **E2E testing** | Medio | Playwright 36+ casos pendientes. Verificación antes de prod. | ⏳ En progreso |
+| **E2E testing** | Medio | Playwright — 32/32 core passing (PR #7); alternatives E2E pendiente. | ⏳ Alternatives pendiente |
 | **KMS para AES_KEY** | Crítico | Env var en dev/staging; AWS/GCP Secrets en prod. Path documentado. | ⏳ Pre-prod |
 | **Cookies cross-origin (prod)** | Medio | SameSite=Lax local. Requiere `SameSite=None; Secure` si FE/BE en dominios distintos. | ⏳ Pre-prod staging |
 
@@ -210,17 +210,16 @@ class PersonalizedInsightCopy(BaseModel):
 - ✅ `GET /scan/alternatives/{barcode}` endpoint · `POST /analytics/event` fire-and-forget
 - ✅ Nueva ChromaDB collection `products` (ingredient profiles, 1024-dim BGE-M3)
 - ✅ Enrichment Pipeline (Fase 2.1): scan → product DB auto-feeding
-- ⏳ **Curated DB ingestion** — 400–900 productos health-conscious vía Open Food Facts Search API v2 (MX)
+- ✅ **Curated DB ingestion** — OFF Mexico (PR #14) + OFF Global + USDA Branded Foods hybrid pipeline (PR #17)
 - ⏳ A/B testing de semáforo UI en producción (independiente — sigue en roadmap post-Fase 2)
 
 **Sub-fases:**
-1. **Fase 2.0 — Ingesta + Curation** (BLOQUEANTE para feature testing)
-   - Scripts de ingesta Open Food Facts Search API v2 (MX, categorías health)
-   - Curation pipeline: `compute_clean_scores.py`, `index_products_chroma.py`, `seed_alternatives_fixture.py`
-   - ~2 días de ejecución
+1. **Fase 2.0 — Ingesta + Curation** (Cerrado ✅, PRs #14 + #17)
+   - Scripts implementados: `ingest_off_mexico.py`, `ingest_off_global.py`, `ingest_usda.py`
+   - Curation pipeline implementado: `compute_clean_scores.py`, `index_products_chroma.py`, `seed_alternatives_fixture.py`, `load_all_products.py`
    - Spec: `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md`
 
-2. **Fase 2.1 — Feature Implementation** (ya implementado ✅)
+2. **Fase 2.1 — Feature Implementation** (Cerrado ✅)
    - Backend APIs + Frontend UI + Enrichment Pipeline
    - Spec: `docs/superpowers/specs/2026-05-08-alternative-matching-design.md`
 
@@ -231,9 +230,9 @@ class PersonalizedInsightCopy(BaseModel):
 
 **Dependencias críticas:**
 - ✅ Fase 1 shipped
-- ⏳ **Curated DB cargado y scripts de curation ejecutados (BLOQUEANTE)**
+- ✅ Curated DB scripts implementados (PRs #14 + #17)
 - ⏳ E2E tests de alternatives passing
-- ⏳ Documentos legales publicados
+- ✅ Documentos legales publicados (PR #10)
 
 #### Enrichment Pipeline (Fase 2.1)
 
@@ -389,7 +388,7 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 | **p95 latencia `/scan/barcode`** | <3s | OpenTelemetry + Grafana (Fase 2) | ⏳ Medir en prod |
 | **p95 latencia `/scan/photo`** | <5s | Mismo | ⏳ Medir en prod |
 | **Test coverage backend** | ≥80% en `services/` + `routers/` | `pytest --cov` | ✅ 90 tests passing |
-| **E2E test coverage** | 36+ casos (auth, scan, biosync, dashboard, history) | Playwright specs/features/ | ⏳ En progreso (~4-6h) |
+| **E2E test coverage** | Core 32/32 ✅; alternatives E2E pendiente | Playwright specs/features/ | ⏳ Alternatives pendiente |
 | **Frontend Lighthouse** | ≥80 (perf/acc/best-practices) | Lighthouse CI en Vercel | ⏳ Post-deploy |
 | **Uptime (Fase 2+)** | ≥99.5% | Monitoring / alertas | ⏳ Fase 2 |
 
@@ -397,23 +396,23 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 
 ## 12. Próximos Pasos (Orden de Prioridad)
 
-### FASE 2: Ingesta de Productos (BLOQUEANTE para alternatives feature)
+### FASE 2: Ingesta de Productos (Cerrado ✅ — PRs #14 + #17)
 
-1. **[CRÍTICO] Product Ingestion Pipeline — Open Food Facts (MX)** — Scripts automatizados vía OFF Search API v2.
-   - Fase 2.0.1a: `utils/ingredient_parser.py` + `ingest_off_mexico.py` → `off_products.json` ~4-6h
-   - Fase 2.0.1b: `load_products_to_db.py` → upsert a tabla `products` ~2h
-   - Fase 2.0.1c: Refactor `build_product_profile` centralizado en `rag.py` ~1h
-   - Fase 2.0.1d: `compute_clean_scores.py` + `index_products_chroma.py` + validación ~2h
-   - **Total: ~2 días | Spec: `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md`**
+- ✅ Scripts implementados: `ingest_off_mexico.py`, `ingest_off_global.py`, `ingest_usda.py`
+- ✅ Curation pipeline: `compute_clean_scores.py`, `index_products_chroma.py`, `seed_alternatives_fixture.py`
 
-### FASE 2: Testing & Validation (después de ingesta)
+### FASE 2: Testing & Validation
 
-2. **E2E testing (Playwright)** — 36+ casos de alternatives + existing flows. ~4-6h. (Bloqueado por: ingesta completa)
-3. **Frontend CI/CD (GitHub Actions)** — `pnpm install + build + lint + typecheck`. ~2h.
-4. **Validación legal** — revisión de Privacidad/T&C por abogado. ~3-5 días.
-5. **docker-compose extensión** — servicio `frontend` + nginx reverse proxy (opcional). ~1h.
-6. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
-7. **Dogfood real** — scan productos reales con alternatives, interview usuarios, calibración HITL.
+1. **E2E testing de alternatives (Playwright)** — casos de alternatives + existing flows.
+2. **Frontend CI/CD (GitHub Actions)** — `pnpm install + build + lint + typecheck`. ~2h.
+3. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
+4. **Dogfood real** — scan productos reales con alternatives, interview usuarios, calibración HITL.
+
+### FASE 3: Optimizaciones de valor (candidatos)
+
+5. **Streaming progresivo del pipeline** — mostrar semáforo primero (~2s), ingredients (~4s), insights al final (~8s).
+6. **Scan result sharing** — URL única compartible del resultado de scan (para médico/nutriólogo).
+7. **Caching inteligente por barcode+biomarker_hash** — evitar re-correr Gemini para el mismo producto con mismos biomarcadores.
 
 ---
 
