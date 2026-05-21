@@ -2,7 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useScanStreamingStore } from "@/lib/stores/scanning";
+import type { ScanPartial } from "@/lib/stores/scanning";
 import { getScanResult, linkPhotoToBarcode } from "@/lib/api/scan";
 import { getBiomarkerStatus } from "@/lib/api/biosync";
 import type { BiomarkerStatusResponse } from "@/lib/api/types";
@@ -177,6 +179,34 @@ function LinkBarcodeCard({ pseudoBarcode }: { pseudoBarcode: string }) {
   );
 }
 
+// ── Construye un ScanResponse parcial desde el estado del stream ───────────────
+function buildPartialDisplay(partial: ScanPartial): ScanResponse {
+  // Mapea los ingredientes simplificados del store al shape completo de ScanResponse
+  const ingredients: IngredientResult[] = (partial.ingredients ?? []).map((ing) => ({
+    name: ing.name,
+    canonical_name: null,
+    cas_number: null,
+    e_number: null,
+    regulatory_status: null,
+    confidence_score: 1,
+    conflicts: [],
+  }));
+
+  return {
+    product_name: partial.productName ?? null,
+    product_barcode: partial.productName ?? "",
+    ingredients,
+    // Los insights del stream son datos parciales incompatibles con el tipo completo;
+    // se mostrarán vacíos hasta que el query refetch con datos completos post-stream
+    personalized_insights: [],
+    semaphore: (partial.semaphore as SemaphoreColor) ?? "GRAY",
+    conflict_severity: (partial.conflict_severity as ConflictSeverity | null) ?? null,
+    scanned_at: new Date().toISOString(),
+    show_barcode_cta: false,
+    source: "barcode" as const,
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Página principal
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -192,6 +222,23 @@ function ScanResultInner() {
   const rawId = useParams<{ id: string }>().id;
   const id = decodeURIComponent(rawId);
   const queryClient = useQueryClient();
+
+  const { status: streamStatus, partial, clearStream } = useScanStreamingStore();
+  const isStreaming = streamStatus === "streaming";
+
+  // Limpia el store al desmontar para evitar state stale en back-navigation
+  useEffect(() => {
+    return () => {
+      clearStream();
+    };
+  }, [clearStream]);
+
+  // Cuando el stream termina, invalida el query para obtener datos completos del servidor
+  useEffect(() => {
+    if (streamStatus === "done") {
+      queryClient.invalidateQueries({ queryKey: ["scan", id] });
+    }
+  }, [streamStatus, id, queryClient]);
 
   const { data, isLoading, isError, isFetching } = useQuery<ScanResponse>({
     queryKey: ["scan", id],
@@ -210,13 +257,23 @@ function ScanResultInner() {
     gcTime: 10 * 60 * 1000,
   });
 
-  if (isLoading) return <LoadingState />;
-  if (isError || !data) return <NoCacheState />;
+  // Usa data del query si está disponible; si no, usa partial del stream activo
+  const hasPartialData = isStreaming && Object.keys(partial).length > 0;
+  const displayData: ScanResponse | null = data ?? (hasPartialData ? buildPartialDisplay(partial) : null);
 
-  const sem = SEMAPHORE[data.semaphore];
-  const sortedIngredients = [...data.ingredients].sort((a, b) => maxSevOrder(a) - maxSevOrder(b));
-  const conflictCount = data.ingredients.filter((i) => i.conflicts.length > 0).length;
-  const explanation = getExplanation(data.semaphore, conflictCount);
+  // Skeleton mientras el stream está activo y no hay datos parciales aún
+  if (!displayData && isStreaming) return <LoadingState />;
+
+  if (isLoading && !displayData) return <LoadingState />;
+  if (isError || !displayData) return <NoCacheState />;
+
+  // A partir de aquí, displayData es siempre non-null
+  const data_ = displayData;
+
+  const sem = SEMAPHORE[data_.semaphore];
+  const sortedIngredients = [...data_.ingredients].sort((a, b) => maxSevOrder(a) - maxSevOrder(b));
+  const conflictCount = data_.ingredients.filter((i) => i.conflicts.length > 0).length;
+  const explanation = getExplanation(data_.semaphore, conflictCount);
 
   return (
     <div className="relative z-10 px-4 py-6 max-w-[1080px] mx-auto flex flex-col gap-10">
@@ -270,21 +327,21 @@ function ScanResultInner() {
                 {sem.label}
               </h1>
               <p className="font-sans text-sm text-foreground">
-                {data.product_name ?? "Producto sin nombre"}
+                {data_.product_name ?? "Producto sin nombre"}
               </p>
               <p className="font-mono text-[11px] text-subtext tracking-[0.06em]">
-                {data.product_barcode}
+                {data_.product_barcode}
               </p>
-              {data.conflict_severity && (
+              {data_.conflict_severity && (
                 <span
                   className="mt-1 px-2 py-0.5 rounded-full font-mono text-[10px] uppercase tracking-[0.1em]"
                   style={{
-                    background: SEV_STYLE[data.conflict_severity].bg,
-                    border: `1px solid ${SEV_STYLE[data.conflict_severity].border}`,
-                    color: SEV_STYLE[data.conflict_severity].color,
+                    background: SEV_STYLE[data_.conflict_severity].bg,
+                    border: `1px solid ${SEV_STYLE[data_.conflict_severity].border}`,
+                    color: SEV_STYLE[data_.conflict_severity].color,
                   }}
                 >
-                  {data.conflict_severity} severity
+                  {data_.conflict_severity} severity
                 </span>
               )}
             </div>
@@ -292,7 +349,7 @@ function ScanResultInner() {
 
           {/* Ver alternativas — visible solo cuando semáforo es YELLOW, ORANGE o RED */}
           {(["YELLOW", "ORANGE", "RED"] as const).includes(
-            data.semaphore as "YELLOW" | "ORANGE" | "RED"
+            data_.semaphore as "YELLOW" | "ORANGE" | "RED"
           ) && (
             <Link
               href={`/scan/${id}/alternatives`}
@@ -300,7 +357,7 @@ function ScanResultInner() {
                 import("@/lib/api/analytics").then(({ recordAnalyticsEvent }) =>
                   recordAnalyticsEvent({
                     event_type: "alt_button_shown",
-                    payload: { barcode: id, semaphore: data.semaphore },
+                    payload: { barcode: id, semaphore: data_.semaphore },
                   })
                 )
               }
@@ -315,7 +372,7 @@ function ScanResultInner() {
           )}
 
           {/* LinkBarcodeCard — foto scans con CTA habilitado */}
-          {data.show_barcode_cta && id.startsWith("photo-") && (
+          {data_.show_barcode_cta && id.startsWith("photo-") && (
             <LinkBarcodeCard pseudoBarcode={id} />
           )}
 
@@ -327,8 +384,8 @@ function ScanResultInner() {
           {/* Metadata + acciones */}
           <div className="flex flex-col items-center gap-3 pt-1">
             <p className="font-mono text-[10px] text-subtext">
-              Escaneado vía {data.source === "barcode" ? "código de barras" : "foto"} ·{" "}
-              {timeAgo(data.scanned_at)}
+              Escaneado vía {data_.source === "barcode" ? "código de barras" : "foto"} ·{" "}
+              {timeAgo(data_.scanned_at)}
             </p>
             <div className="flex gap-2">
               <Link
@@ -381,16 +438,16 @@ function ScanResultInner() {
       </div>
 
       {/* ── OFF Contribute — foto scans only ── */}
-      {data.source === "photo" && (
+      {data_.source === "photo" && (
         <div className="pt-2" style={{ borderTop: "1px solid rgba(74,222,128,.08)" }}>
-          <OFFContributeToggle scanData={data} />
+          <OFFContributeToggle scanData={data_} />
         </div>
       )}
 
       {/* ── Row 2: Para Ti — fila dedicada ── */}
       <div className="pt-2" style={{ borderTop: "1px solid rgba(74,222,128,.08)" }}>
-        {data.personalized_insights.length > 0 ? (
-          <ParaTiSection insights={data.personalized_insights} scannedAt={data.scanned_at} />
+        {data_.personalized_insights.length > 0 ? (
+          <ParaTiSection insights={data_.personalized_insights} scannedAt={data_.scanned_at} />
         ) : !bioStatus?.has_data ? (
           <div className="max-w-[480px]">
             <BiomarkerEmptyState />
