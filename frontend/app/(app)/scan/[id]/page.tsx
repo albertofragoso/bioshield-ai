@@ -180,7 +180,7 @@ function LinkBarcodeCard({ pseudoBarcode }: { pseudoBarcode: string }) {
 }
 
 // ── Construye un ScanResponse parcial desde el estado del stream ───────────────
-function buildPartialDisplay(partial: ScanPartial): ScanResponse {
+function buildPartialDisplay(partial: ScanPartial, barcode: string | null): ScanResponse {
   // Mapea los ingredientes simplificados del store al shape completo de ScanResponse
   const ingredients: IngredientResult[] = (partial.ingredients ?? []).map((ing) => ({
     name: ing.name,
@@ -194,7 +194,7 @@ function buildPartialDisplay(partial: ScanPartial): ScanResponse {
 
   return {
     product_name: partial.productName ?? null,
-    product_barcode: partial.productName ?? "",
+    product_barcode: barcode ?? "",
     ingredients,
     // Los insights del stream son datos parciales incompatibles con el tipo completo;
     // se mostrarán vacíos hasta que el query refetch con datos completos post-stream
@@ -223,7 +223,7 @@ function ScanResultInner() {
   const id = decodeURIComponent(rawId);
   const queryClient = useQueryClient();
 
-  const { status: streamStatus, partial, clearStream } = useScanStreamingStore();
+  const { status: streamStatus, partial, productBarcode, clearStream } = useScanStreamingStore();
   const isStreaming = streamStatus === "streaming";
 
   // Limpia el store al desmontar para evitar state stale en back-navigation
@@ -259,7 +259,7 @@ function ScanResultInner() {
 
   // Usa data del query si está disponible; si no, usa partial del stream activo
   const hasPartialData = isStreaming && Object.keys(partial).length > 0;
-  const displayData: ScanResponse | null = data ?? (hasPartialData ? buildPartialDisplay(partial) : null);
+  const displayData: ScanResponse | null = data ?? (hasPartialData ? buildPartialDisplay(partial, productBarcode) : null);
 
   // Skeleton mientras el stream está activo y no hay datos parciales aún
   if (!displayData && isStreaming) return <LoadingState />;
