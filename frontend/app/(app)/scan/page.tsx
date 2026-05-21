@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Keyboard } from "lucide-react";
@@ -10,8 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarcodeScanner } from "@/components/scanner/BarcodeScanner";
 import { PhotoCapture } from "@/components/scanner/PhotoCapture";
 import { PhotoLoadingState } from "@/components/scanner/PhotoLoadingState";
-import { scanBarcode, scanPhoto } from "@/lib/api/scan";
-import { HttpError } from "@/lib/api/client";
+import { useScanStreamingStore } from "@/lib/stores/scanning";
 import type { ScanResponse } from "@/lib/api/types";
 
 type ActiveTab = "barcode" | "photo";
@@ -25,40 +24,21 @@ export default function ScanPage() {
   const [barcodeStatus, setBarcodeStatus] = useState<BarcodeStatus>("idle");
   const [photoStatus, setPhotoStatus] = useState<PhotoStatus>("idle");
   const [manualBarcode, setManualBarcode] = useState("");
-  const scanningRef = useRef(false);
+  const scanningRef = useRef<boolean>(false);
+  const navigatedRef = useRef<boolean>(false);
 
-  const barcodeMutation = useMutation({
-    mutationFn: (barcode: string) => scanBarcode(barcode),
-    onSuccess: (data, barcode) => {
-      queryClient.setQueryData<ScanResponse>(["scan", barcode], data);
-      router.push(`/scan/${barcode}`);
-    },
-    onError: (err) => {
-      scanningRef.current = false;
-      if (err instanceof HttpError && err.status === 404) {
-        setBarcodeStatus("not_found");
-      } else {
-        setBarcodeStatus("error");
-      }
-    },
-  });
+  const { startBarcodeStream, startPhotoStream, scanId, status } = useScanStreamingStore();
 
-  const photoMutation = useMutation({
-    mutationFn: (base64: string) => scanPhoto(base64),
-    onSuccess: (data) => {
-      queryClient.setQueryData<ScanResponse>(["scan", data.product_barcode], data);
-      router.push(`/scan/${encodeURIComponent(data.product_barcode)}?via=photo`);
-    },
-    onError: (err) => {
-      if (err instanceof HttpError && err.status === 422) {
-        setPhotoStatus("error_read");
-      } else if (err instanceof HttpError && (err.status === 400 || err.status >= 500)) {
-        setPhotoStatus("error_process");
-      } else {
-        setPhotoStatus("error_net");
-      }
-    },
-  });
+  // Navega a /scan/[scanId] cuando el evento init llega y el store tiene scanId
+  useEffect(() => {
+    if (scanId && status === "streaming" && !navigatedRef.current) {
+      navigatedRef.current = true;
+      router.push(`/scan/${scanId}`);
+    }
+    if (status === "idle") {
+      navigatedRef.current = false;
+    }
+  }, [scanId, status, router]);
 
   const handleBarcodeDetect = useCallback(
     (barcode: string) => {
@@ -71,9 +51,9 @@ export default function ScanPage() {
       }
       scanningRef.current = true;
       setBarcodeStatus("loading");
-      barcodeMutation.mutate(barcode);
+      startBarcodeStream(barcode);
     },
-    [queryClient, router, barcodeMutation]
+    [queryClient, router, startBarcodeStream]
   );
 
   const handlePermissionDenied = useCallback(() => {
@@ -82,9 +62,18 @@ export default function ScanPage() {
 
   const handlePhotoCapture = useCallback(
     (base64: string) => {
-      photoMutation.mutate(base64);
+      // PhotoCapture entrega base64 — convertir a File para el store
+      const byteString = atob(base64);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: "image/jpeg" });
+      const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+      startPhotoStream(file);
     },
-    [photoMutation]
+    [startPhotoStream]
   );
 
   function handleTabChange(value: string) {
@@ -107,8 +96,8 @@ export default function ScanPage() {
     scanningRef.current = false;
   }
 
-  const isBarcodeLoading = barcodeMutation.isPending;
-  const isPhotoLoading = photoMutation.isPending;
+  const isBarcodeLoading = status === "streaming";
+  const isPhotoLoading = status === "streaming";
 
   return (
     <div className="relative z-10 min-h-screen px-4 py-6 max-w-[640px] mx-auto">
