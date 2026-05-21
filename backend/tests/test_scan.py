@@ -481,3 +481,203 @@ def test_scan_barcode_has_token_budget_dep():
 
     source = inspect.getsource(scan_barcode)
     assert "token_budget" in source, "/scan/barcode missing token_budget dependency"
+
+
+# ─────────────────────────────────────────────
+# /scan/result/{barcode} — personalized_insights
+# ─────────────────────────────────────────────
+
+
+async def test_scan_result_returns_persisted_insights(client, db_session):
+    """GET /scan/result/{barcode} must return personalized_insights stored in result_json."""
+    from app.models import User
+
+    await _register(client)
+    user = db_session.scalar(select(User).where(User.email == _EMAIL))
+
+    product = Product(barcode="1111111111111", name="Insight Product", brand=None, image_url=None)
+    db_session.add(product)
+    db_session.flush()
+
+    insight = {
+        "biomarker_name": "ldl",
+        "biomarker_value": 180.0,
+        "biomarker_unit": "mg/dL",
+        "classification": "high",
+        "affecting_ingredients": ["hydrogenated oil"],
+        "severity": "HIGH",
+        "kind": "alert",
+        "impact_direction": "raises",
+        "reference_range_low": 0.0,
+        "reference_range_high": 100.0,
+        "friendly_title": "LDL elevado",
+        "friendly_biomarker_label": "Colesterol LDL",
+        "friendly_explanation": "Este ingrediente puede elevar tu LDL.",
+        "friendly_recommendation": "Evita este producto.",
+        "avatar_variant": "red",
+    }
+    result_json = {
+        "product_barcode": "1111111111111",
+        "product_name": "Insight Product",
+        "semaphore": "ORANGE",
+        "ingredients": [],
+        "conflict_severity": "HIGH",
+        "source": "barcode",
+        "scanned_at": "2026-01-01T00:00:00+00:00",
+        "personalized_insights": [insight],
+    }
+    db_session.add(
+        ScanHistory(
+            user_id=user.id,
+            product_barcode="1111111111111",
+            semaphore_result="ORANGE",
+            result_json=result_json,
+        )
+    )
+    db_session.commit()
+
+    response = await client.get("/scan/result/1111111111111")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["personalized_insights"]) == 1
+    assert body["personalized_insights"][0]["biomarker_name"] == "ldl"
+
+
+async def test_scan_result_accepts_photo_id(client, db_session):
+    """GET /scan/result/photo-abc123 must return 200 for photo pseudo-barcodes."""
+    from app.models import User
+
+    await _register(client)
+    user = db_session.scalar(select(User).where(User.email == _EMAIL))
+
+    photo_barcode = "photo-abc123"
+    product = Product(barcode=photo_barcode, name="Photo Product", brand=None, image_url=None)
+    db_session.add(product)
+    db_session.flush()
+
+    result_json = {
+        "product_barcode": photo_barcode,
+        "product_name": "Photo Product",
+        "semaphore": "GRAY",
+        "ingredients": [],
+        "conflict_severity": None,
+        "source": "photo",
+        "scanned_at": "2026-01-01T00:00:00+00:00",
+        "personalized_insights": [],
+    }
+    db_session.add(
+        ScanHistory(
+            user_id=user.id,
+            product_barcode=photo_barcode,
+            semaphore_result="GRAY",
+            result_json=result_json,
+        )
+    )
+    db_session.commit()
+
+    response = await client.get(f"/scan/result/{photo_barcode}")
+    assert response.status_code == 200
+    assert response.json()["product_barcode"] == photo_barcode
+    assert response.json()["source"] == "photo"
+    assert response.json()["personalized_insights"] == []
+
+
+async def test_persist_scan_history_stores_personalized_insights(client, db_session, monkeypatch):
+    """POST /scan/barcode must persist personalized_insights in result_json."""
+    from app.routers import scan as scan_router_module
+
+    await _register(client)
+
+    insight = {
+        "biomarker_name": "ldl",
+        "biomarker_value": 165.0,
+        "biomarker_unit": "mg/dL",
+        "classification": "high",
+        "affecting_ingredients": ["palm oil"],
+        "severity": "HIGH",
+        "kind": "alert",
+        "impact_direction": "raises",
+        "reference_range_low": 0.0,
+        "reference_range_high": 100.0,
+        "friendly_title": "LDL elevado",
+        "friendly_biomarker_label": "Colesterol LDL",
+        "friendly_explanation": "El aceite de palma puede elevar el LDL.",
+        "friendly_recommendation": "Evita este producto.",
+        "avatar_variant": "red",
+    }
+
+    from app.schemas.models import IngredientResult, SemaphoreColor
+
+    fake_state = {
+        "extracted_ingredients": ["palm oil"],
+        "product_name": "Palm Oil Snack",
+        "product_brand": "TestBrand",
+        "product_image_url": None,
+        "source": "barcode",
+        "resolved": [
+            IngredientResult(
+                name="palm oil",
+                canonical_name="Palm oil",
+                status="Approved",
+                confidence_score=0.9,
+                regulatory_flags=[],
+                biomarker_conflicts=[],
+            )
+        ],
+        "semaphore": SemaphoreColor.ORANGE,
+        "conflict_severity": "HIGH",
+        "personalized_insights": [insight],
+    }
+
+    class _FakeGraph:
+        async def ainvoke(self, _state):
+            return fake_state
+
+    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _FakeGraph())
+
+    response = await client.post(BARCODE_URL, json={"barcode": "2222222222222"})
+    assert response.status_code == 200
+
+    scan = db_session.scalar(select(ScanHistory).where(ScanHistory.product_barcode == "2222222222222"))
+    assert scan is not None
+    assert scan.result_json is not None
+    insights_in_db = scan.result_json.get("personalized_insights", [])
+    assert len(insights_in_db) == 1
+    assert insights_in_db[0]["biomarker_name"] == "ldl"
+
+
+async def test_scan_result_legacy_row_missing_insights(client, db_session):
+    """GET /scan/result/{barcode} must return [] not error when result_json lacks insights key."""
+    from app.models import User
+
+    await _register(client)
+    user = db_session.scalar(select(User).where(User.email == _EMAIL))
+
+    product = Product(barcode="3333333333333", name="Legacy Product", brand=None, image_url=None)
+    db_session.add(product)
+    db_session.flush()
+
+    # Legacy row — no personalized_insights key
+    result_json = {
+        "product_barcode": "3333333333333",
+        "product_name": "Legacy Product",
+        "semaphore": "GRAY",
+        "ingredients": [],
+        "conflict_severity": None,
+        "source": "barcode",
+        "scanned_at": "2026-01-01T00:00:00+00:00",
+    }
+    db_session.add(
+        ScanHistory(
+            user_id=user.id,
+            product_barcode="3333333333333",
+            semaphore_result="GRAY",
+            result_json=result_json,
+        )
+    )
+    db_session.commit()
+
+    response = await client.get("/scan/result/3333333333333")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["personalized_insights"] == []

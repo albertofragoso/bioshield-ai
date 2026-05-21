@@ -401,7 +401,7 @@ def _persist_scan_history(
             confidence_score=avg_confidence,
             conflict_severity=state.get("conflict_severity"),
             result_json=response.model_dump(
-                mode="json", exclude={"show_barcode_cta", "personalized_insights"}
+                mode="json", exclude={"show_barcode_cta"}
             ),
         )
     )

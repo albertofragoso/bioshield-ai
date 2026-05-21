@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { contributeToOff } from "@/lib/api/scan";
 import type { ScanResponse } from "@/lib/api/types";
 
@@ -12,6 +13,7 @@ interface Props {
 export function OFFContributeToggle({ scanData }: Props) {
   const [enabled, setEnabled] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
+  const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -20,7 +22,13 @@ export function OFFContributeToggle({ scanData }: Props) {
         ingredients: scanData.ingredients.map((i) => i.name),
         consent: true,
       }),
-    onSuccess: () => setSucceeded(true),
+    onError: () => {
+      setSucceeded(false);
+      toast.error("No se pudo registrar — intenta de nuevo");
+      queryClient.invalidateQueries({
+        queryKey: ["contribute-status", scanData.product_barcode],
+      });
+    },
   });
 
   const isLoading = mutation.isPending;
@@ -33,10 +41,12 @@ export function OFFContributeToggle({ scanData }: Props) {
   }
 
   function handleSubmit() {
+    setSucceeded(true);
     mutation.mutate();
   }
 
   function handleRetry() {
+    setSucceeded(true);
     mutation.mutate();
   }
 
