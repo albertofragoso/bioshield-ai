@@ -134,6 +134,9 @@ export const useScanStreamingStore = create<ScanStreamingState>((set, get) => ({
       case "error":
         set({ status: "error" });
         break;
+      default:
+        // Evento desconocido del backend — ignorar
+        break;
     }
   },
 }));
