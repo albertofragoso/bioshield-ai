@@ -126,7 +126,7 @@ async def test_barcode_invalid_format_rejected(client):
 
 
 async def test_barcode_product_not_found_returns_error_event(client, monkeypatch):
-    """Cuando el producto no existe, el stream emite evento error con detalle de /scan/photo."""
+    """Cuando el producto no existe, el stream emite evento error con código PRODUCT_NOT_FOUND."""
     await _register(client)
 
     async def _fake(*args, **kwargs):
@@ -135,8 +135,10 @@ async def test_barcode_product_not_found_returns_error_event(client, monkeypatch
     monkeypatch.setattr(off_module, "fetch_product", _fake)
 
     events = await _stream_scan_barcode(client, "0000000000000")
-    # El endpoint emite event:error cuando no hay ingredientes
-    assert "error" in events or "done" in events
+    # El endpoint debe emitir event:error — no debe llegar a done
+    assert "error" in events, f"Se esperaba evento 'error', se recibieron: {list(events.keys())}"
+    assert "done" not in events, "No debe emitirse 'done' cuando el producto no existe"
+    assert events["error"].get("code") == "PRODUCT_NOT_FOUND"
 
 
 async def test_barcode_success_returns_scan_response(client, monkeypatch):

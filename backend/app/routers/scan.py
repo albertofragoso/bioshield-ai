@@ -193,6 +193,8 @@ async def scan_barcode(
             "conflict_severity": None,
             "personalized_insights": [],
         }
+        # Bandera para saber si el pipeline completó hasta calculate_risk
+        finalized = False
 
         try:
             # Evento inicial con scan_id para que el cliente pueda hacer polling
@@ -214,7 +216,18 @@ async def scan_barcode(
                     accumulated.update({
                         k: v for k, v in output.items() if v is not None
                     })
-                    yield f"event: ingredients\ndata: {_serialize({'ingredients': output.get('ingredients', []), 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
+                    ingredients = output.get("extracted_ingredients", [])
+
+                    # Si no hay ingredientes, el producto no existe — emite error y termina
+                    if not ingredients:
+                        error_payload = _serialize({
+                            "message": "Producto no encontrado. Usa /scan/photo para escanear la etiqueta.",
+                            "code": "PRODUCT_NOT_FOUND",
+                        })
+                        yield f"event: error\ndata: {error_payload}\n\n"
+                        return
+
+                    yield f"event: ingredients\ndata: {_serialize({'ingredients': ingredients, 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
 
                 elif name == "personalize":
                     # Acumula insights personalizados
@@ -237,6 +250,7 @@ async def scan_barcode(
                     )
                     response = _build_response(accumulated, product.barcode, product.name)
                     _finalize_scan_history(db, pending_row.id, response)
+                    finalized = True
 
                     # Dispara enriquecimiento si hay alta confianza
                     resolved: list[IngredientResult] = accumulated.get("resolved") or []
@@ -261,6 +275,10 @@ async def scan_barcode(
         except Exception as exc:  # noqa: BLE001
             logger.error("Error en stream de scan_barcode: %s", exc)
             yield f"event: error\ndata: {_serialize({'detail': str(exc)})}\n\n"
+        finally:
+            # Limpia la fila pending si el pipeline no llegó a calculate_risk
+            if not finalized:
+                _mark_scan_failed(db, pending_row.id)
 
     return StreamingResponse(
         _event_stream(),
@@ -520,6 +538,14 @@ def _finalize_scan_history(
     )
     row.status = "done"
     db.commit()
+
+
+def _mark_scan_failed(db: Session, scan_id: int) -> None:
+    """Marca la fila pending como error si el pipeline no completó."""
+    row = db.get(ScanHistory, scan_id)
+    if row and row.status == "pending":
+        row.status = "error"
+        db.commit()
 
 
 def _build_response(state: dict, barcode: str, product_name: str | None) -> ScanResponse:
