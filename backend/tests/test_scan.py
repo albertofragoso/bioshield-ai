@@ -856,3 +856,36 @@ async def test_scan_stream_error_event(client, monkeypatch):
 
     assert "error" in event_names
     assert "done" not in event_names
+
+
+async def test_scan_photo_stream_error_event(client, monkeypatch):
+    """Si el pipeline de foto falla, el stream emite event: error."""
+    import io
+    from app.routers import scan as scan_router_module
+
+    await _register_photo_stream(client)
+
+    async def _failing_stream(*args, **kwargs):
+        yield {"event": "on_chain_start", "name": "LangGraph", "data": {}}
+        raise RuntimeError("Simulated photo pipeline failure")
+        yield  # hace que Python lo trate como async generator
+
+    class _FailingGraph:
+        def astream_events(self, *args, **kwargs):
+            return _failing_stream(*args, **kwargs)
+
+    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _FailingGraph())
+
+    fake_image = io.BytesIO(b"fakejpegdata")
+    event_names = []
+
+    async with client.stream(
+        "POST", "/scan/photo",
+        files={"file": ("test.jpg", fake_image, "image/jpeg")},
+    ) as response:
+        async for line in response.aiter_lines():
+            if line.startswith("event:"):
+                event_names.append(line.split(":", 1)[1].strip())
+
+    assert "error" in event_names
+    assert "done" not in event_names
