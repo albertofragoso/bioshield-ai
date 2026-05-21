@@ -5,7 +5,6 @@ the router calls `off_client.fetch_product(...)` and `gemini.extract_from_image(
 and we replace those attributes per test.
 """
 
-import base64
 import json as json_module
 
 from sqlalchemy import select
@@ -17,8 +16,6 @@ from app.models import (
     RegulatoryStatus,
     ScanHistory,
 )
-from app.schemas.models import ProductExtraction
-from app.services import gemini as gemini_module
 from app.services import off_client as off_module
 
 REGISTER_URL = "/auth/register"
@@ -340,51 +337,47 @@ async def test_barcode_aggregates_worst_status_across_sources(client, db_session
 
 
 async def test_photo_requires_auth(client):
-    image_b64 = base64.b64encode(b"fake").decode()
-    response = await client.post(PHOTO_URL, json={"image_base64": image_b64})
+    import io
+    fake_image = io.BytesIO(b"fake")
+    response = await client.post(PHOTO_URL, files={"file": ("test.jpg", fake_image, "image/jpeg")})
     assert response.status_code == 401
 
 
-async def test_photo_success(client, monkeypatch):
+async def test_photo_success(client, mock_graph_photo):
+    """scan_photo con grafo mockeado emite stream SSE y finaliza con done."""
+    import io
+
     await _register(client)
+    fake_image = io.BytesIO(b"fakejpegdata")
+    event_names = []
 
-    async def _fake(image_b64, settings):
-        return ProductExtraction(ingredients=["sugar", "water"], has_additives=False, language="es")
+    async with client.stream(
+        "POST", PHOTO_URL,
+        files={"file": ("test.jpg", fake_image, "image/jpeg")},
+    ) as response:
+        assert "text/event-stream" in response.headers.get("content-type", "")
+        async for line in response.aiter_lines():
+            if line.startswith("event:"):
+                event_names.append(line.split(":", 1)[1].strip())
 
-    monkeypatch.setattr(gemini_module, "extract_from_image", _fake)
-
-    image_b64 = base64.b64encode(b"fake").decode()
-    response = await client.post(PHOTO_URL, json={"image_base64": image_b64})
-    assert response.status_code == 200
-    body = response.json()
-    assert body["source"] == "photo"
-    assert body["product_barcode"].startswith("photo-")
-    assert len(body["ingredients"]) == 2
+    assert "done" in event_names
+    assert "ingredients" in event_names
 
 
-async def test_photo_empty_ingredients_rejected(client, monkeypatch):
+async def test_photo_creates_pseudo_barcode_product(client, db_session, mock_graph_photo):
+    """scan_photo crea un Product con barcode que empieza con 'photo-'."""
+    import io
+
     await _register(client)
+    fake_image = io.BytesIO(b"fakejpegdata")
 
-    async def _fake(image_b64, settings):
-        return ProductExtraction(ingredients=[], has_additives=False, language="es")
-
-    monkeypatch.setattr(gemini_module, "extract_from_image", _fake)
-
-    image_b64 = base64.b64encode(b"fake").decode()
-    response = await client.post(PHOTO_URL, json={"image_base64": image_b64})
-    assert response.status_code == 422
-
-
-async def test_photo_creates_pseudo_barcode_product(client, db_session, monkeypatch):
-    await _register(client)
-
-    async def _fake(image_b64, settings):
-        return ProductExtraction(ingredients=["sugar"], has_additives=False)
-
-    monkeypatch.setattr(gemini_module, "extract_from_image", _fake)
-
-    image_b64 = base64.b64encode(b"fake").decode()
-    await client.post(PHOTO_URL, json={"image_base64": image_b64})
+    async with client.stream(
+        "POST", PHOTO_URL,
+        files={"file": ("test.jpg", fake_image, "image/jpeg")},
+    ) as response:
+        # Consume el stream completo para que se persista el producto
+        async for _ in response.aiter_lines():
+            pass
 
     product = db_session.scalar(select(Product))
     assert product is not None
@@ -789,3 +782,77 @@ async def test_scan_barcode_init_event_has_scan_id(client, mock_graph):
     assert init_data is not None, f"No init event found. Lines: {lines_seen[:10]}"
     assert "scan_id" in init_data
     assert "product_barcode" in init_data
+
+
+# ─────────────────────────────────────────────
+# POST /scan/photo — SSE streaming
+# ─────────────────────────────────────────────
+
+_PHOTO_STREAM_EMAIL = "photostream@bioshield.ai"
+_PHOTO_STREAM_PASSWORD = "photostreampass123"
+
+
+async def _register_photo_stream(client) -> None:
+    await client.post(REGISTER_URL, json={"email": _PHOTO_STREAM_EMAIL, "password": _PHOTO_STREAM_PASSWORD})
+
+
+async def test_scan_photo_returns_event_stream(client, mock_graph_photo):
+    """scan_photo retorna content-type text/event-stream."""
+    import io
+
+    await _register_photo_stream(client)
+    fake_image = io.BytesIO(b"fakejpegdata")
+    async with client.stream(
+        "POST", "/scan/photo",
+        files={"file": ("test.jpg", fake_image, "image/jpeg")},
+    ) as response:
+        assert "text/event-stream" in response.headers.get("content-type", "")
+
+
+async def test_scan_photo_streams_events_in_order(client, mock_graph_photo):
+    """scan_photo emite init → ingredients → insights → semaphore → done."""
+    import io
+
+    await _register_photo_stream(client)
+    fake_image = io.BytesIO(b"fakejpegdata")
+    event_names = []
+
+    async with client.stream(
+        "POST", "/scan/photo",
+        files={"file": ("test.jpg", fake_image, "image/jpeg")},
+    ) as response:
+        async for line in response.aiter_lines():
+            if line.startswith("event:"):
+                event_names.append(line.split(":", 1)[1].strip())
+
+    assert event_names == ["init", "ingredients", "insights", "semaphore", "done"]
+
+
+async def test_scan_stream_error_event(client, monkeypatch):
+    """Si el pipeline falla, el stream emite event: error."""
+    from app.routers import scan as scan_router_module
+
+    await _register_photo_stream(client)
+
+    async def _failing_stream(*args, **kwargs):
+        yield {"event": "on_chain_start", "name": "LangGraph", "data": {}}
+        raise RuntimeError("Simulated pipeline failure")
+        yield  # hace que Python lo trate como async generator
+
+    class _FailingGraph:
+        def astream_events(self, *args, **kwargs):
+            return _failing_stream(*args, **kwargs)
+
+    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _FailingGraph())
+
+    event_names = []
+    async with client.stream(
+        "POST", "/scan/barcode",
+        json={"barcode": "1234567890123"},
+    ) as response:
+        async for line in response.aiter_lines():
+            if line.startswith("event:"):
+                event_names.append(line.split(":", 1)[1].strip())
+
+    assert "error" in event_names
+    assert "done" not in event_names

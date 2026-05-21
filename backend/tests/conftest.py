@@ -127,6 +127,45 @@ def mock_graph(monkeypatch):
     monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _MockGraph())
 
 
+@pytest.fixture
+def mock_graph_photo(monkeypatch):
+    """Mock del pipeline de foto para tests SSE."""
+    from app.routers import scan as scan_router_module
+
+    async def _stream(*args, **kwargs):
+        yield {"event": "on_chain_start", "name": "LangGraph", "data": {}}
+        yield {
+            "event": "on_chain_end",
+            "name": "extract_ingredients",
+            "data": {"output": {
+                "product_name": "PhotoProd",
+                "product_brand": None,
+                "extracted_ingredients": ["Azúcar", "Sal"],
+                "source": "photo",
+            }},
+        }
+        yield {
+            "event": "on_chain_end",
+            "name": "personalize",
+            "data": {"output": {"personalized_insights": []}},
+        }
+        yield {
+            "event": "on_chain_end",
+            "name": "calculate_risk",
+            "data": {"output": {
+                "semaphore": "GRAY",
+                "conflict_severity": None,
+                "resolved": [],
+            }},
+        }
+
+    class _MockGraphPhoto:
+        def astream_events(self, *args, **kwargs):
+            return _stream(*args, **kwargs)
+
+    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _MockGraphPhoto())
+
+
 # ─────────────────────────────────────────────
 # HTTP client
 # ─────────────────────────────────────────────
