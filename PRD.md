@@ -408,10 +408,12 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 3. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
 4. **Dogfood real** — scan productos reales con alternatives, interview usuarios, calibración HITL.
 
-### FASE 3: Optimizaciones de valor (candidatos)
+### FASE 3: Optimizaciones de valor
 
-5. **Streaming progresivo del pipeline** — mostrar semáforo primero (~2s), ingredients (~4s), insights al final (~8s).
-6. **Scan result sharing** — URL única compartible del resultado de scan (para médico/nutriólogo).
+5. **Streaming progresivo del pipeline** — `ainvoke()` → `astream_events()`, ingredientes (~2-3s) → insights (~8-10s) → semáforo (~10-12s). El semáforo es último porque `calculate_risk` depende de `personalized_insights`.
+   - Spec: `docs/superpowers/specs/2026-05-21-streaming-progressive-design.md`
+6. **Scan result sharing** — URL única compartible via `share_token` en `ScanHistory`. Endpoint público con `ScanShareProjection` (sin `user_id`). TTL 7 días. BIDOR protegido con ownership check.
+   - Spec: `docs/superpowers/specs/2026-05-21-scan-sharing-design.md`
 7. **Caching inteligente por barcode+biomarker_hash** — evitar re-correr Gemini para el mismo producto con mismos biomarcadores.
 
 ---
@@ -436,6 +438,8 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 | `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md` | Product Ingestion Pipeline — Fase 2.0.1 (BLOQUEANTE) |
 | `docs/superpowers/specs/2026-05-08-alternative-matching-design.md` | Alternative Matching Feature Design — Fase 2.1 |
 | `docs/superpowers/specs/2026-05-09-scan-enrichment-design.md` | Scan → Product Enrichment Pipeline — Fase 2.1 |
+| `docs/superpowers/specs/2026-05-21-streaming-progressive-design.md` | Streaming progresivo del pipeline — Fase 3 |
+| `docs/superpowers/specs/2026-05-21-scan-sharing-design.md` | Scan result sharing — Fase 3 |
 
 ---
 

@@ -172,18 +172,23 @@ Datos biométricos encriptados del usuario. Expiran en 180 días por política d
 #### `scan_history`
 Historial de escaneos de productos. Enriquecida con métricas de confianza del sistema ERL 2.0.
 
-> Ref: `data-sources.md` §7 (Entity Resolution) y §8 (Conflict Detection)
+> Ref: `data-sources.md` §7 (Entity Resolution) y §8 (Conflict Detection)  
+> Ref: `docs/superpowers/specs/2026-05-21-streaming-progressive-design.md` (columna `status`, streaming pipeline)  
+> Ref: `docs/superpowers/specs/2026-05-21-scan-sharing-design.md` (columnas `share_token`, `share_expires_at`)
 
 | Campo | Tipo | Restricción | Descripción |
 |---|---|---|---|
 | `id` | `UUID` | `PK` | Identificador único |
-| `user_id` | `UUID` | `FK → users.id, NOT NULL` | Usuario que escanea |
+| `user_id` | `UUID` | `FK → users.id, NOT NULL, ON DELETE CASCADE` | Usuario que escanea |
 | `product_barcode` | `VARCHAR(50)` | `FK → products.barcode, NOT NULL` | Código de barras del producto |
 | `ingredient_id` | `UUID` | `FK → ingredients.id` | Ingrediente consultado (nullable para escaneos multi-ingrediente) |
 | `semaphore_result` | `VARCHAR(10)` | `NOT NULL` | Resultado semáforo: `GREEN`, `YELLOW`, `RED` |
 | `confidence_score` | `FLOAT` | `CHECK (0.0 <= val <= 1.0)` | Confianza de la resolución de entidad (1.0 = Exact Match CAS) |
 | `conflict_severity` | `VARCHAR(10)` | — | Severidad del conflicto detectado: `HIGH`, `MEDIUM`, `LOW`, o `NULL` |
 | `scanned_at` | `TIMESTAMP` | `DEFAULT NOW()` | Fecha del escaneo |
+| `status` | `VARCHAR(10)` | `DEFAULT 'done'` | Estado del pipeline: `pending` (stream en curso) / `done` (persistido) |
+| `share_token` | `VARCHAR(32)` | `UNIQUE, NULLABLE` | Token de URL compartible (`secrets.token_urlsafe(24)`); `NULL` si no compartido |
+| `share_expires_at` | `TIMESTAMP` | `NULLABLE` | Expiración del share link; `NULL` si no aplica |
 
 ---
 
