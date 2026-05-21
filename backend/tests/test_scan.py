@@ -681,3 +681,14 @@ async def test_scan_result_legacy_row_missing_insights(client, db_session):
     assert response.status_code == 200
     body = response.json()
     assert body["personalized_insights"] == []
+
+
+async def test_scan_history_has_status_column(db_session):
+    """Verifica que ScanHistory tiene columna status."""
+    from sqlalchemy import inspect as sa_inspect
+
+    from app.models import ScanHistory
+
+    mapper = sa_inspect(ScanHistory)
+    cols = {c.key for c in mapper.mapper.columns}
+    assert "status" in cols
