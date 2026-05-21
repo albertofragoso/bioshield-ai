@@ -407,7 +407,7 @@ def _persist_scan_history(
     )
 
 
-async def _create_pending_row(
+def _create_pending_row(
     db: Session,
     barcode: str,
     user_id: int,
@@ -426,7 +426,7 @@ async def _create_pending_row(
     return row
 
 
-async def _finalize_scan_history(
+def _finalize_scan_history(
     db: Session,
     scan_id: int,
     response: ScanResponse,
