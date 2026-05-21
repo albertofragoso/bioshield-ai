@@ -407,6 +407,41 @@ def _persist_scan_history(
     )
 
 
+async def _create_pending_row(
+    db: Session,
+    barcode: str,
+    user_id: int,
+) -> ScanHistory:
+    # Inserta fila vacía antes de iniciar el stream.
+    # Garantiza que /scan/[id] no retorna 404 durante el streaming.
+    row = ScanHistory(
+        product_barcode=barcode,
+        user_id=user_id,
+        result_json=None,
+        status="pending",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+async def _finalize_scan_history(
+    db: Session,
+    scan_id: int,
+    response: ScanResponse,
+) -> None:
+    # UPDATE de la fila pending con el resultado completo.
+    row = db.get(ScanHistory, scan_id)
+    if not row:
+        return
+    row.result_json = response.model_dump(
+        mode="json", exclude={"show_barcode_cta"}
+    )
+    row.status = "done"
+    db.commit()
+
+
 def _build_response(state: dict, barcode: str, product_name: str | None) -> ScanResponse:
     return ScanResponse(
         product_barcode=barcode,

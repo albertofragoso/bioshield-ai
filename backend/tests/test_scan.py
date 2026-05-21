@@ -692,3 +692,11 @@ async def test_scan_history_has_status_column(db_session):
     mapper = sa_inspect(ScanHistory)
     cols = {c.key for c in mapper.mapper.columns}
     assert "status" in cols
+
+
+# Test que los nuevos helpers existen y son importables
+def test_scan_helpers_exist():
+    """Verifica que _create_pending_row y _finalize_scan_history existen en scan.py."""
+    from app.routers import scan as scan_module
+    assert hasattr(scan_module, '_create_pending_row'), "_create_pending_row no encontrado"
+    assert hasattr(scan_module, '_finalize_scan_history'), "_finalize_scan_history no encontrado"
