@@ -84,6 +84,50 @@ def db_session(test_engine):
 
 
 # ─────────────────────────────────────────────
+# Mock graph SSE
+# ─────────────────────────────────────────────
+
+
+@pytest.fixture
+def mock_graph(monkeypatch):
+    """Mock de build_scan_graph que retorna un objeto con astream_events SSE completo mínimo."""
+    from app.routers import scan as scan_router_module
+
+    async def _stream(*args, **kwargs):
+        yield {"event": "on_chain_start", "name": "LangGraph", "data": {}}
+        yield {
+            "event": "on_chain_end",
+            "name": "identify_product",
+            "data": {"output": {
+                "product_name": "TestProd",
+                "product_brand": "Brand",
+                "extracted_ingredients": ["Azúcar"],
+                "source": "barcode",
+            }},
+        }
+        yield {
+            "event": "on_chain_end",
+            "name": "personalize",
+            "data": {"output": {"personalized_insights": []}},
+        }
+        yield {
+            "event": "on_chain_end",
+            "name": "calculate_risk",
+            "data": {"output": {
+                "semaphore": "GRAY",
+                "conflict_severity": None,
+                "resolved": [],
+            }},
+        }
+
+    class _MockGraph:
+        def astream_events(self, *args, **kwargs):
+            return _stream(*args, **kwargs)
+
+    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _MockGraph())
+
+
+# ─────────────────────────────────────────────
 # HTTP client
 # ─────────────────────────────────────────────
 
