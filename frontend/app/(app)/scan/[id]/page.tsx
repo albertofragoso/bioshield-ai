@@ -31,6 +31,7 @@ import {
 import { AvatarGlow } from "@/components/AvatarGlow";
 import { PhotoLoadingState } from "@/components/scanner/PhotoLoadingState";
 import { OFFContributeToggle } from "@/components/scanner/OFFContributeToggle";
+import { ShareButton } from "@/components/scanner/ShareButton";
 import type {
   ConflictSeverity,
   IngredientConflict,
@@ -409,6 +410,9 @@ function ScanResultInner() {
                 Reportar
               </button>
             </div>
+            {data?.db_id && (
+              <ShareButton scanDbId={data.db_id} />
+            )}
           </div>
         </div>
 

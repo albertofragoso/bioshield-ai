@@ -128,6 +128,7 @@ def get_scan_result(
     product = db.scalar(select(Product).where(Product.barcode == barcode))
     response = ScanResponse.model_validate(row.result_json)
     response.show_barcode_cta = product.needs_barcode_link if product else False
+    response.db_id = row.id
     return response
 
 

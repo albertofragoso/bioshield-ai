@@ -115,6 +115,7 @@ class ScanResponse(BaseModel):
     scanned_at: datetime
     personalized_insights: list["PersonalizedInsight"] = []
     show_barcode_cta: bool = False
+    db_id: str | None = None  # ID de ScanHistory para sharing
 
 
 class ScanHistoryEntry(BaseModel):
