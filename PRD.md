@@ -1,7 +1,7 @@
 # PRD v6.0: BioShield AI – Sistema de Transparencia Metabólica & Reality Engineering
 
-**Estatus:** MVP Completado y Demostrable — Fase 1 (Backend + Frontend) ✅  
-**Última actualización:** 2026-05-05 (sesión cierre Fase 7)  
+**Estatus:** MVP Completado y Demostrable — Fase 1 + Production Hardening ✅  
+**Última actualización:** 2026-05-20 (PR #21 hardening + PR #22 scan pipeline fix)  
 **Autor:** Alberto Fragoso  
 **Stack Core:** Next.js 15 (Frontend), FastAPI (Backend), LangGraph, ChromaDB, Gemini 2.5 Flash, BGE-M3, Open Food Facts API.  
 **Licencia:** MIT License (Software) / ODbL (Datos).
@@ -14,7 +14,7 @@
 - **Next.js 15 (App Router)** desplegado en Vercel. TypeScript strict, dark-only design (no light mode).
 - **Gestión de estado:**
   - **Client:** Zustand para auth (`user`, `isAuthenticated`).
-  - **Server:** TanStack Query v5 para cache de scans por barcode (5 min staleTime), mutations (upload/delete), refetch automático.
+  - **Server:** TanStack Query v5 para cache de scans por barcode (30 min staleTime, `refetchOnWindowFocus: false` — scan results son inmutables), mutations (upload/delete).
 - **UI:** Tailwind CSS v4 + shadcn/ui primitivos (Radix). Design tokens en `globals.css` (semáforo 5 colores dark-adjusted WCAG AA, hex-grid SVG, scanlines, animaciones: wobble, pulse-glow, scan-line, shimmer).
 - **Iconografía:** Lucide React (HelpCircle/CheckCircle/AlertCircle/AlertTriangle/ShieldAlert para semáforo).
 - **Avatares:** 12 PNG (992×1063px, fondo alpha transparente): main, welcome, progress, success, profile, support + semáforo gray/blue/yellow/orange/red.
@@ -48,7 +48,7 @@
 1. Usuario abre `/scan` tab "Código de barras".
 2. Cámara abre, lector @zxing detecta barcode (0–5s).
 3. `POST /scan/barcode {barcode: "8-14 dígitos"}` → Off API lookup.
-4. **Éxito:** `/scan/[barcode]` con semáforo + ingredientes (cache TanStack Query por 5 min).
+4. **Éxito:** `/scan/[barcode]` con semáforo + ingredientes (cache TanStack Query por 30 min).
 5. **Error 404:** modal "No encontramos este producto. ¿Intentar con foto?" → tab foto automático.
 
 ### 2.2 · Escaneo de productos (foto etiqueta)
@@ -151,7 +151,7 @@ class PersonalizedInsightCopy(BaseModel):
 | Estrategia | Nivel | Implementación | TTL |
 |---|---|---|---|
 | **Backend API** | `/scan` responses | SQLite/Postgres persistence | Indefinido (JOIN con scan_history) |
-| **Frontend Query** | Barcode results | TanStack Query `["scan", barcode]` | 5 min (staleTime) |
+| **Frontend Query** | Barcode results | TanStack Query `["scan", barcode]` | 30 min (staleTime) |
 | **Frontend LRU** | Text embeddings | `@lru_cache(maxsize=256)` en backend | Process lifetime |
 | **Chromadb Index** | Vector search | Persistent client con volumen Docker | Indefinido (índice completo) |
 
@@ -168,7 +168,7 @@ class PersonalizedInsightCopy(BaseModel):
 | **Vendor Lock-in (Gemini)** | Alto | BGE-M3 primary, Gemini fallback. Arquitectura modular para swap. | ✅ Mitigado (BGE-M3 primary) |
 | **Free tier Gemini quota** | Alto | Lock + backoff en embeddings. Mock en tests. Staging con tier pagado. | ⏳ Dev mitigation; prod upgrade path |
 | **HITL threshold (0.7)** | Medio | Sin calibración post-dogfood. Ground truth 200+ pares. | ⏳ Post-MVP |
-| **E2E testing** | Medio | Playwright 36+ casos pendientes. Verificación antes de prod. | ⏳ En progreso |
+| **E2E testing** | Medio | Playwright — 32/32 core passing (PR #7); alternatives E2E pendiente. | ⏳ Alternatives pendiente |
 | **KMS para AES_KEY** | Crítico | Env var en dev/staging; AWS/GCP Secrets en prod. Path documentado. | ⏳ Pre-prod |
 | **Cookies cross-origin (prod)** | Medio | SameSite=Lax local. Requiere `SameSite=None; Secure` si FE/BE en dominios distintos. | ⏳ Pre-prod staging |
 
@@ -183,10 +183,20 @@ class PersonalizedInsightCopy(BaseModel):
 - ✅ LangGraph: 7 nodos, semáforo 5 colores, BIOMARKER_RULES (11 reglas).
 - ✅ Frontend: Dark-only Next.js 15, TanStack Query, Zustand, 8 pantallas (login, register, dashboard, scan, result, biosync, history, globals).
 - ✅ Design tokens: semáforo dark-adjusted WCAG AA, hex-grid + scanlines, 12 avatares PNG, animaciones.
-- ⏳ E2E testing: Playwright pendiente (~4-6h, 36+ casos).
-- ⏳ Legal: Documentos públicos (Privacidad/T&C) pendientes (~2-3h redacción legal).
+- ✅ E2E testing: Playwright — 32/32 critical tests passing (PR #7).
+- ✅ Legal: Privacy Policy + T&C publicados (PR #10).
 
-**Bloqueante de lanzamiento (Fase 2):** Política de Privacidad + Términos de Uso publicados y aceptados por usuario.
+### Fase 1.5 — Production Hardening (Cerrado ✅, PR #21 + #22)
+**Estado:** Mergeado 2026-05-20.  
+**Entregables:**
+- ✅ Structured JSON logging + `request_id` ContextVar propagado por async boundaries.
+- ✅ Unified error schema (`ErrorResponse`) + global exception handler.
+- ✅ Per-user daily token budget — atomic SQL UPDATE, no read-modify-write.
+- ✅ Rate limiting dinámico — `Retry-After` calculado hasta medianoche UTC.
+- ✅ Scan pipeline fix: `personalized_insights` persistidos en DB, `queryFn` usa GET no POST, `staleTime: 30min`, `refetchOnWindowFocus: false`.
+- ✅ Prefetch en hover de historial (navegación instantánea).
+- ✅ Optimistic UI en OFFContributeToggle con rollback en error.
+- ✅ Alembic migration para rows históricas sin `personalized_insights`.
 
 ### Fase 2 — Alternative Matching (Health-Conscious)
 
@@ -200,17 +210,16 @@ class PersonalizedInsightCopy(BaseModel):
 - ✅ `GET /scan/alternatives/{barcode}` endpoint · `POST /analytics/event` fire-and-forget
 - ✅ Nueva ChromaDB collection `products` (ingredient profiles, 1024-dim BGE-M3)
 - ✅ Enrichment Pipeline (Fase 2.1): scan → product DB auto-feeding
-- ⏳ **Curated DB ingestion** — 400–900 productos health-conscious vía Open Food Facts Search API v2 (MX)
+- ✅ **Curated DB ingestion** — OFF Mexico (PR #14) + OFF Global + USDA Branded Foods hybrid pipeline (PR #17)
 - ⏳ A/B testing de semáforo UI en producción (independiente — sigue en roadmap post-Fase 2)
 
 **Sub-fases:**
-1. **Fase 2.0 — Ingesta + Curation** (BLOQUEANTE para feature testing)
-   - Scripts de ingesta Open Food Facts Search API v2 (MX, categorías health)
-   - Curation pipeline: `compute_clean_scores.py`, `index_products_chroma.py`, `seed_alternatives_fixture.py`
-   - ~2 días de ejecución
+1. **Fase 2.0 — Ingesta + Curation** (Cerrado ✅, PRs #14 + #17)
+   - Scripts implementados: `ingest_off_mexico.py`, `ingest_off_global.py`, `ingest_usda.py`
+   - Curation pipeline implementado: `compute_clean_scores.py`, `index_products_chroma.py`, `seed_alternatives_fixture.py`, `load_all_products.py`
    - Spec: `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md`
 
-2. **Fase 2.1 — Feature Implementation** (ya implementado ✅)
+2. **Fase 2.1 — Feature Implementation** (Cerrado ✅)
    - Backend APIs + Frontend UI + Enrichment Pipeline
    - Spec: `docs/superpowers/specs/2026-05-08-alternative-matching-design.md`
 
@@ -221,9 +230,9 @@ class PersonalizedInsightCopy(BaseModel):
 
 **Dependencias críticas:**
 - ✅ Fase 1 shipped
-- ⏳ **Curated DB cargado y scripts de curation ejecutados (BLOQUEANTE)**
+- ✅ Curated DB scripts implementados (PRs #14 + #17)
 - ⏳ E2E tests de alternatives passing
-- ⏳ Documentos legales publicados
+- ✅ Documentos legales publicados (PR #10)
 
 #### Enrichment Pipeline (Fase 2.1)
 
@@ -379,7 +388,7 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 | **p95 latencia `/scan/barcode`** | <3s | OpenTelemetry + Grafana (Fase 2) | ⏳ Medir en prod |
 | **p95 latencia `/scan/photo`** | <5s | Mismo | ⏳ Medir en prod |
 | **Test coverage backend** | ≥80% en `services/` + `routers/` | `pytest --cov` | ✅ 90 tests passing |
-| **E2E test coverage** | 36+ casos (auth, scan, biosync, dashboard, history) | Playwright specs/features/ | ⏳ En progreso (~4-6h) |
+| **E2E test coverage** | Core 32/32 ✅; alternatives E2E pendiente | Playwright specs/features/ | ⏳ Alternatives pendiente |
 | **Frontend Lighthouse** | ≥80 (perf/acc/best-practices) | Lighthouse CI en Vercel | ⏳ Post-deploy |
 | **Uptime (Fase 2+)** | ≥99.5% | Monitoring / alertas | ⏳ Fase 2 |
 
@@ -387,23 +396,25 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 
 ## 12. Próximos Pasos (Orden de Prioridad)
 
-### FASE 2: Ingesta de Productos (BLOQUEANTE para alternatives feature)
+### FASE 2: Ingesta de Productos (Cerrado ✅ — PRs #14 + #17)
 
-1. **[CRÍTICO] Product Ingestion Pipeline — Open Food Facts (MX)** — Scripts automatizados vía OFF Search API v2.
-   - Fase 2.0.1a: `utils/ingredient_parser.py` + `ingest_off_mexico.py` → `off_products.json` ~4-6h
-   - Fase 2.0.1b: `load_products_to_db.py` → upsert a tabla `products` ~2h
-   - Fase 2.0.1c: Refactor `build_product_profile` centralizado en `rag.py` ~1h
-   - Fase 2.0.1d: `compute_clean_scores.py` + `index_products_chroma.py` + validación ~2h
-   - **Total: ~2 días | Spec: `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md`**
+- ✅ Scripts implementados: `ingest_off_mexico.py`, `ingest_off_global.py`, `ingest_usda.py`
+- ✅ Curation pipeline: `compute_clean_scores.py`, `index_products_chroma.py`, `seed_alternatives_fixture.py`
 
-### FASE 2: Testing & Validation (después de ingesta)
+### FASE 2: Testing & Validation
 
-2. **E2E testing (Playwright)** — 36+ casos de alternatives + existing flows. ~4-6h. (Bloqueado por: ingesta completa)
-3. **Frontend CI/CD (GitHub Actions)** — `pnpm install + build + lint + typecheck`. ~2h.
-4. **Validación legal** — revisión de Privacidad/T&C por abogado. ~3-5 días.
-5. **docker-compose extensión** — servicio `frontend` + nginx reverse proxy (opcional). ~1h.
-6. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
-7. **Dogfood real** — scan productos reales con alternatives, interview usuarios, calibración HITL.
+1. **E2E testing de alternatives (Playwright)** — casos de alternatives + existing flows.
+2. **Frontend CI/CD (GitHub Actions)** — `pnpm install + build + lint + typecheck`. ~2h.
+3. **Deployment staging** — docker compose full stack en Render/Railway, API key Gemini pagada.
+4. **Dogfood real** — scan productos reales con alternatives, interview usuarios, calibración HITL.
+
+### FASE 3: Optimizaciones de valor
+
+5. **Streaming progresivo del pipeline** — `ainvoke()` → `astream_events()`, ingredientes (~2-3s) → insights (~8-10s) → semáforo (~10-12s). El semáforo es último porque `calculate_risk` depende de `personalized_insights`.
+   - Spec: `docs/superpowers/specs/2026-05-21-streaming-progressive-design.md`
+6. **Scan result sharing** — URL única compartible via `share_token` en `ScanHistory`. Endpoint público con `ScanShareProjection` (sin `user_id`). TTL 7 días. BIDOR protegido con ownership check.
+   - Spec: `docs/superpowers/specs/2026-05-21-scan-sharing-design.md`
+7. **Caching inteligente por barcode+biomarker_hash** — evitar re-correr Gemini para el mismo producto con mismos biomarcadores.
 
 ---
 
@@ -427,6 +438,8 @@ BioShield procesa **datos sensibles de salud** (biomarcadores) y **contenido de 
 | `docs/superpowers/specs/2026-05-12-product-ingestion-off-design.md` | Product Ingestion Pipeline — Fase 2.0.1 (BLOQUEANTE) |
 | `docs/superpowers/specs/2026-05-08-alternative-matching-design.md` | Alternative Matching Feature Design — Fase 2.1 |
 | `docs/superpowers/specs/2026-05-09-scan-enrichment-design.md` | Scan → Product Enrichment Pipeline — Fase 2.1 |
+| `docs/superpowers/specs/2026-05-21-streaming-progressive-design.md` | Streaming progresivo del pipeline — Fase 3 |
+| `docs/superpowers/specs/2026-05-21-scan-sharing-design.md` | Scan result sharing — Fase 3 |
 
 ---
 

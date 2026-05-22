@@ -1,5 +1,7 @@
 # Production Hardening Implementation Plan
 
+> **IMPLEMENTADO ✅ — Mergeado como PR #21 el 2026-05-20.**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Harden BioShield AI backend with structured JSON logging + request-ID correlation, unified error schema, per-user daily token budget (atomic SQL enforcement), and rate-limiting tweaks — all on a feature worktree, never on main.
