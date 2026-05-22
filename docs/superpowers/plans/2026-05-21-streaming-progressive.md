@@ -1,6 +1,8 @@
 # Streaming Progresivo del Pipeline de Scan — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **IMPLEMENTADO ✅ — PR #23** (feature/streaming-progressive → main, 2026-05-22)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Convertir `POST /scan/barcode` y `POST /scan/photo` de `graph.ainvoke()` a `graph.astream_events()` emitiendo SSE events progresivos, y actualizar el frontend para mostrar resultados parciales conforme llegan.
 
@@ -32,7 +34,7 @@
 - Modify: `backend/app/models/__init__.py`
 - Create: `alembic/versions/<rev>_add_scan_status.py`
 
-- [ ] **Step 1: Escribir el test failing**
+- [x] **Step 1: Escribir el test failing**
 
 ```python
 # backend/tests/test_scan.py — agregar al final del archivo
@@ -44,7 +46,7 @@ async def test_scan_history_has_status_column(db_session: AsyncSession):
     assert "status" in cols
 ```
 
-- [ ] **Step 2: Correr el test para verificar que falla**
+- [x] **Step 2: Correr el test para verificar que falla**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_status_column -v
@@ -52,7 +54,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_status_
 
 Esperado: `FAILED — AssertionError: assert "status" in cols`
 
-- [ ] **Step 3: Agregar columna al modelo**
+- [x] **Step 3: Agregar columna al modelo**
 
 En `backend/app/models/__init__.py`, dentro de la clase `ScanHistory` (después de `result_json`):
 
@@ -62,7 +64,7 @@ status: Mapped[str] = mapped_column(
 )
 ```
 
-- [ ] **Step 4: Generar la migration Alembic**
+- [x] **Step 4: Generar la migration Alembic**
 
 ```bash
 cd backend && alembic revision --autogenerate -m "add_scan_status"
@@ -80,7 +82,7 @@ def downgrade() -> None:
     op.drop_column('scan_history', 'status')
 ```
 
-- [ ] **Step 5: Aplicar la migration**
+- [x] **Step 5: Aplicar la migration**
 
 ```bash
 cd backend && alembic upgrade head
@@ -88,7 +90,7 @@ cd backend && alembic upgrade head
 
 Esperado: `Running upgrade ... -> <rev>, add_scan_status`
 
-- [ ] **Step 6: Correr el test para verificar que pasa**
+- [x] **Step 6: Correr el test para verificar que pasa**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_status_column -v
@@ -96,7 +98,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_status_
 
 Esperado: `PASSED`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/models/__init__.py alembic/versions/*_add_scan_status.py
@@ -112,7 +114,7 @@ git commit -m "feat(db): add status column to scan_history for streaming"
 
 El helper actual `_persist_scan_history()` hace INSERT. Necesitamos separar: insertar pending row primero, luego UPDATE al final del stream.
 
-- [ ] **Step 1: Escribir test failing para el pending row pattern**
+- [x] **Step 1: Escribir test failing para el pending row pattern**
 
 ```python
 # backend/tests/test_scan.py
@@ -161,7 +163,7 @@ async def test_scan_stream_pending_row_created(
     assert True in events_seen, "La fila pending nunca existió antes de que el stream avanzara"
 ```
 
-- [ ] **Step 2: Correr el test para verificar que falla**
+- [x] **Step 2: Correr el test para verificar que falla**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_stream_pending_row_created -v
@@ -169,7 +171,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_stream_pending_row_
 
 Esperado: `FAILED — AttributeError: module 'backend.app.routers.scan' has no attribute graph.astream_events` (o similar — el endpoint aún usa ainvoke)
 
-- [ ] **Step 3: Agregar función `_create_pending_row()`**
+- [x] **Step 3: Agregar función `_create_pending_row()`**
 
 En `backend/app/routers/scan.py`, reemplazar `_persist_scan_history()` con dos helpers:
 
@@ -209,7 +211,7 @@ async def _finalize_scan_history(
     await db.commit()
 ```
 
-- [ ] **Step 4: Correr el test para verificar que pasa**
+- [x] **Step 4: Correr el test para verificar que pasa**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_stream_pending_row_created -v
@@ -217,7 +219,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_stream_pending_row_
 
 Esperado: `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/routers/scan.py
@@ -231,7 +233,7 @@ git commit -m "feat(scan): add pending row helpers for streaming pattern"
 **Files:**
 - Modify: `backend/app/routers/scan.py`
 
-- [ ] **Step 1: Escribir tests failing**
+- [x] **Step 1: Escribir tests failing**
 
 ```python
 # backend/tests/test_scan.py
@@ -322,7 +324,7 @@ def mock_graph(monkeypatch):
     monkeypatch.setattr("backend.app.routers.scan.graph.astream_events", _stream)
 ```
 
-- [ ] **Step 2: Correr los tests para verificar que fallan**
+- [x] **Step 2: Correr los tests para verificar que fallan**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_barcode_returns_event_stream tests/test_scan.py::test_scan_barcode_streams_events_in_order -v
@@ -330,7 +332,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_barcode_returns_eve
 
 Esperado: `FAILED` — los tests fallan porque el endpoint aún retorna JSON.
 
-- [ ] **Step 3: Reemplazar `scan_barcode` con la versión streaming**
+- [x] **Step 3: Reemplazar `scan_barcode` con la versión streaming**
 
 En `backend/app/routers/scan.py`, reemplazar la función `scan_barcode` completa:
 
@@ -434,7 +436,7 @@ import json
 from fastapi.responses import StreamingResponse
 ```
 
-- [ ] **Step 4: Correr los tests**
+- [x] **Step 4: Correr los tests**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_barcode_returns_event_stream tests/test_scan.py::test_scan_barcode_streams_events_in_order tests/test_scan.py::test_scan_barcode_init_event_has_scan_id -v
@@ -442,7 +444,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_barcode_returns_eve
 
 Esperado: `PASSED` los tres.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/routers/scan.py backend/tests/conftest.py backend/tests/test_scan.py
@@ -456,7 +458,7 @@ git commit -m "feat(scan): convert scan_barcode to SSE streaming with astream_ev
 **Files:**
 - Modify: `backend/app/routers/scan.py`
 
-- [ ] **Step 1: Escribir tests failing**
+- [x] **Step 1: Escribir tests failing**
 
 ```python
 # backend/tests/test_scan.py
@@ -532,7 +534,7 @@ def mock_graph_photo(monkeypatch):
     monkeypatch.setattr("backend.app.routers.scan.graph.astream_events", _stream)
 ```
 
-- [ ] **Step 2: Correr los tests para verificar que fallan**
+- [x] **Step 2: Correr los tests para verificar que fallan**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_photo_returns_event_stream tests/test_scan.py::test_scan_photo_streams_events_in_order -v
@@ -540,7 +542,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_photo_returns_event
 
 Esperado: `FAILED`
 
-- [ ] **Step 3: Reemplazar `scan_photo` con la versión streaming**
+- [x] **Step 3: Reemplazar `scan_photo` con la versión streaming**
 
 En `backend/app/routers/scan.py`, misma estructura que `scan_barcode` pero para foto:
 
@@ -625,7 +627,7 @@ async def scan_photo(
     )
 ```
 
-- [ ] **Step 4: Correr los tests**
+- [x] **Step 4: Correr los tests**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_photo_returns_event_stream tests/test_scan.py::test_scan_photo_streams_events_in_order -v
@@ -633,7 +635,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_photo_returns_event
 
 Esperado: `PASSED`
 
-- [ ] **Step 5: Test de error event**
+- [x] **Step 5: Test de error event**
 
 ```python
 async def test_scan_stream_error_event(
@@ -664,7 +666,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_stream_error_event 
 
 Esperado: `PASSED`
 
-- [ ] **Step 6: Correr suite completa del backend**
+- [x] **Step 6: Correr suite completa del backend**
 
 ```bash
 cd backend && python -m pytest tests/ -v --tb=short 2>&1 | tail -30
@@ -672,7 +674,7 @@ cd backend && python -m pytest tests/ -v --tb=short 2>&1 | tail -30
 
 Todos los tests deben pasar.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/routers/scan.py backend/tests/conftest.py backend/tests/test_scan.py
@@ -686,7 +688,7 @@ git commit -m "feat(scan): convert scan_photo to SSE streaming + error event tes
 **Files:**
 - Create: `frontend/lib/stores/scanning.ts`
 
-- [ ] **Step 1: Crear el store**
+- [x] **Step 1: Crear el store**
 
 ```typescript
 // frontend/lib/stores/scanning.ts
@@ -875,7 +877,7 @@ async function _consumeStream(
 }
 ```
 
-- [ ] **Step 2: Verificar que TypeScript compila sin errores**
+- [x] **Step 2: Verificar que TypeScript compila sin errores**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | grep scanning
@@ -883,7 +885,7 @@ cd frontend && npx tsc --noEmit 2>&1 | grep scanning
 
 Esperado: sin errores.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/lib/stores/scanning.ts
@@ -897,7 +899,7 @@ git commit -m "feat(frontend): add scanStreamingStore Zustand slice"
 **Files:**
 - Modify: `frontend/app/(app)/scan/page.tsx`
 
-- [ ] **Step 1: Reemplazar mutations por `startStream()`**
+- [x] **Step 1: Reemplazar mutations por `startStream()`**
 
 Localizar la lógica de `barcodeMutation` y `photoMutation` y reemplazar:
 
@@ -950,7 +952,7 @@ const handlePhotoSubmit = (file: File) => {
 };
 ```
 
-- [ ] **Step 2: Verificar que TypeScript compila**
+- [x] **Step 2: Verificar que TypeScript compila**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | grep "scan/page"
@@ -958,7 +960,7 @@ cd frontend && npx tsc --noEmit 2>&1 | grep "scan/page"
 
 Esperado: sin errores.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/app/\(app\)/scan/page.tsx
@@ -972,7 +974,7 @@ git commit -m "feat(frontend): replace scan mutations with startStream store cal
 **Files:**
 - Modify: `frontend/app/(app)/scan/[id]/page.tsx`
 
-- [ ] **Step 1: Agregar lectura del store y cleanup**
+- [x] **Step 1: Agregar lectura del store y cleanup**
 
 En el componente `ScanResultInner` (o el componente que usa `useQuery`):
 
@@ -1029,7 +1031,7 @@ useEffect(() => {
 }, [streamStatus, id, queryClient]);
 ```
 
-- [ ] **Step 2: Verificar que TypeScript compila**
+- [x] **Step 2: Verificar que TypeScript compila**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | grep "\[id\]/page"
@@ -1037,7 +1039,7 @@ cd frontend && npx tsc --noEmit 2>&1 | grep "\[id\]/page"
 
 Esperado: sin errores.
 
-- [ ] **Step 3: Correr los E2E tests existentes para verificar regresiones**
+- [x] **Step 3: Correr los E2E tests existentes para verificar regresiones**
 
 ```bash
 cd /Users/albertofragoso/Desktop/IA_engineer/bio_shield && npx playwright test tests/specs/scan/ --reporter=list 2>&1 | tail -20
@@ -1045,7 +1047,7 @@ cd /Users/albertofragoso/Desktop/IA_engineer/bio_shield && npx playwright test t
 
 Esperado: sin nuevas regresiones.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/app/\(app\)/scan/\[id\]/page.tsx
@@ -1056,7 +1058,7 @@ git commit -m "feat(frontend): read from scanStreamingStore during active stream
 
 ### Task 8: Full test suite + lint
 
-- [ ] **Step 1: Correr suite completa del backend**
+- [x] **Step 1: Correr suite completa del backend**
 
 ```bash
 cd backend && python -m pytest tests/ -v --tb=short 2>&1 | tail -30
@@ -1064,7 +1066,7 @@ cd backend && python -m pytest tests/ -v --tb=short 2>&1 | tail -30
 
 Esperado: todos verdes. Si hay fallos, corregir antes de continuar.
 
-- [ ] **Step 2: Ruff + mypy**
+- [x] **Step 2: Ruff + mypy**
 
 ```bash
 cd backend && ruff check . && mypy app/ --ignore-missing-imports 2>&1 | tail -20
@@ -1072,7 +1074,7 @@ cd backend && ruff check . && mypy app/ --ignore-missing-imports 2>&1 | tail -20
 
 Esperado: sin errores de tipo ni linting.
 
-- [ ] **Step 3: TypeScript check del frontend completo**
+- [x] **Step 3: TypeScript check del frontend completo**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | tail -20
@@ -1080,7 +1082,7 @@ cd frontend && npx tsc --noEmit 2>&1 | tail -20
 
 Esperado: sin errores.
 
-- [ ] **Step 4: Commit final de cleanup si aplica**
+- [x] **Step 4: Commit final de cleanup si aplica**
 
 ```bash
 git add -p  # revisar y stagear solo fixes de lint/tipos
