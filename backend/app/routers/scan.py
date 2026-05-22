@@ -10,8 +10,8 @@ avoid duplicating product metadata per scan.
 import json
 import logging
 import secrets
-from datetime import UTC, datetime
-from uuid import UUID
+from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -35,6 +35,7 @@ from app.schemas.models import (
     OFFContributeResponse,
     ScanHistoryEntry,
     ScanResponse,
+    ScanShareProjection,
     SemaphoreColor,
 )
 from app.services.off_client import contribute_product, upload_product_image
@@ -56,6 +57,12 @@ def _serialize(obj) -> str:
 
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
+public_router = APIRouter()
+
+
+class ShareResponse(BaseModel):
+    share_url: str
+    expires_at: datetime
 
 
 @router.get("/ping")
@@ -745,3 +752,84 @@ async def _run_off_lookup_task(
         logger.error("OFF lookup failed for %s: %s", pseudo_barcode, exc)
     finally:
         db.close()
+
+
+# ─────────────────────────────────────────────
+# Scan sharing
+# ─────────────────────────────────────────────
+
+
+@router.post("/{scan_id}/share", response_model=ShareResponse)
+def create_share_link(
+    scan_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    """Genera o retorna el share token del scan. Solo el owner puede llamarlo."""
+    scan = db.scalar(
+        select(ScanHistory).where(
+            ScanHistory.id == scan_id,
+            ScanHistory.user_id == current_user.id,
+        )
+    )
+    if not scan:
+        raise HTTPException(status_code=403)
+
+    if not scan.share_token:
+        scan.share_token = secrets.token_urlsafe(24)
+        scan.share_expires_at = datetime.now(UTC) + timedelta(
+            days=settings.share_link_ttl_days
+        )
+        db.commit()
+        db.refresh(scan)
+
+    return ShareResponse(
+        share_url=f"{settings.frontend_url}/scan/share/{scan.share_token}",
+        expires_at=scan.share_expires_at,
+    )
+
+
+@router.delete("/{scan_id}/share", status_code=204)
+def revoke_share_link(
+    scan_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoca el share token. Solo el owner puede llamarlo."""
+    scan = db.scalar(
+        select(ScanHistory).where(
+            ScanHistory.id == scan_id,
+            ScanHistory.user_id == current_user.id,
+        )
+    )
+    if not scan:
+        raise HTTPException(status_code=403)
+
+    scan.share_token = None
+    scan.share_expires_at = None
+    db.commit()
+
+
+@public_router.get("/share/{token}", response_model=ScanShareProjection)
+def get_shared_scan(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Endpoint público sin auth. Retorna la proyección segura del scan."""
+    scan = db.scalar(
+        select(ScanHistory).where(ScanHistory.share_token == token)
+    )
+    if not scan:
+        raise HTTPException(status_code=404)
+
+    if scan.share_expires_at:
+        # SQLite devuelve naive datetimes; normalizamos a UTC para comparar
+        expires = scan.share_expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=UTC)
+        if expires < datetime.now(UTC):
+            raise HTTPException(status_code=410, detail="Link expirado")
+
+    result = ScanResponse.model_validate(scan.result_json)
+    return ScanShareProjection.model_validate(result.model_dump())
