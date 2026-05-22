@@ -556,7 +556,7 @@ def _persist_scan_history(
 def _create_pending_row(
     db: Session,
     barcode: str,
-    user_id: int,
+    user_id: str,
 ) -> ScanHistory:
     # Inserta fila vacía antes de iniciar el stream.
     # Garantiza que /scan/[id] no retorna 404 durante el streaming.
@@ -575,7 +575,7 @@ def _create_pending_row(
 
 def _finalize_scan_history(
     db: Session,
-    scan_id: int,
+    scan_id: str,
     response: ScanResponse,
 ) -> None:
     # UPDATE de la fila pending con el resultado completo.
@@ -587,7 +587,7 @@ def _finalize_scan_history(
     db.commit()
 
 
-def _mark_scan_failed(db: Session, scan_id: int) -> None:
+def _mark_scan_failed(db: Session, scan_id: str) -> None:
     """Marca la fila pending como error si el pipeline no completó."""
     row = db.get(ScanHistory, scan_id)
     if row and row.status == "pending":
