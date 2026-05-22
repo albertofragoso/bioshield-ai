@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEV_SECRETS = {
@@ -64,6 +64,10 @@ class Settings(BaseSettings):
 
     # Token budget
     daily_token_budget: int = 50_000  # env: DAILY_TOKEN_BUDGET
+
+    # Scan sharing
+    share_link_ttl_days: int = Field(default=7, description="Days until share link expires")
+    frontend_url: str = Field(default="http://localhost:3000")
 
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000"]
