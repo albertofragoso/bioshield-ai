@@ -338,6 +338,7 @@ async def test_barcode_aggregates_worst_status_across_sources(client, db_session
 
 async def test_photo_requires_auth(client):
     import io
+
     fake_image = io.BytesIO(b"fake")
     response = await client.post(PHOTO_URL, files={"file": ("test.jpg", fake_image, "image/jpeg")})
     assert response.status_code == 401
@@ -352,7 +353,8 @@ async def test_photo_success(client, mock_graph_photo):
     event_names = []
 
     async with client.stream(
-        "POST", PHOTO_URL,
+        "POST",
+        PHOTO_URL,
         files={"file": ("test.jpg", fake_image, "image/jpeg")},
     ) as response:
         assert "text/event-stream" in response.headers.get("content-type", "")
@@ -372,7 +374,8 @@ async def test_photo_creates_pseudo_barcode_product(client, db_session, mock_gra
     fake_image = io.BytesIO(b"fakejpegdata")
 
     async with client.stream(
-        "POST", PHOTO_URL,
+        "POST",
+        PHOTO_URL,
         files={"file": ("test.jpg", fake_image, "image/jpeg")},
     ) as response:
         # Consume el stream completo para que se persista el producto
@@ -629,12 +632,14 @@ async def test_persist_scan_history_stores_personalized_insights(client, db_sess
         yield {
             "event": "on_chain_end",
             "name": "identify_product",
-            "data": {"output": {
-                "product_name": "Palm Oil Snack",
-                "product_brand": "TestBrand",
-                "extracted_ingredients": ["palm oil"],
-                "source": "barcode",
-            }},
+            "data": {
+                "output": {
+                    "product_name": "Palm Oil Snack",
+                    "product_brand": "TestBrand",
+                    "extracted_ingredients": ["palm oil"],
+                    "source": "barcode",
+                }
+            },
         }
         yield {
             "event": "on_chain_end",
@@ -644,11 +649,13 @@ async def test_persist_scan_history_stores_personalized_insights(client, db_sess
         yield {
             "event": "on_chain_end",
             "name": "calculate_risk",
-            "data": {"output": {
-                "semaphore": "ORANGE",
-                "conflict_severity": "HIGH",
-                "resolved": [],
-            }},
+            "data": {
+                "output": {
+                    "semaphore": "ORANGE",
+                    "conflict_severity": "HIGH",
+                    "resolved": [],
+                }
+            },
         }
 
     class _FakeGraph:
@@ -662,8 +669,9 @@ async def test_persist_scan_history_stores_personalized_insights(client, db_sess
 
     # Busca la fila done (no la pending)
     scan = db_session.scalar(
-        select(ScanHistory)
-        .where(ScanHistory.product_barcode == "2222222222222", ScanHistory.status == "done")
+        select(ScanHistory).where(
+            ScanHistory.product_barcode == "2222222222222", ScanHistory.status == "done"
+        )
     )
     assert scan is not None
     assert scan.result_json is not None
@@ -724,8 +732,9 @@ async def test_scan_history_has_status_column(db_session):
 def test_scan_helpers_exist():
     """Verifica que _create_pending_row y _finalize_scan_history existen en scan.py."""
     from app.routers import scan as scan_module
-    assert hasattr(scan_module, '_create_pending_row'), "_create_pending_row no encontrado"
-    assert hasattr(scan_module, '_finalize_scan_history'), "_finalize_scan_history no encontrado"
+
+    assert hasattr(scan_module, "_create_pending_row"), "_create_pending_row no encontrado"
+    assert hasattr(scan_module, "_finalize_scan_history"), "_finalize_scan_history no encontrado"
 
 
 # ─────────────────────────────────────────────
@@ -743,8 +752,9 @@ async def _register_stream(client) -> None:
 async def test_scan_barcode_returns_event_stream(client, mock_graph):
     """Verifica que el endpoint retorna content-type text/event-stream."""
     await _register_stream(client)
-    async with client.stream("POST", "/scan/barcode",
-                             json={"barcode": "1234567890123"}) as response:
+    async with client.stream(
+        "POST", "/scan/barcode", json={"barcode": "1234567890123"}
+    ) as response:
         assert "text/event-stream" in response.headers.get("content-type", "")
 
 
@@ -752,8 +762,9 @@ async def test_scan_barcode_streams_events_in_order(client, mock_graph):
     """Verifica que los eventos llegan en orden: init → ingredients → insights → semaphore → done."""
     await _register_stream(client)
     event_names = []
-    async with client.stream("POST", "/scan/barcode",
-                             json={"barcode": "1234567890123"}) as response:
+    async with client.stream(
+        "POST", "/scan/barcode", json={"barcode": "1234567890123"}
+    ) as response:
         async for line in response.aiter_lines():
             if line.startswith("event:"):
                 event_names.append(line.split(":", 1)[1].strip())
@@ -767,8 +778,9 @@ async def test_scan_barcode_init_event_has_scan_id(client, mock_graph):
     await _register_stream(client)
     init_data = None
     lines_seen = []
-    async with client.stream("POST", "/scan/barcode",
-                             json={"barcode": "1234567890123"}) as response:
+    async with client.stream(
+        "POST", "/scan/barcode", json={"barcode": "1234567890123"}
+    ) as response:
         async for line in response.aiter_lines():
             lines_seen.append(line)
 
@@ -793,7 +805,9 @@ _PHOTO_STREAM_PASSWORD = "photostreampass123"
 
 
 async def _register_photo_stream(client) -> None:
-    await client.post(REGISTER_URL, json={"email": _PHOTO_STREAM_EMAIL, "password": _PHOTO_STREAM_PASSWORD})
+    await client.post(
+        REGISTER_URL, json={"email": _PHOTO_STREAM_EMAIL, "password": _PHOTO_STREAM_PASSWORD}
+    )
 
 
 async def test_scan_photo_returns_event_stream(client, mock_graph_photo):
@@ -803,7 +817,8 @@ async def test_scan_photo_returns_event_stream(client, mock_graph_photo):
     await _register_photo_stream(client)
     fake_image = io.BytesIO(b"fakejpegdata")
     async with client.stream(
-        "POST", "/scan/photo",
+        "POST",
+        "/scan/photo",
         files={"file": ("test.jpg", fake_image, "image/jpeg")},
     ) as response:
         assert "text/event-stream" in response.headers.get("content-type", "")
@@ -818,7 +833,8 @@ async def test_scan_photo_streams_events_in_order(client, mock_graph_photo):
     event_names = []
 
     async with client.stream(
-        "POST", "/scan/photo",
+        "POST",
+        "/scan/photo",
         files={"file": ("test.jpg", fake_image, "image/jpeg")},
     ) as response:
         async for line in response.aiter_lines():
@@ -843,11 +859,14 @@ async def test_scan_stream_error_event(client, monkeypatch):
         def astream_events(self, *args, **kwargs):
             return _failing_stream(*args, **kwargs)
 
-    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _FailingGraph())
+    monkeypatch.setattr(
+        scan_router_module, "build_scan_graph", lambda db, settings: _FailingGraph()
+    )
 
     event_names = []
     async with client.stream(
-        "POST", "/scan/barcode",
+        "POST",
+        "/scan/barcode",
         json={"barcode": "1234567890123"},
     ) as response:
         async for line in response.aiter_lines():
@@ -875,13 +894,16 @@ async def test_scan_photo_stream_error_event(client, monkeypatch):
         def astream_events(self, *args, **kwargs):
             return _failing_stream(*args, **kwargs)
 
-    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _FailingGraph())
+    monkeypatch.setattr(
+        scan_router_module, "build_scan_graph", lambda db, settings: _FailingGraph()
+    )
 
     fake_image = io.BytesIO(b"fakejpegdata")
     event_names = []
 
     async with client.stream(
-        "POST", "/scan/photo",
+        "POST",
+        "/scan/photo",
         files={"file": ("test.jpg", fake_image, "image/jpeg")},
     ) as response:
         async for line in response.aiter_lines():

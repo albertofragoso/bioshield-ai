@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 def _serialize(obj) -> str:
     """Serializa a JSON tolerando objetos Pydantic y enums."""
+
     def _default(o):
         if isinstance(o, BaseModel):
             return o.model_dump(mode="json")
@@ -213,17 +214,17 @@ async def scan_barcode(
 
                 if name == "identify_product":
                     # Acumula datos del producto e ingredientes
-                    accumulated.update({
-                        k: v for k, v in output.items() if v is not None
-                    })
+                    accumulated.update({k: v for k, v in output.items() if v is not None})
                     ingredients = output.get("extracted_ingredients", [])
 
                     # Si no hay ingredientes, el producto no existe — emite error y termina
                     if not ingredients:
-                        error_payload = _serialize({
-                            "message": "Producto no encontrado. Usa /scan/photo para escanear la etiqueta.",
-                            "code": "PRODUCT_NOT_FOUND",
-                        })
+                        error_payload = _serialize(
+                            {
+                                "message": "Producto no encontrado. Usa /scan/photo para escanear la etiqueta.",
+                                "code": "PRODUCT_NOT_FOUND",
+                            }
+                        )
                         yield f"event: error\ndata: {error_payload}\n\n"
                         return
 
@@ -236,9 +237,7 @@ async def scan_barcode(
 
                 elif name == "calculate_risk":
                     # Acumula resultado de riesgo
-                    accumulated.update({
-                        k: v for k, v in output.items() if v is not None
-                    })
+                    accumulated.update({k: v for k, v in output.items() if v is not None})
 
                     # Persiste producto y finaliza la fila pending
                     product = _upsert_product(
@@ -254,12 +253,21 @@ async def scan_barcode(
 
                     # Dispara enriquecimiento si hay alta confianza
                     resolved: list[IngredientResult] = accumulated.get("resolved") or []
-                    avg_conf = sum(r.confidence_score for r in resolved if hasattr(r, "confidence_score")) / len(resolved) if resolved else 0.0
+                    avg_conf = (
+                        sum(r.confidence_score for r in resolved if hasattr(r, "confidence_score"))
+                        / len(resolved)
+                        if resolved
+                        else 0.0
+                    )
                     if avg_conf >= 0.8:
                         background_tasks.add_task(
                             _run_enrich_task,
                             barcode=body.barcode,
-                            resolved_json=[r.model_dump(mode="json") for r in resolved if hasattr(r, "model_dump")],
+                            resolved_json=[
+                                r.model_dump(mode="json")
+                                for r in resolved
+                                if hasattr(r, "model_dump")
+                            ],
                             avg_confidence=avg_conf,
                             source="scan",
                             settings=settings,
@@ -347,9 +355,7 @@ async def scan_photo(
 
                 if name == "extract_ingredients":
                     # Acumula datos extraídos de la foto
-                    accumulated.update({
-                        k: v for k, v in output.items() if v is not None
-                    })
+                    accumulated.update({k: v for k, v in output.items() if v is not None})
                     ingredients = output.get("extracted_ingredients", [])
 
                     yield f"event: ingredients\ndata: {_serialize({'ingredients': ingredients, 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
@@ -361,9 +367,7 @@ async def scan_photo(
 
                 elif name == "calculate_risk":
                     # Acumula resultado de riesgo
-                    accumulated.update({
-                        k: v for k, v in output.items() if v is not None
-                    })
+                    accumulated.update({k: v for k, v in output.items() if v is not None})
 
                     # Persiste producto y finaliza la fila pending
                     product = _upsert_product(
@@ -544,9 +548,7 @@ def _persist_scan_history(
             ),
             confidence_score=avg_confidence,
             conflict_severity=state.get("conflict_severity"),
-            result_json=response.model_dump(
-                mode="json", exclude={"show_barcode_cta"}
-            ),
+            result_json=response.model_dump(mode="json", exclude={"show_barcode_cta"}),
         )
     )
 
@@ -580,9 +582,7 @@ def _finalize_scan_history(
     row = db.get(ScanHistory, scan_id)
     if not row:
         return
-    row.result_json = response.model_dump(
-        mode="json", exclude={"show_barcode_cta"}
-    )
+    row.result_json = response.model_dump(mode="json", exclude={"show_barcode_cta"})
     row.status = "done"
     db.commit()
 

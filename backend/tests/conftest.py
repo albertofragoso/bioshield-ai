@@ -98,12 +98,14 @@ def mock_graph(monkeypatch):
         yield {
             "event": "on_chain_end",
             "name": "identify_product",
-            "data": {"output": {
-                "product_name": "TestProd",
-                "product_brand": "Brand",
-                "extracted_ingredients": ["Azúcar"],
-                "source": "barcode",
-            }},
+            "data": {
+                "output": {
+                    "product_name": "TestProd",
+                    "product_brand": "Brand",
+                    "extracted_ingredients": ["Azúcar"],
+                    "source": "barcode",
+                }
+            },
         }
         yield {
             "event": "on_chain_end",
@@ -113,11 +115,13 @@ def mock_graph(monkeypatch):
         yield {
             "event": "on_chain_end",
             "name": "calculate_risk",
-            "data": {"output": {
-                "semaphore": "GRAY",
-                "conflict_severity": None,
-                "resolved": [],
-            }},
+            "data": {
+                "output": {
+                    "semaphore": "GRAY",
+                    "conflict_severity": None,
+                    "resolved": [],
+                }
+            },
         }
 
     class _MockGraph:
@@ -137,12 +141,14 @@ def mock_graph_photo(monkeypatch):
         yield {
             "event": "on_chain_end",
             "name": "extract_ingredients",
-            "data": {"output": {
-                "product_name": "PhotoProd",
-                "product_brand": None,
-                "extracted_ingredients": ["Azúcar", "Sal"],
-                "source": "photo",
-            }},
+            "data": {
+                "output": {
+                    "product_name": "PhotoProd",
+                    "product_brand": None,
+                    "extracted_ingredients": ["Azúcar", "Sal"],
+                    "source": "photo",
+                }
+            },
         }
         yield {
             "event": "on_chain_end",
@@ -152,18 +158,22 @@ def mock_graph_photo(monkeypatch):
         yield {
             "event": "on_chain_end",
             "name": "calculate_risk",
-            "data": {"output": {
-                "semaphore": "GRAY",
-                "conflict_severity": None,
-                "resolved": [],
-            }},
+            "data": {
+                "output": {
+                    "semaphore": "GRAY",
+                    "conflict_severity": None,
+                    "resolved": [],
+                }
+            },
         }
 
     class _MockGraphPhoto:
         def astream_events(self, *args, **kwargs):
             return _stream(*args, **kwargs)
 
-    monkeypatch.setattr(scan_router_module, "build_scan_graph", lambda db, settings: _MockGraphPhoto())
+    monkeypatch.setattr(
+        scan_router_module, "build_scan_graph", lambda db, settings: _MockGraphPhoto()
+    )
 
 
 # ─────────────────────────────────────────────
