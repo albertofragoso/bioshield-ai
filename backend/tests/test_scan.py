@@ -861,6 +861,7 @@ async def test_scan_stream_error_event(client, monkeypatch):
 async def test_scan_photo_stream_error_event(client, monkeypatch):
     """Si el pipeline de foto falla, el stream emite event: error."""
     import io
+
     from app.routers import scan as scan_router_module
 
     await _register_photo_stream(client)

@@ -10,12 +10,12 @@ avoid duplicating product metadata per scan.
 import json
 import logging
 import secrets
-from pydantic import BaseModel
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -33,7 +33,6 @@ from app.schemas.models import (
     LinkBarcodeRequest,
     OFFContributeRequest,
     OFFContributeResponse,
-    PhotoScanRequest,
     ScanHistoryEntry,
     ScanResponse,
     SemaphoreColor,
@@ -381,8 +380,6 @@ async def scan_photo(
                     finalized = True
 
                     # Dispara búsqueda OFF por nombre+marca en background
-                    resolved: list[IngredientResult] = accumulated.get("resolved") or []
-                    avg_conf = sum(r.confidence_score for r in resolved if hasattr(r, "confidence_score")) / len(resolved) if resolved else 0.0
                     background_tasks.add_task(
                         _run_off_lookup_task,
                         name=accumulated.get("product_name"),
