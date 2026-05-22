@@ -11,7 +11,7 @@ import json
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -779,9 +779,7 @@ def create_share_link(
 
     if not scan.share_token:
         scan.share_token = secrets.token_urlsafe(24)
-        scan.share_expires_at = datetime.now(UTC) + timedelta(
-            days=settings.share_link_ttl_days
-        )
+        scan.share_expires_at = datetime.now(UTC) + timedelta(days=settings.share_link_ttl_days)
         db.commit()
         db.refresh(scan)
 
@@ -818,9 +816,7 @@ def get_shared_scan(
     db: Session = Depends(get_db),
 ):
     """Endpoint público sin auth. Retorna la proyección segura del scan."""
-    scan = db.scalar(
-        select(ScanHistory).where(ScanHistory.share_token == token)
-    )
+    scan = db.scalar(select(ScanHistory).where(ScanHistory.share_token == token))
     if not scan:
         raise HTTPException(status_code=404)
 

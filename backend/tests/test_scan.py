@@ -5,7 +5,6 @@ the router calls `off_client.fetch_product(...)` and `gemini.extract_from_image(
 and we replace those attributes per test.
 """
 
-import base64
 import json as json_module
 from datetime import UTC, datetime, timedelta
 
