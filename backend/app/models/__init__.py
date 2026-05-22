@@ -170,6 +170,12 @@ class ScanHistory(Base):
     result_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     status: Mapped[str] = mapped_column(String(10), nullable=False, server_default="done")
     scanned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    share_token: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, unique=True, index=True
+    )
+    share_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     user: Mapped["User"] = relationship(back_populates="scan_history")
     product: Mapped["Product"] = relationship(back_populates="scans")
