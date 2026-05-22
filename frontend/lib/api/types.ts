@@ -66,6 +66,7 @@ export interface ScanResponse {
   scanned_at: string;
   personalized_insights: PersonalizedInsight[];
   show_barcode_cta: boolean;
+  db_id?: string;
 }
 
 // ── Biomarker types (mirror of backend Biosync schemas) ──────────────────────

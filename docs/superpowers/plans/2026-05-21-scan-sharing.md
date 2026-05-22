@@ -1,6 +1,8 @@
 # Scan Result Sharing — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **IMPLEMENTADO ✅ — PR #24** (feature/scan-sharing → main, 2026-05-22)
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Agregar URLs secretas compartibles a los resultados de scan para que el usuario pueda compartirlos con su médico sin requerir que el destinatario tenga cuenta.
 
@@ -33,7 +35,7 @@
 - Modify: `backend/app/models/__init__.py`
 - Create: `alembic/versions/<rev>_add_share_token.py`
 
-- [ ] **Step 1: Escribir el test failing**
+- [x] **Step 1: Escribir el test failing**
 
 ```python
 # backend/tests/test_scan.py
@@ -46,7 +48,7 @@ async def test_scan_history_has_share_columns(db_session: AsyncSession):
     assert "share_expires_at" in cols
 ```
 
-- [ ] **Step 2: Correr el test para verificar que falla**
+- [x] **Step 2: Correr el test para verificar que falla**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_share_columns -v
@@ -54,7 +56,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_share_c
 
 Esperado: `FAILED`
 
-- [ ] **Step 3: Agregar columnas al modelo**
+- [x] **Step 3: Agregar columnas al modelo**
 
 En `backend/app/models/__init__.py`, dentro de la clase `ScanHistory`:
 
@@ -74,7 +76,7 @@ Verificar que `String`, `DateTime` ya están importados del modulo de SQLAlchemy
 from sqlalchemy import String, DateTime
 ```
 
-- [ ] **Step 4: Generar migration**
+- [x] **Step 4: Generar migration**
 
 ```bash
 cd backend && alembic revision --autogenerate -m "add_share_token"
@@ -99,13 +101,13 @@ def downgrade() -> None:
 
 Si Alembic no genera los constraints automáticamente, agregarlos manualmente.
 
-- [ ] **Step 5: Aplicar migration**
+- [x] **Step 5: Aplicar migration**
 
 ```bash
 cd backend && alembic upgrade head
 ```
 
-- [ ] **Step 6: Correr el test**
+- [x] **Step 6: Correr el test**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_share_columns -v
@@ -113,7 +115,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_history_has_share_c
 
 Esperado: `PASSED`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/app/models/__init__.py alembic/versions/*_add_share_token.py
@@ -127,7 +129,7 @@ git commit -m "feat(db): add share_token and share_expires_at to scan_history"
 **Files:**
 - Modify: `backend/app/config.py`
 
-- [ ] **Step 1: Agregar los campos en la clase `Settings`**
+- [x] **Step 1: Agregar los campos en la clase `Settings`**
 
 Localizar la clase `Settings` en `backend/app/config.py` y agregar:
 
@@ -136,7 +138,7 @@ share_link_ttl_days: int = Field(default=7, description="Days until share link e
 frontend_url: str = Field(default="http://localhost:3000")
 ```
 
-- [ ] **Step 2: Verificar que la app arranca sin errores**
+- [x] **Step 2: Verificar que la app arranca sin errores**
 
 ```bash
 cd backend && python -c "from app.config import settings; print(settings.share_link_ttl_days, settings.frontend_url)"
@@ -144,7 +146,7 @@ cd backend && python -c "from app.config import settings; print(settings.share_l
 
 Esperado: `7 http://localhost:3000`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/app/config.py
@@ -158,7 +160,7 @@ git commit -m "feat(config): add share_link_ttl_days and frontend_url settings"
 **Files:**
 - Modify: `backend/app/schemas/models.py`
 
-- [ ] **Step 1: Escribir test failing**
+- [x] **Step 1: Escribir test failing**
 
 ```python
 # backend/tests/test_scan.py
@@ -181,7 +183,7 @@ def test_scan_share_projection_has_required_fields():
     assert "scanned_at" in fields
 ```
 
-- [ ] **Step 2: Correr tests para verificar que fallan**
+- [x] **Step 2: Correr tests para verificar que fallan**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_share_projection_excludes_sensitive_fields tests/test_scan.py::test_scan_share_projection_has_required_fields -v
@@ -189,7 +191,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_share_projection_ex
 
 Esperado: `FAILED — ImportError o AttributeError`
 
-- [ ] **Step 3: Agregar el model en `schemas/models.py`**
+- [x] **Step 3: Agregar el model en `schemas/models.py`**
 
 Añadir al final del archivo (antes del último `if __name__`):
 
@@ -210,7 +212,7 @@ Verificar que `SemaphoreColor`, `ConflictSeverity`, `IngredientResult`, `Persona
 from datetime import datetime
 ```
 
-- [ ] **Step 4: Correr tests**
+- [x] **Step 4: Correr tests**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py::test_scan_share_projection_excludes_sensitive_fields tests/test_scan.py::test_scan_share_projection_has_required_fields -v
@@ -218,7 +220,7 @@ cd backend && python -m pytest tests/test_scan.py::test_scan_share_projection_ex
 
 Esperado: `PASSED`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/schemas/models.py
@@ -232,7 +234,7 @@ git commit -m "feat(schemas): add ScanShareProjection allowlist model"
 **Files:**
 - Modify: `backend/app/routers/scan.py`
 
-- [ ] **Step 1: Escribir los 7 tests failing**
+- [x] **Step 1: Escribir los 7 tests failing**
 
 ```python
 # backend/tests/test_scan.py
@@ -361,7 +363,7 @@ async def test_revoke_share_link(client: AsyncClient, db_session: AsyncSession):
     assert get_response.status_code == 404
 ```
 
-- [ ] **Step 2: Correr tests para verificar que fallan**
+- [x] **Step 2: Correr tests para verificar que fallan**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py -k "share" -v
@@ -369,7 +371,7 @@ cd backend && python -m pytest tests/test_scan.py -k "share" -v
 
 Esperado: todos `FAILED — 404 Not Found` (endpoints no existen).
 
-- [ ] **Step 3: Implementar los 3 endpoints**
+- [x] **Step 3: Implementar los 3 endpoints**
 
 En `backend/app/routers/scan.py`, agregar al final del router (antes del cierre del archivo):
 
@@ -459,7 +461,7 @@ from backend.app.schemas.models import ScanShareProjection
 
 **Nota de orden de rutas:** `/share/{token}` debe registrarse ANTES de `/{scan_id}/share` si comparten el mismo prefijo, o mejor aún — verificar que el router de FastAPI no tenga ambigüedad entre `/share/{token}` (GET, público) y `/{scan_id}/share` (POST/DELETE, autenticado). Son métodos distintos en el mismo router, FastAPI no confundirá `share` con un `scan_id` entero.
 
-- [ ] **Step 4: Correr los 7 tests**
+- [x] **Step 4: Correr los 7 tests**
 
 ```bash
 cd backend && python -m pytest tests/test_scan.py -k "share" -v
@@ -467,7 +469,7 @@ cd backend && python -m pytest tests/test_scan.py -k "share" -v
 
 Esperado: todos `PASSED`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/routers/scan.py backend/tests/test_scan.py
@@ -481,7 +483,7 @@ git commit -m "feat(scan): add share link endpoints POST/DELETE/GET"
 **Files:**
 - Modify: `frontend/lib/api/scan.ts`
 
-- [ ] **Step 1: Agregar las tres funciones al final del archivo**
+- [x] **Step 1: Agregar las tres funciones al final del archivo**
 
 ```typescript
 // frontend/lib/api/scan.ts
@@ -526,7 +528,7 @@ export async function getSharedScan(token: string): Promise<ScanShareProjection>
 }
 ```
 
-- [ ] **Step 2: Verificar TypeScript**
+- [x] **Step 2: Verificar TypeScript**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | grep "api/scan"
@@ -534,7 +536,7 @@ cd frontend && npx tsc --noEmit 2>&1 | grep "api/scan"
 
 Esperado: sin errores.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/lib/api/scan.ts
@@ -548,7 +550,7 @@ git commit -m "feat(frontend): add createShareLink, revokeShareLink, getSharedSc
 **Files:**
 - Create: `frontend/components/scanner/ShareButton.tsx`
 
-- [ ] **Step 1: Crear el componente**
+- [x] **Step 1: Crear el componente**
 
 ```tsx
 // frontend/components/scanner/ShareButton.tsx
@@ -630,7 +632,7 @@ export function ShareButton({ scanDbId }: ShareButtonProps) {
 }
 ```
 
-- [ ] **Step 2: Verificar TypeScript**
+- [x] **Step 2: Verificar TypeScript**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | grep "ShareButton"
@@ -638,7 +640,7 @@ cd frontend && npx tsc --noEmit 2>&1 | grep "ShareButton"
 
 Esperado: sin errores.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/components/scanner/ShareButton.tsx
@@ -652,7 +654,7 @@ git commit -m "feat(frontend): add ShareButton component with copy and revoke"
 **Files:**
 - Modify: `frontend/app/(app)/scan/[id]/page.tsx`
 
-- [ ] **Step 1: Agregar `ShareButton` al header del resultado**
+- [x] **Step 1: Agregar `ShareButton` al header del resultado**
 
 En el componente que renderiza el resultado del scan, localizar el header/toolbar y agregar:
 
@@ -679,7 +681,7 @@ response.db_id = scan_row.id
 
 Si `_build_response()` no tiene acceso al row ID, agregar el parámetro.
 
-- [ ] **Step 2: Verificar TypeScript**
+- [x] **Step 2: Verificar TypeScript**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | grep "\[id\]/page"
@@ -687,7 +689,7 @@ cd frontend && npx tsc --noEmit 2>&1 | grep "\[id\]/page"
 
 Esperado: sin errores.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/app/\(app\)/scan/\[id\]/page.tsx backend/app/schemas/models.py backend/app/routers/scan.py
@@ -703,13 +705,13 @@ git commit -m "feat(frontend): integrate ShareButton in scan result page"
 
 Esta ruta vive **fuera del route group `(app)`** — no tiene el auth guard del middleware.
 
-- [ ] **Step 1: Crear la carpeta y el archivo**
+- [x] **Step 1: Crear la carpeta y el archivo**
 
 ```bash
 mkdir -p frontend/app/scan/share/\[token\]
 ```
 
-- [ ] **Step 2: Crear la página**
+- [x] **Step 2: Crear la página**
 
 ```tsx
 // frontend/app/scan/share/[token]/page.tsx
@@ -769,7 +771,7 @@ export default async function SharedScanPage({ params }: SharedScanPageProps) {
 
 Si la refactorización del componente es necesaria, hacerla en el mismo PR pero en un commit separado.
 
-- [ ] **Step 3: Verificar TypeScript**
+- [x] **Step 3: Verificar TypeScript**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | grep "share"
@@ -777,7 +779,7 @@ cd frontend && npx tsc --noEmit 2>&1 | grep "share"
 
 Esperado: sin errores.
 
-- [ ] **Step 4: Verificar que la ruta pública no tiene auth guard**
+- [x] **Step 4: Verificar que la ruta pública no tiene auth guard**
 
 En `middleware.ts` o la config del middleware de Next.js, verificar que `/scan/share/` no está en la lista de rutas protegidas. El route group `(app)` ya debería excluir rutas fuera de él, pero confirmarlo:
 
@@ -787,7 +789,7 @@ grep -r "scan/share" frontend/middleware.ts frontend/app/middleware.ts 2>/dev/nu
 
 Si hay un matcher que incluye `scan/*` globalmente, agregar excepción para `/scan/share/`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/app/scan/share/
@@ -798,7 +800,7 @@ git commit -m "feat(frontend): add public shared scan route /scan/share/[token]"
 
 ### Task 9: Full test suite + lint + verificación E2E
 
-- [ ] **Step 1: Correr suite completa del backend**
+- [x] **Step 1: Correr suite completa del backend**
 
 ```bash
 cd backend && python -m pytest tests/ -v --tb=short 2>&1 | tail -30
@@ -806,7 +808,7 @@ cd backend && python -m pytest tests/ -v --tb=short 2>&1 | tail -30
 
 Esperado: todos verdes.
 
-- [ ] **Step 2: Ruff + mypy**
+- [x] **Step 2: Ruff + mypy**
 
 ```bash
 cd backend && ruff check . && mypy app/ --ignore-missing-imports 2>&1 | tail -20
@@ -814,7 +816,7 @@ cd backend && ruff check . && mypy app/ --ignore-missing-imports 2>&1 | tail -20
 
 Esperado: sin errores.
 
-- [ ] **Step 3: TypeScript check completo**
+- [x] **Step 3: TypeScript check completo**
 
 ```bash
 cd frontend && npx tsc --noEmit 2>&1 | tail -20
@@ -822,7 +824,7 @@ cd frontend && npx tsc --noEmit 2>&1 | tail -20
 
 Esperado: sin errores.
 
-- [ ] **Step 4: Verificar que E2E existentes no tienen regresiones**
+- [x] **Step 4: Verificar que E2E existentes no tienen regresiones**
 
 ```bash
 cd /Users/albertofragoso/Desktop/IA_engineer/bio_shield && npx playwright test tests/specs/ --reporter=list 2>&1 | tail -20
@@ -830,7 +832,7 @@ cd /Users/albertofragoso/Desktop/IA_engineer/bio_shield && npx playwright test t
 
 Esperado: sin nuevas regresiones.
 
-- [ ] **Step 5: Commit final de cleanup**
+- [x] **Step 5: Commit final de cleanup**
 
 ```bash
 git add -p

@@ -65,6 +65,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(scan.router, prefix="/scan", tags=["scan"])
+app.include_router(scan.public_router, prefix="/scan", tags=["scan"])
 app.include_router(biosync.router, prefix="/biosync", tags=["biosync"])
 app.include_router(analytics.router, tags=["analytics"])
 

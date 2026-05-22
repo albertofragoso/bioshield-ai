@@ -115,6 +115,7 @@ class ScanResponse(BaseModel):
     scanned_at: datetime
     personalized_insights: list["PersonalizedInsight"] = []
     show_barcode_cta: bool = False
+    db_id: str | None = None  # ID de ScanHistory para sharing
 
 
 class ScanHistoryEntry(BaseModel):
@@ -377,3 +378,15 @@ class AlternativesResponse(BaseModel):
 class AnalyticsEventIn(BaseModel):
     event_type: Literal["alt_button_shown", "alt_page_opened", "alt_tapped"]
     payload: dict = {}
+
+
+class ScanShareProjection(BaseModel):
+    """Proyección pública de un scan result. Solo campos seguros para compartir."""
+
+    product_name: str | None = None
+    product_barcode: str
+    semaphore: SemaphoreColor
+    ingredients: list[IngredientResult]
+    conflict_severity: ConflictSeverity | None = None
+    scanned_at: datetime
+    personalized_insights: list[PersonalizedInsight] = []

@@ -6,6 +6,7 @@ and we replace those attributes per test.
 """
 
 import json as json_module
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
@@ -912,3 +913,210 @@ async def test_scan_photo_stream_error_event(client, monkeypatch):
 
     assert "error" in event_names
     assert "done" not in event_names
+
+
+def test_scan_history_has_share_columns():
+    """ScanHistory tiene share_token y share_expires_at."""
+    from sqlalchemy import inspect as sa_inspect
+
+    from app.models import ScanHistory
+
+    mapper = sa_inspect(ScanHistory)
+    cols = {c.key for c in mapper.mapper.columns}
+    assert "share_token" in cols
+    assert "share_expires_at" in cols
+
+
+def test_scan_share_projection_excludes_sensitive_fields():
+    from app.schemas.models import ScanShareProjection
+
+    fields = ScanShareProjection.model_fields
+    assert "user_id" not in fields
+    assert "id" not in fields
+    assert "share_token" not in fields
+    assert "result_json" not in fields
+
+
+def test_scan_share_projection_has_required_fields():
+    from app.schemas.models import ScanShareProjection
+
+    fields = ScanShareProjection.model_fields
+    assert "product_barcode" in fields
+    assert "semaphore" in fields
+    assert "ingredients" in fields
+    assert "scanned_at" in fields
+
+
+# ─────────────────────────────────────────────
+# Share endpoints
+# ─────────────────────────────────────────────
+
+SHARE_URL = "/scan/{scan_id}/share"
+
+
+def _seed_scan_for_share(db_session, user_id: str) -> "ScanHistory":
+    """Helper: crea un ScanHistory con result_json completo para tests de sharing."""
+    from app.models import Product
+
+    # Upsert del product requerido por la FK
+    product = db_session.scalar(select(Product).where(Product.barcode == "1234567890"))
+    if not product:
+        product = Product(barcode="1234567890", name="Test Product")
+        db_session.add(product)
+        db_session.flush()
+
+    row = ScanHistory(
+        product_barcode="1234567890",
+        user_id=user_id,
+        semaphore_result="BLUE",
+        result_json={
+            "product_barcode": "1234567890",
+            "product_name": "Test Product",
+            "semaphore": "BLUE",
+            "ingredients": [],
+            "conflict_severity": None,
+            "scanned_at": "2026-05-21T10:00:00Z",
+            "personalized_insights": [],
+            "show_barcode_cta": False,
+            "source": "barcode",
+        },
+    )
+    db_session.add(row)
+    db_session.commit()
+    db_session.refresh(row)
+    return row
+
+
+async def test_create_share_link(client, db_session):
+    """POST /scan/{id}/share retorna share_url y expires_at."""
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "share1@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "share1@test.ai", "password": "pass123456"})
+    user = db_session.scalar(select(User).where(User.email == "share1@test.ai"))
+
+    row = _seed_scan_for_share(db_session, user.id)
+    response = await client.post(f"/scan/{row.id}/share")
+    assert response.status_code == 200
+    body = response.json()
+    assert "share_url" in body
+    assert "expires_at" in body
+    assert "/scan/share/" in body["share_url"]
+
+
+async def test_create_share_link_idempotent(client, db_session):
+    """Segundo POST retorna la misma share_url."""
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "share2@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "share2@test.ai", "password": "pass123456"})
+    user = db_session.scalar(select(User).where(User.email == "share2@test.ai"))
+
+    row = _seed_scan_for_share(db_session, user.id)
+    r1 = await client.post(f"/scan/{row.id}/share")
+    r2 = await client.post(f"/scan/{row.id}/share")
+    assert r1.json()["share_url"] == r2.json()["share_url"]
+
+
+async def test_share_link_ownership_forbidden(client, db_session):
+    """Usuario B no puede crear share del scan de usuario A."""
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "share3a@test.ai", "password": "pass123456"})
+    await client.post(REGISTER_URL, json={"email": "share3b@test.ai", "password": "pass123456"})
+    userc = db_session.scalar(select(User).where(User.email == "share3a@test.ai"))
+    row = _seed_scan_for_share(db_session, userc.id)
+
+    # Login as user B
+    await client.post(LOGIN_URL, json={"email": "share3b@test.ai", "password": "pass123456"})
+    response = await client.post(f"/scan/{row.id}/share")
+    assert response.status_code == 403
+
+
+async def test_get_shared_scan_public(client, db_session):
+    """GET /scan/share/{token} sin auth retorna ScanShareProjection."""
+    import secrets
+
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "share4@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "share4@test.ai", "password": "pass123456"})
+    user = db_session.scalar(select(User).where(User.email == "share4@test.ai"))
+
+    row = _seed_scan_for_share(db_session, user.id)
+    row.share_token = secrets.token_urlsafe(24)
+    row.share_expires_at = datetime.now(UTC) + timedelta(days=7)
+    db_session.commit()
+
+    # Logout (clear cookies) before calling public endpoint
+    await client.get("/auth/logout")
+
+    response = await client.get(f"/scan/share/{row.share_token}")
+    assert response.status_code == 200
+    body = response.json()
+    assert "product_barcode" in body
+    assert "semaphore" in body
+
+
+async def test_get_shared_scan_no_sensitive_fields(client, db_session):
+    """La respuesta pública NO contiene user_id, id, share_token."""
+    import secrets
+
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "share5@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "share5@test.ai", "password": "pass123456"})
+    user = db_session.scalar(select(User).where(User.email == "share5@test.ai"))
+
+    row = _seed_scan_for_share(db_session, user.id)
+    row.share_token = secrets.token_urlsafe(24)
+    row.share_expires_at = datetime.now(UTC) + timedelta(days=7)
+    db_session.commit()
+
+    response = await client.get(f"/scan/share/{row.share_token}")
+    body = response.json()
+    assert "user_id" not in body
+    assert "id" not in body
+    assert "share_token" not in body
+
+
+async def test_get_shared_scan_expired(client, db_session):
+    """Link expirado retorna 410 Gone."""
+    import secrets
+
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "share6@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "share6@test.ai", "password": "pass123456"})
+    user = db_session.scalar(select(User).where(User.email == "share6@test.ai"))
+
+    row = _seed_scan_for_share(db_session, user.id)
+    row.share_token = secrets.token_urlsafe(24)
+    row.share_expires_at = datetime.now(UTC) - timedelta(days=1)
+    db_session.commit()
+
+    response = await client.get(f"/scan/share/{row.share_token}")
+    assert response.status_code == 410
+
+
+async def test_revoke_share_link(client, db_session):
+    """DELETE /scan/{id}/share pone share_token=NULL; GET subsecuente retorna 404."""
+    import secrets
+
+    from app.models import User
+
+    await client.post(REGISTER_URL, json={"email": "share7@test.ai", "password": "pass123456"})
+    await client.post(LOGIN_URL, json={"email": "share7@test.ai", "password": "pass123456"})
+    user = db_session.scalar(select(User).where(User.email == "share7@test.ai"))
+
+    row = _seed_scan_for_share(db_session, user.id)
+    row.share_token = secrets.token_urlsafe(24)
+    row.share_expires_at = datetime.now(UTC) + timedelta(days=7)
+    db_session.commit()
+    token = row.share_token
+
+    del_response = await client.delete(f"/scan/{row.id}/share")
+    assert del_response.status_code == 204
+
+    get_response = await client.get(f"/scan/share/{token}")
+    assert get_response.status_code == 404

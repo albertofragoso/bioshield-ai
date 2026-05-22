@@ -1,12 +1,29 @@
 import { apiFetch } from "./client";
 import type {
   AlternativesResponse,
+  IngredientResult,
   OFFContributeRequest,
   OFFContributeResponse,
+  PersonalizedInsight,
   ScanResponse,
   ScanHistoryEntry,
   LinkBarcodeRequest,
 } from "./types";
+
+export interface ShareLinkResponse {
+  share_url: string;
+  expires_at: string;
+}
+
+export interface ScanShareProjection {
+  product_name: string | null;
+  product_barcode: string;
+  semaphore: string;
+  ingredients: IngredientResult[];
+  conflict_severity: string | null;
+  scanned_at: string;
+  personalized_insights: PersonalizedInsight[];
+}
 
 export async function scanBarcode(barcode: string): Promise<ScanResponse> {
   return apiFetch<ScanResponse>("/scan/barcode", {
@@ -49,4 +66,23 @@ export async function linkPhotoToBarcode(
     method: "POST",
     body: JSON.stringify({ barcode } satisfies LinkBarcodeRequest),
   });
+}
+
+export async function createShareLink(scanDbId: string): Promise<ShareLinkResponse> {
+  return apiFetch<ShareLinkResponse>(`/scan/${scanDbId}/share`, {
+    method: "POST",
+  });
+}
+
+export async function revokeShareLink(scanDbId: string): Promise<void> {
+  return apiFetch<void>(`/scan/${scanDbId}/share`, {
+    method: "DELETE",
+  });
+}
+
+export async function getSharedScan(token: string): Promise<ScanShareProjection> {
+  const res = await fetch(`/api/scan/share/${token}`);
+  if (res.status === 410) throw new Error("EXPIRED");
+  if (!res.ok) throw new Error(`Shared scan fetch failed: ${res.status}`);
+  return res.json();
 }
