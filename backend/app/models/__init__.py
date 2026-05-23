@@ -43,6 +43,10 @@ def _expires_at() -> datetime:
     return datetime.now(UTC) + timedelta(days=180)
 
 
+def _waitlist_expires_at() -> datetime:
+    return datetime.now(UTC) + timedelta(days=365)
+
+
 # ─────────────────────────────────────────────
 # users
 # ─────────────────────────────────────────────
@@ -350,6 +354,39 @@ class AnalyticsEvent(Base):
     __table_args__ = (Index("idx_analytics_events_user", "user_id"),)
 
 
+# ─────────────────────────────────────────────
+# waitlist_signups
+# ─────────────────────────────────────────────
+
+
+class WaitlistSignup(Base):
+    __tablename__ = "waitlist_signups"
+
+    # ID como string UUID — consistente con el resto del proyecto
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(255))
+    # utm_source para medir qué canal trajo al usuario
+    source: Mapped[str | None] = mapped_column(String(100))
+    # "salud_personal" | "interes_tecnico" | "otro"
+    signup_intent: Mapped[str | None] = mapped_column(String(50))
+    # Snapshot del texto del checkbox en el momento del signup (LFPDPPP)
+    consent_text: Mapped[str] = mapped_column(String(1000), nullable=False)
+    # Expira en 365 días si no fue contactado (LFPDPPP data minimization)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_waitlist_expires_at
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # Se marca cuando se envía la invitación — el cron no borra filas con este valor
+    contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        # Índice funcional case-insensitive — creado vía op.execute() en la migración
+        # porque SQLAlchemy no soporta functional indexes en SQLite via autogenerate
+        Index("waitlist_signups_email_lower_idx", "email", unique=False),
+    )
+
+
 __all__ = [
     "AnalyticsEvent",
     "Base",
@@ -364,4 +401,5 @@ __all__ = [
     "RegulatoryStatus",
     "ScanHistory",
     "User",
+    "WaitlistSignup",
 ]

@@ -84,7 +84,7 @@ frontend/
 - **Prompts de diseño (claude.ai/design):** `docs/design/README.md`
 - **Schemas del backend (source of truth de tipos):** `backend/app/schemas/models.py`
 - **Reglas de biomarcadores (hints del form Biosync):** `backend/app/services/analysis.py`
-- **Next.js App Router:** https://nextjs.org/docs/app
+- **Next.js App Router:** Context7 `/vercel/next.js` (ver regla en `~/.claude/CLAUDE.md`)
 - **shadcn/ui:** https://ui.shadcn.com
 - **TanStack Query v5:** https://tanstack.com/query/v5
 - **@zxing/browser:** https://github.com/zxing-js/library

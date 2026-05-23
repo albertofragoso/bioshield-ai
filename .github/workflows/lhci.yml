@@ -1,0 +1,41 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend deps
+        run: cd frontend && pnpm install --frozen-lockfile
+
+      - name: Build
+        run: cd frontend && pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+
+      - name: Start server
+        run: cd frontend && pnpm start &
+        env:
+          PORT: 3000
+
+      - name: Wait for server
+        run: npx wait-on http://localhost:3000 --timeout 30000
+
+      - name: Run Lighthouse CI
+        run: cd frontend && npx lhci autorun --config=lighthouserc.json

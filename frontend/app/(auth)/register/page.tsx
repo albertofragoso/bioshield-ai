@@ -46,7 +46,7 @@ export default function RegisterPage() {
       // Auto-login inmediato post-register
       await login(body);
     },
-    onSuccess: () => router.push("/"),
+    onSuccess: () => router.push("/home"),
     onError: (error: unknown) => {
       if (error instanceof HttpError) {
         if (error.status === 409) setFormError("409");
@@ -134,7 +134,9 @@ export default function RegisterPage() {
             {/* Divider */}
             <div
               className="w-full h-px mt-2"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(74,222,128,.2), transparent)" }}
+              style={{
+                background: "linear-gradient(90deg, transparent, rgba(74,222,128,.2), transparent)",
+              }}
             />
           </div>
 
@@ -208,8 +210,8 @@ export default function RegisterPage() {
             >
               <ShieldCheck size={14} className="text-brand-green mt-[1px] shrink-0" />
               <p className="font-mono text-[10px] text-subtext leading-[1.6]">
-                Tus biomarcadores se encriptan con AES-256 y se borran automáticamente
-                después de 180 días. Nunca los compartimos.
+                Tus biomarcadores se encriptan con AES-256 y se borran automáticamente después de
+                180 días. Nunca los compartimos.
               </p>
             </div>
 
@@ -232,7 +234,13 @@ export default function RegisterPage() {
                 >
                   {accepted && (
                     <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-                      <path d="M1 3.5L3.5 6L8 1" stroke="#4ADE80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M1 3.5L3.5 6L8 1"
+                        stroke="#4ADE80"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </div>
@@ -246,8 +254,8 @@ export default function RegisterPage() {
                   className="text-brand-amber underline hover:opacity-80 transition-opacity"
                 >
                   política de privacidad
-                </Link>
-                {" "}y los{" "}
+                </Link>{" "}
+                y los{" "}
                 <Link
                   href="/terms"
                   target="_blank"
@@ -283,7 +291,10 @@ export default function RegisterPage() {
           {/* Login link */}
           <p className="mt-5 text-center font-mono text-[11px]">
             <span className="text-subtext">¿ya tienes cuenta?</span>{" "}
-            <Link href="/login" className="text-brand-amber font-semibold hover:opacity-80 transition-opacity">
+            <Link
+              href="/login"
+              className="text-brand-amber font-semibold hover:opacity-80 transition-opacity"
+            >
               entra →
             </Link>
           </p>
@@ -304,7 +315,16 @@ export default function RegisterPage() {
 function Spinner() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="animate-spin">
-      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22" strokeDashoffset="10" strokeLinecap="round" />
+      <circle
+        cx="7"
+        cy="7"
+        r="5.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="22"
+        strokeDashoffset="10"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

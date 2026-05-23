@@ -12,7 +12,7 @@ import {
 test.describe("Feature: Session lifecycle", () => {
   test("happy path — logout clears cookies and redirects to /login", async ({ mockedPage, context }) => {
     await mockAuthLogout(mockedPage);
-    await mockedPage.goto("/");
+    await mockedPage.goto("/home");
     await mockedPage.getByRole("button", { name: /salir/i }).click();
 
     await expect(mockedPage).toHaveURL("/login");
