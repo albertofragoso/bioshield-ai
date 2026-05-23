@@ -11,7 +11,7 @@ from app.config import get_settings
 from app.core.context import REQUEST_ID_VAR
 from app.middleware.logging import LOGGING_CONFIG, RequestIDMiddleware
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
-from app.routers import analytics, auth, biosync, scan
+from app.routers import analytics, auth, biosync, scan, waitlist
 
 settings = get_settings()
 
@@ -68,6 +68,7 @@ app.include_router(scan.router, prefix="/scan", tags=["scan"])
 app.include_router(scan.public_router, prefix="/scan", tags=["scan"])
 app.include_router(biosync.router, prefix="/biosync", tags=["biosync"])
 app.include_router(analytics.router, tags=["analytics"])
+app.include_router(waitlist.router)  # público, sin JWT
 
 
 @app.get("/health", tags=["health"])

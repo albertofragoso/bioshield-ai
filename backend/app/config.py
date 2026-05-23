@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000"]
 
+    # Cloudflare Turnstile
+    turnstile_secret_key: str = "dev"  # "dev" = skip verification en local
+
     @model_validator(mode="after")
     def reject_dev_secrets_in_production(self) -> "Settings":
         if not self.debug:
