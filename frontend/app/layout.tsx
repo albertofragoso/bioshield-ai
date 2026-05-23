@@ -28,9 +28,26 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BioShield AI",
+  title: {
+    default: "BioShield AI — Nutrición inteligente",
+    template: "%s · BioShield AI",
+  },
   description:
-    "Analiza etiquetas nutricionales y cruza aditivos con tus biomarcadores",
+    "Escanea cualquier producto y descubre si sus aditivos son compatibles con tus análisis de laboratorio. Herramienta educativa basada en FDA, EFSA y Codex Alimentarius.",
+  keywords: ["nutrición", "biomarcadores", "aditivos", "salud", "México", "EFSA", "FDA"],
+  openGraph: {
+    title: "BioShield AI — Nutrición inteligente",
+    description: "Lo que comes, en términos de TU sangre.",
+    images: [{ url: "/api/og", width: 1200, height: 630 }],
+    locale: "es_MX",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BioShield AI",
+    description: "Lo que comes, en términos de TU sangre.",
+    images: ["/api/og"],
+  },
 };
 
 export default function RootLayout({
