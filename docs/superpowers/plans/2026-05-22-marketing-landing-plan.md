@@ -1,14 +1,88 @@
 # Marketing Landing Page Implementation Plan
 
-> **STATUS: IMPLEMENTADO** — branch `feature/marketing-landing` (2026-05-23). 59 archivos, 4381 inserciones. Pendiente: merge a main, generar fixtures reales con `python -m scripts.record_demo_trace`, configurar Turnstile keys en producción.
+> **STATUS: IMPLEMENTADO Y DEBUGGEADO** — branch `feature/marketing-landing` (2026-05-23). 59 archivos, 4381 inserciones. Pendiente: merge a main, generar fixtures reales con `python -m scripts.record_demo_trace`, configurar Turnstile keys en producción.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Crear landing pública en `/` con waitlist, demo del pipeline, y 9 secciones que capturan emails de usuarios MX health-conscious mainstream — sin tocar la app autenticada existente.
 
-**Architecture:** Route group `(marketing)` en Next.js App Router con `force-static`; middleware matcher restrictivo excluye `/`; dashboard se mueve a `(app)/home`; waitlist backend nuevo con idempotencia LFPDPPP en FastAPI; demo replayea SSE trace real desde fixtures JSON.
+**Architecture:** Route group `(marketing)` en Next.js App Router con `force-static`; `proxy.ts` (Next.js 16) matcher restrictivo excluye `/` y `/demo/`; dashboard se mueve a `(app)/home`; waitlist backend nuevo con idempotencia LFPDPPP en FastAPI; demo replayea SSE trace real desde fixtures JSON.
 
-**Tech Stack:** Next.js 16 App Router, React 19, Tailwind v4, shadcn/ui (Accordion), Zustand v5 (useScanStore), Zod v4, Sonner, FastAPI, SQLAlchemy 2.0, Alembic, slowapi, Cloudflare Turnstile, @vercel/og
+**Tech Stack:** Next.js 16 App Router, React 19, Tailwind v4, Base UI (Accordion — NO Radix), Zod v4, Sonner, FastAPI, SQLAlchemy 2.0, Alembic, slowapi, Cloudflare Turnstile, @vercel/og
+
+---
+
+## Bugs encontrados post-implementación (2026-05-23)
+
+Bugs descubiertos al levantar `pnpm dev` por primera vez. Documentados para evitar repetirlos en futuros agentes.
+
+### B1 — Next.js 16: `middleware.ts` → `proxy.ts`
+
+**Síntoma:** `Error: Both middleware file "./middleware.ts" and proxy file "./proxy.ts" are detected.`
+
+**Causa:** Task 7 creó `middleware.ts` sin saber que el proyecto ya tenía `proxy.ts` (convención Next.js 16). Ambos coexistían.
+
+**Fix:** Eliminar `middleware.ts`. Fusionar la lógica en `proxy.ts`. Actualizar matcher.
+
+**Regla futura:** Siempre consultar Context7 `/vercel/next.js` antes de crear archivos de convención Next.js.
+
+---
+
+### B2 — `accordion.tsx` (Base UI) sin `"use client"`
+
+**Síntoma:** `Error: Event handlers cannot be passed to Client Component props` en `MarketingFAQ`.
+
+**Causa:** `accordion.tsx` wrappea `@base-ui/react/accordion` (Client Component) pero no tenía `"use client"`. El wrapper era tratado como Server Component.
+
+**Fix:** Agregar `"use client"` a `frontend/components/ui/accordion.tsx`.
+
+**Nota:** shadcn/radix siempre incluye `"use client"` en sus wrappers. Base UI no lo agrega automáticamente.
+
+---
+
+### B3 — `RegulatoryTrust.tsx` con `onMouseEnter`/`onMouseLeave` sin `"use client"`
+
+**Síntoma:** Mismo error de event handlers.
+
+**Causa:** `RegulatoryTrust` es Server Component pero usa handlers inline en `<a>` tags.
+
+**Fix:** Agregar `"use client"` a `RegulatoryTrust.tsx`.
+
+---
+
+### B4 — Zod v4: `.errors` → `.issues` y `errorMap` → string positional
+
+**Síntoma:** TS errors en `HeroWaitlistCTA` y `WaitlistHero`.
+
+**Causa:** Subagents generaron código Zod v3. En Zod v4:
+- `ZodError.errors` → `ZodError.issues`
+- `z.literal(true, { errorMap: fn })` → `z.literal(true, "mensaje")`
+
+**Fix:** Actualizar ambos archivos.
+
+---
+
+### B5 — `MarketingFAQ` Accordion: API Base UI ≠ Radix
+
+**Síntoma:** TS error `Property 'type' does not exist` y `collapsible` inválido.
+
+**Causa:** Subagent generó `<Accordion type="single" collapsible>` (API Radix). Este proyecto usa `@base-ui/react/accordion` que tiene API diferente.
+
+**Fix:** Agregar `"use client"` a `MarketingFAQ.tsx` y quitar las props incompatibles.
+
+---
+
+### B6 — Demo atascado en "Cargando demo..." — `/demo/*.json` interceptado por proxy
+
+**Síntoma:** `PipelineLoopAnim` nunca sale del estado de carga. Sin errores visibles en consola.
+
+**Causa:** El matcher del proxy no excluía `/demo/`. Usuarios no autenticados en la landing hacían fetch a `/demo/scan-trace-*.json` → proxy interceptaba → redirect 302 a `/login` → `resp.json()` fallaba al parsear HTML → `Promise.all` rechazaba silenciosamente (sin `.catch()`).
+
+**Fix:**
+1. Agregar `demo` al matcher de exclusión en `proxy.ts`
+2. Agregar `.catch()` y `resp.ok` check en `PipelineLoopAnim.tsx`
+
+**Regla futura:** Todo path de asset estático consumido por páginas públicas debe estar en la lista de exclusión del proxy.
 
 ---
 
