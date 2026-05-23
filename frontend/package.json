@@ -28,6 +28,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-query-devtools": "^5.99.2",
     "@types/node": "^20",
