@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { RegulatoryBanner } from "@/components/marketing/RegulatoryBanner";
 
 export const metadata: Metadata = {
   title: "BioShield AI — Nutrición inteligente",
@@ -23,6 +24,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
         </a>
       </header>
       <main className="pt-16">{children}</main>
+      <RegulatoryBanner />
     </>
   );
 }
