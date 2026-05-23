@@ -1,18 +1,69 @@
+import { HeroWaitlistCTA } from "@/components/marketing/HeroWaitlistCTA";
+import { PipelineLoopAnim } from "@/components/marketing/PipelineLoopAnim";
+
 export const dynamic = "force-static";
 
 export default function LandingPage() {
   return (
     <>
-      <section id="hero" className="min-h-screen flex items-center justify-center">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">HERO — WIP</p>
+      {/* Sección 1: Hero */}
+      <section
+        id="hero"
+        className="relative min-h-screen flex flex-col items-center justify-center px-6 py-24 overflow-hidden"
+      >
+        <div className="relative z-10 flex flex-col lg:flex-row items-center gap-12 lg:gap-16 max-w-5xl w-full">
+          {/* Left: copy + CTA */}
+          <div className="flex-1 text-center lg:text-left">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-brand-green mb-4 opacity-80">
+              BioShield AI · Nutrición inteligente
+            </p>
+
+            <h1 className="font-sans text-4xl lg:text-5xl font-bold text-foreground leading-tight mb-5">
+              Lo que comes,{" "}
+              <span
+                className="text-brand-green"
+                style={{ textShadow: "0 0 30px rgba(74,222,128,.4)" }}
+              >
+                en términos de TU sangre.
+              </span>
+            </h1>
+
+            <p className="text-subtext text-base lg:text-lg leading-relaxed mb-8 max-w-lg mx-auto lg:mx-0">
+              Escanea cualquier producto. Descubre qué aditivos contiene y si son compatibles con
+              tus análisis de laboratorio.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4 mb-6">
+              <HeroWaitlistCTA />
+            </div>
+
+            <a
+              href="#reveal"
+              className="font-mono text-[11px] text-subtext hover:text-brand-green transition-colors uppercase tracking-[0.06em]"
+            >
+              Ver cómo funciona ↓
+            </a>
+
+            <p className="mt-6 font-mono text-[9px] text-subtext opacity-50 tracking-[0.12em] uppercase">
+              hack your nutrition · protect your biology
+            </p>
+          </div>
+
+          {/* Right: pipeline animation */}
+          <div id="demo" className="flex-1 flex justify-center w-full">
+            <PipelineLoopAnim />
+          </div>
+        </div>
       </section>
 
+      {/* Sección 2: El momento revelador */}
       <section id="reveal" className="min-h-[80vh] flex items-center justify-center">
         <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
           REVEAL — WIP
         </p>
       </section>
 
+      {/* ... rest of sections unchanged ... */}
       <section id="how" className="min-h-[70vh] flex items-center justify-center">
         <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">HOW — WIP</p>
       </section>
