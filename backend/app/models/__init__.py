@@ -380,6 +380,12 @@ class WaitlistSignup(Base):
     # Se marca cuando se envía la invitación — el cron no borra filas con este valor
     contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    __table_args__ = (
+        # Índice funcional case-insensitive — creado vía op.execute() en la migración
+        # porque SQLAlchemy no soporta functional indexes en SQLite via autogenerate
+        Index("waitlist_signups_email_lower_idx", "email", unique=False),
+    )
+
 
 __all__ = [
     "AnalyticsEvent",

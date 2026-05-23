@@ -115,7 +115,7 @@ async def create_signup(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"error": "already_registered", "message": "Ya estás en la lista"},
             )
-        logger.exception("Waitlist signup error: %s", exc)
+        logger.exception("Waitlist signup error: database operation failed")
         raise
 
     # Contar total activo para devolver posición
