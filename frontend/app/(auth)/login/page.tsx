@@ -22,7 +22,7 @@ export default function LoginPage() {
 
   const { mutate, isPending } = useMutation({
     mutationFn: login,
-    onSuccess: () => router.push("/"),
+    onSuccess: () => router.push("/home"),
     onError: (error: unknown) => {
       if (error instanceof HttpError) {
         if (error.status === 401) setFormError("401");
@@ -66,9 +66,7 @@ export default function LoginPage() {
         />
 
         {/* Card */}
-        <div
-          className="bs-card relative overflow-hidden px-[36px] py-[40px] max-sm:px-[16px] max-sm:py-[28px]"
-        >
+        <div className="bs-card relative overflow-hidden px-[36px] py-[40px] max-sm:px-[16px] max-sm:py-[28px]">
           {/* Corner accents */}
           <span className="bs-corner bs-corner-tl" />
           <span className="bs-corner bs-corner-tr" />
@@ -109,7 +107,9 @@ export default function LoginPage() {
             {/* Divider */}
             <div
               className="w-full h-px mt-2"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(74,222,128,.2), transparent)" }}
+              style={{
+                background: "linear-gradient(90deg, transparent, rgba(74,222,128,.2), transparent)",
+              }}
             />
           </div>
 
@@ -193,7 +193,10 @@ export default function LoginPage() {
           {/* Register link */}
           <p className="mt-5 text-center font-mono text-[11px]">
             <span className="text-subtext">sin cuenta?</span>{" "}
-            <Link href="/register" className="text-brand-amber font-semibold hover:opacity-80 transition-opacity">
+            <Link
+              href="/register"
+              className="text-brand-amber font-semibold hover:opacity-80 transition-opacity"
+            >
               regístrate →
             </Link>
           </p>
@@ -214,7 +217,16 @@ export default function LoginPage() {
 function Spinner() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="animate-spin">
-      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22" strokeDashoffset="10" strokeLinecap="round" />
+      <circle
+        cx="7"
+        cy="7"
+        r="5.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="22"
+        strokeDashoffset="10"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

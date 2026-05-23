@@ -11,7 +11,7 @@ test.describe("Feature: Dashboard", () => {
   test("happy path — orb CTA links to /scan", async ({ mockedPage }) => {
     await mockBiosyncStatus(mockedPage, makeBiomarkerStatus({ has_data: false }));
     await mockScanHistory(mockedPage, []);
-    await mockedPage.goto("/");
+    await mockedPage.goto("/home");
 
     const orbLink = mockedPage.getByRole("link", { name: /escanear producto/i }).first();
     await expect(orbLink).toBeVisible();
@@ -24,7 +24,7 @@ test.describe("Feature: Dashboard", () => {
       makeScanHistoryEntry({ id: "s1", product_name: "Producto Alpha", semaphore: "YELLOW" }),
       makeScanHistoryEntry({ id: "s2", product_name: "Producto Beta", semaphore: "RED" }),
     ]);
-    await mockedPage.goto("/");
+    await mockedPage.goto("/home");
 
     await expect(mockedPage.getByText(/biomarcadores activos/i)).toBeVisible();
     await expect(mockedPage.getByText("Producto Alpha")).toBeVisible();
@@ -34,7 +34,7 @@ test.describe("Feature: Dashboard", () => {
   test("edge — empty history shows empty state message", async ({ mockedPage }) => {
     await mockBiosyncStatus(mockedPage, makeBiomarkerStatus({ has_data: false }));
     await mockScanHistory(mockedPage, []);
-    await mockedPage.goto("/");
+    await mockedPage.goto("/home");
 
     await expect(mockedPage.getByText(/escanea tu primer producto/i)).toBeVisible();
   });
@@ -51,7 +51,7 @@ test.describe("Feature: Dashboard", () => {
       }),
     );
     await mockScanHistory(mockedPage, []);
-    await mockedPage.goto("/");
+    await mockedPage.goto("/home");
 
     await expect(mockedPage.getByText(/14d/i).first()).toBeVisible();
   });
@@ -60,7 +60,7 @@ test.describe("Feature: Dashboard", () => {
     await mockedPage.setViewportSize({ width: 390, height: 844 });
     await mockBiosyncStatus(mockedPage, makeBiomarkerStatus({ has_data: false }));
     await mockScanHistory(mockedPage, []);
-    await mockedPage.goto("/");
+    await mockedPage.goto("/home");
 
     await expect(mockedPage.getByRole("navigation", { name: /bottom/i })).toBeVisible();
   });
@@ -69,7 +69,7 @@ test.describe("Feature: Dashboard", () => {
     await mockedPage.setViewportSize({ width: 1280, height: 900 });
     await mockBiosyncStatus(mockedPage, makeBiomarkerStatus({ has_data: false }));
     await mockScanHistory(mockedPage, []);
-    await mockedPage.goto("/");
+    await mockedPage.goto("/home");
 
     await expect(mockedPage.getByRole("navigation", { name: /bottom/i })).toBeHidden();
   });

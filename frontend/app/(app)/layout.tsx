@@ -47,7 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Wordmark compacto */}
         <Link
-          href="/"
+          href="/home"
           className="flex items-baseline gap-[5px] hover:opacity-80 transition-opacity"
         >
           <span
@@ -63,8 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <span
             className="font-sans font-bold text-[18px] text-brand-amber tracking-[0.06em]"
             style={{
-              textShadow:
-                "0 0 8px rgba(245,158,11,.8), 0 0 22px rgba(245,158,11,.4)",
+              textShadow: "0 0 8px rgba(245,158,11,.8), 0 0 22px rgba(245,158,11,.4)",
               animation: "bs-wordmark-amber-kf 3s ease-in-out infinite",
               animationDelay: "0.4s",
             }}

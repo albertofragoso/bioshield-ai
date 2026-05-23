@@ -102,7 +102,7 @@ export default function ScanPage() {
   return (
     <div className="relative z-10 min-h-screen px-4 py-6 max-w-[640px] mx-auto">
       <Link
-        href="/"
+        href="/home"
         className="inline-flex items-center gap-1.5 font-mono text-[11px] text-subtext hover:text-foreground transition-colors uppercase tracking-[0.08em] mb-6"
       >
         <ArrowLeft size={13} />

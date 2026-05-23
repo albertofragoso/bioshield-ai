@@ -13,12 +13,12 @@ import type { ScanHistoryEntry, SemaphoreColor } from "@/lib/api/types";
 type FilterTab = "all" | SemaphoreColor;
 
 const FILTER_TABS: Array<{ id: FilterTab; label: string; color?: string }> = [
-  { id: "all",    label: "Todos"   },
-  { id: "RED",    label: "RED",    color: "#F87171" },
+  { id: "all", label: "Todos" },
+  { id: "RED", label: "RED", color: "#F87171" },
   { id: "ORANGE", label: "ORANGE", color: "#FB923C" },
   { id: "YELLOW", label: "YELLOW", color: "#FACC15" },
-  { id: "BLUE",   label: "BLUE",   color: "#60A5FA" },
-  { id: "GRAY",   label: "GRAY",   color: "#A8B3A7" },
+  { id: "BLUE", label: "BLUE", color: "#60A5FA" },
+  { id: "GRAY", label: "GRAY", color: "#A8B3A7" },
 ];
 
 function hexToRgb(hex: string): string {
@@ -104,9 +104,7 @@ export default function HistoryPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       items = items.filter(
-        (i) =>
-          (i.product_name ?? "").toLowerCase().includes(q) ||
-          i.product_barcode.includes(q),
+        (i) => (i.product_name ?? "").toLowerCase().includes(q) || i.product_barcode.includes(q)
       );
     }
     return items;
@@ -136,7 +134,7 @@ export default function HistoryPage() {
   return (
     <div className="relative z-10 min-h-screen px-4 py-6 max-w-[720px] mx-auto">
       <Link
-        href="/"
+        href="/home"
         className="inline-flex items-center gap-1.5 font-mono text-[11px] text-subtext hover:text-foreground transition-colors uppercase tracking-[0.08em] mb-6"
       >
         <ArrowLeft size={13} />
@@ -233,11 +231,7 @@ export default function HistoryPage() {
               </p>
               <div className="flex flex-col">
                 {items.map((item, i) => (
-                  <HistoryItemRow
-                    key={item.id}
-                    item={item}
-                    last={i === items.length - 1}
-                  />
+                  <HistoryItemRow key={item.id} item={item} last={i === items.length - 1} />
                 ))}
               </div>
             </div>
