@@ -1,5 +1,9 @@
 import { HeroWaitlistCTA } from "@/components/marketing/HeroWaitlistCTA";
 import { PipelineLoopAnim } from "@/components/marketing/PipelineLoopAnim";
+import { RevealMomentStory } from "@/components/marketing/RevealMomentStory";
+import { HowItHelpsGraph } from "@/components/marketing/HowItHelpsGraph";
+import { BiomarkerSplitPanel } from "@/components/marketing/BiomarkerSplitPanel";
+import { RegulatoryTrust } from "@/components/marketing/RegulatoryTrust";
 
 export const dynamic = "force-static";
 
@@ -57,25 +61,23 @@ export default function LandingPage() {
       </section>
 
       {/* Sección 2: El momento revelador */}
-      <section id="reveal" className="min-h-[80vh] flex items-center justify-center">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
-          REVEAL — WIP
-        </p>
+      <section id="reveal" className="py-24" style={{ background: "var(--surface)" }}>
+        <RevealMomentStory />
       </section>
 
-      {/* ... rest of sections unchanged ... */}
-      <section id="how" className="min-h-[70vh] flex items-center justify-center">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">HOW — WIP</p>
+      {/* Sección 3: Cómo te ayuda */}
+      <section id="how" className="py-24 bg-background">
+        <HowItHelpsGraph />
       </section>
 
-      <section id="why" className="min-h-[80vh] flex items-center justify-center">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">WHY — WIP</p>
+      {/* Sección 4: Por qué BioShield */}
+      <section id="why" className="py-24" style={{ background: "var(--surface)" }}>
+        <BiomarkerSplitPanel />
       </section>
 
-      <section id="trust" className="min-h-[40vh] flex items-center justify-center">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
-          TRUST — WIP
-        </p>
+      {/* Sección 5: Confianza regulatoria */}
+      <section id="trust" className="py-20 bg-background">
+        <RegulatoryTrust />
       </section>
 
       <section id="waitlist" className="min-h-[70vh] flex items-center justify-center">
