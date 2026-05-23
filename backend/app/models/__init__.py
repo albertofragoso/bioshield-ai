@@ -43,6 +43,10 @@ def _expires_at() -> datetime:
     return datetime.now(UTC) + timedelta(days=180)
 
 
+def _waitlist_expires_at() -> datetime:
+    return datetime.now(UTC) + timedelta(days=365)
+
+
 # ─────────────────────────────────────────────
 # users
 # ─────────────────────────────────────────────
@@ -369,7 +373,9 @@ class WaitlistSignup(Base):
     # Snapshot del texto del checkbox en el momento del signup (LFPDPPP)
     consent_text: Mapped[str] = mapped_column(String(1000), nullable=False)
     # Expira en 365 días si no fue contactado (LFPDPPP data minimization)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_waitlist_expires_at
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     # Se marca cuando se envía la invitación — el cron no borra filas con este valor
     contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
