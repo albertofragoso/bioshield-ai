@@ -1,0 +1,106 @@
+{
+  "barcode": "7501000510010",
+  "product_name": "Granola Quaker Avena y Miel",
+  "recorded_at": "2026-05-23T00:00:00Z",
+  "_placeholder": true,
+  "events": [
+    { "t_ms": 0, "type": "init", "data": { "type": "init", "message": "Iniciando análisis..." } },
+    {
+      "t_ms": 750,
+      "type": "product_identified",
+      "data": {
+        "type": "product_identified",
+        "product_name": "Granola Quaker Avena y Miel",
+        "barcode": "7501000510010",
+        "brand": "Quaker"
+      }
+    },
+    {
+      "t_ms": 2000,
+      "type": "ingredients",
+      "data": {
+        "type": "ingredients",
+        "ingredients": [
+          "Avena integral",
+          "Miel de abeja",
+          "Azúcar",
+          "Aceite de palma",
+          "Jarabe de maíz de alta fructosa (JMAF)",
+          "Canela",
+          "Sal"
+        ]
+      }
+    },
+    {
+      "t_ms": 3200,
+      "type": "entities_resolved",
+      "data": {
+        "type": "entities_resolved",
+        "resolved": ["oats", "honey", "sucrose", "palm-oil", "high-fructose-corn-syrup", "cinnamon"]
+      }
+    },
+    {
+      "t_ms": 4700,
+      "type": "regulatory_search",
+      "data": {
+        "type": "regulatory_search",
+        "findings": [
+          {
+            "ingredient": "Jarabe de maíz de alta fructosa",
+            "sources": ["FDA EAFUS", "COFEPRIS"],
+            "status": "gras"
+          },
+          { "ingredient": "Aceite de palma", "sources": ["EFSA"], "status": "approved" }
+        ]
+      }
+    },
+    {
+      "t_ms": 5900,
+      "type": "biosync",
+      "data": {
+        "type": "biosync",
+        "has_biomarkers": true,
+        "checked": ["trigliceridos", "glucosa_ayuno", "hdl_colesterol"]
+      }
+    },
+    {
+      "t_ms": 7000,
+      "type": "conflicts",
+      "data": {
+        "type": "conflicts",
+        "conflicts": [
+          {
+            "ingredient": "Jarabe de maíz de alta fructosa",
+            "biomarker": "trigliceridos",
+            "correlation": "Consumo elevado asociado con incremento de triglicéridos en sangre",
+            "severity": "ORANGE"
+          },
+          {
+            "ingredient": "Azúcar",
+            "biomarker": "glucosa_ayuno",
+            "correlation": "Alto contenido de azúcares simples",
+            "severity": "YELLOW"
+          }
+        ]
+      }
+    },
+    {
+      "t_ms": 7900,
+      "type": "risk",
+      "data": {
+        "type": "risk",
+        "semaphore": "ORANGE",
+        "summary": "Contiene ingredientes que correlacionan con tus biomarcadores"
+      }
+    },
+    {
+      "t_ms": 8300,
+      "type": "done",
+      "data": {
+        "type": "done",
+        "semaphore": "ORANGE",
+        "product_name": "Granola Quaker Avena y Miel"
+      }
+    }
+  ]
+}

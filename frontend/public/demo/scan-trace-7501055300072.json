@@ -1,0 +1,94 @@
+{
+  "barcode": "7501055300072",
+  "product_name": "Yogurt Natural Danone",
+  "recorded_at": "2026-05-23T00:00:00Z",
+  "_placeholder": true,
+  "events": [
+    { "t_ms": 0, "type": "init", "data": { "type": "init", "message": "Iniciando análisis..." } },
+    {
+      "t_ms": 800,
+      "type": "product_identified",
+      "data": {
+        "type": "product_identified",
+        "product_name": "Yogurt Natural Danone",
+        "barcode": "7501055300072",
+        "brand": "Danone"
+      }
+    },
+    {
+      "t_ms": 2100,
+      "type": "ingredients",
+      "data": {
+        "type": "ingredients",
+        "ingredients": [
+          "Leche descremada",
+          "Leche entera",
+          "Cultivos lácticos",
+          "Carragenina (E407)",
+          "Goma de tara (E417)",
+          "Almidón de maíz modificado"
+        ]
+      }
+    },
+    {
+      "t_ms": 3400,
+      "type": "entities_resolved",
+      "data": {
+        "type": "entities_resolved",
+        "resolved": ["carrageenan", "tara-gum", "modified-corn-starch"]
+      }
+    },
+    {
+      "t_ms": 4900,
+      "type": "regulatory_search",
+      "data": {
+        "type": "regulatory_search",
+        "findings": [
+          {
+            "ingredient": "Carragenina (E407)",
+            "sources": ["EFSA", "FDA EAFUS"],
+            "status": "approved_with_conditions"
+          }
+        ]
+      }
+    },
+    {
+      "t_ms": 6200,
+      "type": "biosync",
+      "data": {
+        "type": "biosync",
+        "has_biomarkers": true,
+        "checked": ["colesterol_ldl", "trigliceridos"]
+      }
+    },
+    {
+      "t_ms": 7100,
+      "type": "conflicts",
+      "data": {
+        "type": "conflicts",
+        "conflicts": [
+          {
+            "ingredient": "Carragenina (E407)",
+            "biomarker": "colesterol_ldl",
+            "correlation": "Algunos estudios reportan asociación con inflamación intestinal",
+            "severity": "YELLOW"
+          }
+        ]
+      }
+    },
+    {
+      "t_ms": 8000,
+      "type": "risk",
+      "data": {
+        "type": "risk",
+        "semaphore": "YELLOW",
+        "summary": "Producto generalmente seguro con un ingrediente a considerar"
+      }
+    },
+    {
+      "t_ms": 8400,
+      "type": "done",
+      "data": { "type": "done", "semaphore": "YELLOW", "product_name": "Yogurt Natural Danone" }
+    }
+  ]
+}
