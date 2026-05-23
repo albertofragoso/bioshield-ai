@@ -4,6 +4,10 @@ import { RevealMomentStory } from "@/components/marketing/RevealMomentStory";
 import { HowItHelpsGraph } from "@/components/marketing/HowItHelpsGraph";
 import { BiomarkerSplitPanel } from "@/components/marketing/BiomarkerSplitPanel";
 import { RegulatoryTrust } from "@/components/marketing/RegulatoryTrust";
+import { WaitlistHero } from "@/components/marketing/WaitlistHero";
+import { MarketingFAQ } from "@/components/marketing/MarketingFAQ";
+import { StackStrip } from "@/components/marketing/StackStrip";
+import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 
 export const dynamic = "force-static";
 
@@ -80,27 +84,23 @@ export default function LandingPage() {
         <RegulatoryTrust />
       </section>
 
-      <section id="waitlist" className="min-h-[70vh] flex items-center justify-center">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
-          WAITLIST — WIP
-        </p>
+      {/* Sección 6: Waitlist CTA completo */}
+      <section id="waitlist" className="py-24" style={{ background: "var(--surface)" }}>
+        <WaitlistHero />
       </section>
 
-      <section id="faq" className="flex items-center justify-center py-24">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">FAQ — WIP</p>
+      {/* Sección 7: FAQ */}
+      <section id="faq" className="py-24 bg-background">
+        <MarketingFAQ />
       </section>
 
-      <section id="stack" className="min-h-[50vh] flex items-center justify-center">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
-          STACK — WIP
-        </p>
+      {/* Sección 8: Stack técnico */}
+      <section id="stack" className="py-20" style={{ background: "var(--surface)" }}>
+        <StackStrip />
       </section>
 
-      <footer id="footer" className="flex items-center justify-center py-12">
-        <p className="font-mono text-[11px] text-subtext uppercase tracking-[0.08em]">
-          FOOTER — WIP
-        </p>
-      </footer>
+      {/* Sección 9: Footer */}
+      <MarketingFooter />
     </>
   );
 }
