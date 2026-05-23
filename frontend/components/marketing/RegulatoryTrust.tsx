@@ -1,3 +1,5 @@
+"use client";
+
 const N_INGREDIENTS = 8_000; // TODO: verify with SELECT COUNT(*) FROM ingredients before deploy
 
 const SOURCES = [

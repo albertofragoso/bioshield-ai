@@ -18,7 +18,7 @@ export function HeroWaitlistCTA() {
 
     const result = schema.safeParse({ email });
     if (!result.success) {
-      toast.error(result.error.errors[0].message);
+      toast.error(result.error.issues[0].message);
       return;
     }
 

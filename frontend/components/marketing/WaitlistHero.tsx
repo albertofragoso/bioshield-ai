@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 const schema = z.object({
   email: z.string().email("Email inválido"),
-  consent: z.literal(true, { errorMap: () => ({ message: "El consentimiento es obligatorio" }) }),
+  consent: z.literal(true, "El consentimiento es obligatorio"),
 });
 
 const toRange = (total: number): string => {
@@ -40,7 +40,7 @@ export function WaitlistHero() {
 
     const result = schema.safeParse({ email: form.email, consent: form.consent || undefined });
     if (!result.success) {
-      toast.error(result.error.errors[0].message);
+      toast.error(result.error.issues[0].message);
       return;
     }
 

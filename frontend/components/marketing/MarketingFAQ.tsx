@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Accordion,
   AccordionContent,
@@ -55,7 +57,7 @@ export function MarketingFAQ() {
         Preguntas frecuentes
       </h2>
 
-      <Accordion type="single" collapsible className="space-y-2">
+      <Accordion className="space-y-2">
         {FAQ_ITEMS.map((item, idx) => (
           <AccordionItem
             key={idx}
