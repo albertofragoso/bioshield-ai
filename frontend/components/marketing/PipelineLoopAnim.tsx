@@ -44,9 +44,12 @@ export function PipelineLoopAnim({ onOpenDemo }: PipelineLoopAnimProps) {
     Promise.all(
       FIXTURE_BARCODES.map(async (barcode) => {
         const resp = await fetch(`/demo/scan-trace-${barcode}.json`);
+        if (!resp.ok) throw new Error(`Demo fixture ${barcode} returned ${resp.status}`);
         return resp.json() as Promise<ScanTrace>;
       })
-    ).then(setTraces);
+    )
+      .then(setTraces)
+      .catch((err) => console.error("[PipelineLoopAnim] fetch failed:", err));
   }, []);
 
   const advanceEvent = useCallback(() => {
