@@ -59,12 +59,14 @@ export function BiomarkerSplitPanel() {
       }`}
     >
       {FF_MASCOT_GUIDE && (
-        <MascotGuide
-          src="/avatars/success.png"
-          alt="BioShield mascota orgullosa de sus capacidades"
-          speech="Ninguna otra app hace esto junto."
-          size="md"
-        />
+        <div className="flex justify-center mb-8">
+          <MascotGuide
+            src="/avatars/success.png"
+            alt="BioShield mascota orgullosa de sus capacidades"
+            speech="Ninguna otra app hace esto junto."
+            size="md"
+          />
+        </div>
       )}
 
       <h2 className="font-sans text-3xl lg:text-4xl font-bold text-center text-foreground mb-4">
@@ -76,8 +78,8 @@ export function BiomarkerSplitPanel() {
         La diferencia está en los datos que cruza.
       </p>
 
-      {/* 2-column feature cards */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* 2-column feature cards — 1 col on mobile, 2 on sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* BioShield column */}
         <div className="border border-teal-700 rounded-xl overflow-hidden">
           <div className="bg-teal-900/30 px-4 py-3 border-b border-teal-700 flex items-center gap-2">

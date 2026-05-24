@@ -58,7 +58,7 @@ export function HeroFloatingBadges() {
       {BADGES.map((b) => (
         <div
           key={b.name}
-          className="absolute pointer-events-none z-20"
+          className="hidden sm:block absolute pointer-events-none z-20"
           style={b.pos}
           aria-hidden="true"
         >
