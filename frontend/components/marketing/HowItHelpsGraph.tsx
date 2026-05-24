@@ -1,75 +1,136 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MascotGuide } from "@/components/marketing/MascotGuide";
+import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
 
-const STEPS = [
-  { id: 1, icon: "📷", title: "Escaneás", desc: "Foto o código de barras", highlight: false },
-  { id: 2, icon: "🔍", title: "Reconocemos", desc: "Ingredientes y aditivos", highlight: false },
-  {
-    id: 3,
-    icon: "📋",
-    title: "Cruzamos",
-    desc: "FDA · EFSA · Codex Alimentarius",
-    highlight: false,
-  },
-  {
-    id: 4,
-    icon: "🩸",
-    title: "Comparamos",
-    desc: "Con tus análisis de laboratorio",
-    highlight: false,
-  },
-  {
-    id: 5,
-    icon: "📊",
-    title: "Te mostramos",
-    desc: "Correlaciones informativas — no diagnóstico",
-    highlight: true,
-  },
+const PIPELINE_STEPS = [
+  { num: "01", icon: "📷", label: "Escanear barcode" },
+  { num: "02", icon: "🔍", label: "Identificar producto" },
+  { num: "03", icon: "🧬", label: "Extraer ingredientes" },
+  { num: "04", icon: "🔗", label: "Cruzar biomarkers" },
+  { num: "05", icon: "🚨", label: "Alertar riesgos" },
 ];
 
 export function HowItHelpsGraph() {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [activeStep, setActiveStep] = useState(-1);
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
-      threshold: 0.2,
-    });
-    if (ref.current) observer.observe(ref.current);
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+
+        if (prefersReduced) {
+          setActiveStep(PIPELINE_STEPS.length - 1);
+          return;
+        }
+
+        let step = 0;
+        setActiveStep(0);
+        const interval = setInterval(() => {
+          step += 1;
+          if (step >= PIPELINE_STEPS.length) {
+            clearInterval(interval);
+            return;
+          }
+          setActiveStep(step);
+        }, 600);
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" },
+    );
+
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} className="max-w-4xl mx-auto px-6">
+    <div className="max-w-4xl mx-auto px-6">
+      {FF_MASCOT_GUIDE && (
+        <div className="flex justify-center mb-8">
+          <MascotGuide
+            src="/avatars/welcome.png"
+            alt="BioShield mascota explicando el pipeline"
+            speech="Así es como analizo cada producto en segundos…"
+            size="md"
+          />
+        </div>
+      )}
+
       <h2 className="font-sans text-3xl lg:text-4xl font-bold text-center text-foreground mb-16">
         Cómo te ayuda BioShield
       </h2>
 
-      <div className="flex flex-col lg:flex-row items-stretch gap-3">
-        {STEPS.map((step, idx) => (
-          <div
-            key={step.id}
-            className={`flex-1 border rounded-card p-4 transition-all duration-500 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-            }`}
-            style={{
-              transitionDelay: `${idx * 80}ms`,
-              background: "var(--surface)",
-              borderColor: step.highlight ? "var(--brand-green)" : "var(--border)",
-              boxShadow: step.highlight ? "0 0 20px rgba(74,222,128,.12)" : "none",
-            }}
-          >
-            <div className="text-2xl mb-3">{step.icon}</div>
-            <h3
-              className="font-sans font-semibold text-sm mb-1"
-              style={{ color: step.highlight ? "var(--brand-green)" : "var(--foreground)" }}
-            >
-              {step.title}
-            </h3>
-            <p className="font-mono text-[10px] text-subtext">{step.desc}</p>
-          </div>
-        ))}
+      <div ref={sectionRef} className="flex flex-col lg:flex-row items-start justify-center gap-0">
+        {PIPELINE_STEPS.map((step, idx) => {
+          const isDone = idx < activeStep;
+          const isActive = idx === activeStep;
+          const isPending = idx > activeStep;
+
+          const iconBoxClass = isActive
+            ? "bg-gradient-to-br from-teal-500 to-sky-500 shadow-[0_0_16px_rgba(13,148,136,0.5)]"
+            : isDone
+              ? "bg-[#0d2e2e] border border-teal-700"
+              : "bg-[#111] border border-[#1a1a2e]";
+
+          const labelClass = isActive
+            ? "text-white font-semibold"
+            : isDone
+              ? "text-teal-400 font-medium"
+              : "text-gray-600 font-normal";
+
+          const numClass = isActive || isDone ? "text-teal-400" : "text-gray-700";
+
+          const lineActive = isDone || isActive;
+
+          return (
+            <div key={step.num} className="flex flex-row lg:flex-col items-center flex-1">
+              {/* Step node */}
+              <div className="flex flex-col items-center">
+                {/* Step number */}
+                <span
+                  className={`font-mono text-xs mb-2 transition-colors duration-300 ${numClass}`}
+                >
+                  {step.num}
+                </span>
+
+                {/* Icon box */}
+                <div
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all duration-500 ${iconBoxClass}`}
+                >
+                  {step.icon}
+                </div>
+
+                {/* Label */}
+                <span
+                  className={`mt-2 text-center text-xs transition-colors duration-300 ${labelClass} ${isPending ? "opacity-40" : "opacity-100"}`}
+                  style={{ maxWidth: "80px" }}
+                >
+                  {step.label}
+                </span>
+              </div>
+
+              {/* Connecting line (after each step except last) */}
+              {idx < PIPELINE_STEPS.length - 1 && (
+                <div
+                  className={`
+                    hidden lg:block h-[2px] flex-1 mx-2 mt-[18px] self-start transition-colors duration-500
+                    ${lineActive ? "bg-teal-600" : "bg-[#1a1a2e]"}
+                  `}
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
