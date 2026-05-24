@@ -52,7 +52,7 @@ export default function LandingPage() {
               tus análisis de laboratorio.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4 mb-6">
+            <div className="w-full flex justify-center lg:justify-start mb-6">
               <HeroWaitlistCTA />
             </div>
 

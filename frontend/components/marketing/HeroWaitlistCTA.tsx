@@ -55,7 +55,7 @@ export function HeroWaitlistCTA() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="w-full flex flex-col items-center gap-4">
       <style>{`
         @keyframes hero-fade-up {
           from { opacity: 0; transform: translateY(16px); }

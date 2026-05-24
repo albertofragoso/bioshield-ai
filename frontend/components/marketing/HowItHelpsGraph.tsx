@@ -45,7 +45,7 @@ export function HowItHelpsGraph() {
           setActiveStep(step);
         }, 600);
       },
-      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
 
     observer.observe(el);
@@ -69,7 +69,10 @@ export function HowItHelpsGraph() {
         Cómo te ayuda BioShield
       </h2>
 
-      <div ref={sectionRef} className="flex flex-col lg:flex-row items-start justify-center gap-0">
+      <div
+        ref={sectionRef}
+        className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-0"
+      >
         {PIPELINE_STEPS.map((step, idx) => {
           const isDone = idx < activeStep;
           const isActive = idx === activeStep;
