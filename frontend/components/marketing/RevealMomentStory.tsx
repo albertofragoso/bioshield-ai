@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getIngredientRisk, RISK_STYLES } from "@/lib/riskColors";
+import { MascotGuide } from "@/components/marketing/MascotGuide";
+import { FF_MASCOT_GUIDE, FF_RISK_PILLS } from "@/lib/featureFlags";
 
 const STORY_STEPS = [
   {
@@ -12,6 +15,14 @@ const STORY_STEPS = [
     status: "elevado",
     correlation:
       "Estudios en EFSA (2018) reportan correlaciones con marcadores inflamatorios en consumo frecuente.",
+    ingredients: [
+      { name: "Carragenina (E407)", biomarkerText: "Colesterol LDL ↑" },
+      { name: "Almidón de maíz modificado", biomarkerText: null },
+      { name: "Leche descremada", biomarkerText: null },
+    ],
+    conflicts: [
+      { ingredient: "Carragenina", severity: "YELLOW" },
+    ],
   },
   {
     badge: "E621",
@@ -22,6 +33,18 @@ const STORY_STEPS = [
     status: "límite",
     correlation:
       "FDA EAFUS clasifica como GRAS con consumo moderado. En exceso puede afectar presión arterial.",
+    ingredients: [
+      { name: "Jarabe de maíz (JMAF)", biomarkerText: "Triglicéridos ↑" },
+      { name: "Azúcar", biomarkerText: "Glucosa →" },
+      { name: "Aceite de palma", biomarkerText: "HDL colesterol ↓" },
+      { name: "Avena integral", biomarkerText: null },
+      { name: "Miel", biomarkerText: null },
+    ],
+    conflicts: [
+      { ingredient: "Jarabe de maíz", severity: "ORANGE" },
+      { ingredient: "Azúcar", severity: "YELLOW" },
+      { ingredient: "Aceite de palma", severity: "YELLOW" },
+    ],
   },
   {
     badge: "E330",
@@ -32,6 +55,11 @@ const STORY_STEPS = [
     status: "normal",
     correlation:
       "Sin correlaciones adversas reportadas en bases públicas regulatorias para consumo habitual.",
+    ingredients: [
+      { name: "Agua purificada", biomarkerText: null },
+      { name: "Dióxido de carbono", biomarkerText: null },
+    ],
+    conflicts: [],
   },
 ];
 
@@ -57,6 +85,17 @@ export function RevealMomentStory() {
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       }`}
     >
+      {FF_MASCOT_GUIDE && (
+        <div className="flex justify-center mb-8">
+          <MascotGuide
+            src="/avatars/progress.png"
+            alt="BioShield mascota en modo descubrimiento"
+            speech="Mira lo que encontré en tu producto…"
+            size="md"
+          />
+        </div>
+      )}
+
       <h2 className="font-sans text-3xl lg:text-4xl font-bold text-foreground text-center mb-4">
         Lo que tu etiqueta <span className="text-brand-amber">no te dice.</span>
       </h2>
@@ -92,7 +131,45 @@ export function RevealMomentStory() {
           </p>
           <h3 className="font-sans text-2xl font-bold text-foreground mb-1">{step?.name}</h3>
           <p className="font-mono text-[12px] text-subtext mb-4">{step?.detail}</p>
-          <p className="font-mono text-[11px] text-subtext leading-relaxed">{step?.correlation}</p>
+          <p className="font-mono text-[11px] text-subtext leading-relaxed mb-4">
+            {step?.correlation}
+          </p>
+
+          {/* Ingredient → biomarker risk pills */}
+          {FF_RISK_PILLS && step?.ingredients && step.ingredients.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.1em] mb-1">
+                Ingredientes
+              </p>
+              {step.ingredients.map(({ name, biomarkerText }) => {
+                const level = getIngredientRisk(name, step.conflicts);
+                const style = RISK_STYLES[level];
+                return (
+                  <div key={name} className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className="text-xs px-2 py-1 rounded-full border"
+                      style={{
+                        color: style.text,
+                        background: style.bg,
+                        borderColor: style.border,
+                      }}
+                      aria-label={`${name} — ${style.ariaLabel}`}
+                    >
+                      {style.icon} {name}
+                    </span>
+                    {level !== "BLUE" && biomarkerText && (
+                      <>
+                        <span className="text-neutral-600 text-xs">→</span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-[#1a1a2e] text-violet-400 border border-[#2a2a4e]">
+                          {biomarkerText}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div

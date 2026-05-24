@@ -1,15 +1,42 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MascotGuide } from "@/components/marketing/MascotGuide";
+import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
 
-const COMPARISON_ROWS = [
-  { feature: "Lectura de etiqueta", others: "✓", bioshield: "✓" },
-  { feature: "Semáforo nutricional", others: "✓", bioshield: "✓" },
-  { feature: "Aditivos E-number", others: "Parcial", bioshield: "✓ completo" },
-  { feature: "Fuentes regulatorias citadas", others: "✗", bioshield: "FDA · EFSA · Codex" },
-  { feature: "Cruce con tus análisis de lab", others: "✗", bioshield: "✓" },
-  { feature: "Alternativas personalizadas", others: "✗", bioshield: "✓" },
-  { feature: "Datos cifrados AES-256", others: "✗", bioshield: "✓" },
+const FEATURES = [
+  {
+    icon: "🩸",
+    name: "Cruce con biomarkers",
+    bioDesc: "Personalizado a tus resultados de sangre",
+    otherDesc: "No disponible",
+    hasBio: true,
+    hasOther: false,
+  },
+  {
+    icon: "🔍",
+    name: "Búsqueda semántica",
+    bioDesc: "Detecta aditivos por nombre comercial y genérico",
+    otherDesc: "Solo keywords exactas",
+    hasBio: true,
+    hasOther: false,
+  },
+  {
+    icon: "⚡",
+    name: "Análisis en tiempo real",
+    bioDesc: "Pipeline SSE — resultados en <3s",
+    otherDesc: "Respuesta batch, sin streaming",
+    hasBio: true,
+    hasOther: false,
+  },
+  {
+    icon: "🌎",
+    name: "Base de datos global",
+    bioDesc: "Open Food Facts + USDA (millones de productos)",
+    otherDesc: "Solo productos locales",
+    hasBio: true,
+    hasOther: "partial" as const,
+  },
 ];
 
 export function BiomarkerSplitPanel() {
@@ -31,6 +58,17 @@ export function BiomarkerSplitPanel() {
         visible ? "opacity-100" : "opacity-0"
       }`}
     >
+      {FF_MASCOT_GUIDE && (
+        <div className="flex justify-center mb-8">
+          <MascotGuide
+            src="/avatars/success.png"
+            alt="BioShield mascota orgullosa de sus capacidades"
+            speech="Ninguna otra app hace esto junto."
+            size="md"
+          />
+        </div>
+      )}
+
       <h2 className="font-sans text-3xl lg:text-4xl font-bold text-center text-foreground mb-4">
         Otras apps te dicen calorías.
         <br />
@@ -40,27 +78,55 @@ export function BiomarkerSplitPanel() {
         La diferencia está en los datos que cruza.
       </p>
 
-      <div className="overflow-x-auto">
-        <table className="w-full font-mono text-[12px]">
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              <th className="text-left py-3 px-4 text-subtext font-normal">Capacidad</th>
-              <th className="text-center py-3 px-4 text-subtext font-normal">Otras apps</th>
-              <th className="text-center py-3 px-4 text-brand-green font-semibold">BioShield</th>
-            </tr>
-          </thead>
-          <tbody>
-            {COMPARISON_ROWS.map((row) => (
-              <tr key={row.feature} style={{ borderBottom: "1px solid rgba(74,222,128,.06)" }}>
-                <td className="py-3 px-4 text-subtext">{row.feature}</td>
-                <td className="py-3 px-4 text-center text-subtext">{row.others}</td>
-                <td className="py-3 px-4 text-center text-brand-green font-medium">
-                  {row.bioshield}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* 2-column feature cards — 1 col on mobile, 2 on sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* BioShield column */}
+        <div className="border border-teal-700 rounded-xl overflow-hidden">
+          <div className="bg-teal-900/30 px-4 py-3 border-b border-teal-700 flex items-center gap-2">
+            <span aria-hidden="true">🛡️</span>
+            <span className="text-teal-400 font-semibold">BioShield AI</span>
+          </div>
+          {FEATURES.map((f) => (
+            <div
+              key={f.name}
+              className="flex items-center gap-3 px-4 py-3 border-b border-[#0a0a12] last:border-b-0"
+            >
+              <div className="w-8 h-8 rounded-lg bg-teal-900/40 flex items-center justify-center text-sm flex-shrink-0">
+                {f.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-neutral-200">{f.name}</p>
+                <p className="text-xs text-neutral-500">{f.bioDesc}</p>
+              </div>
+              <span className="text-emerald-400 text-lg ml-auto">✅</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Other apps column */}
+        <div className="border border-[#1a1a2e] rounded-xl overflow-hidden">
+          <div className="bg-[#0a0a0f] px-4 py-3 border-b border-[#1a1a2e] flex items-center gap-2">
+            <span aria-hidden="true">📱</span>
+            <span className="text-neutral-500 font-semibold">Otras apps</span>
+          </div>
+          {FEATURES.map((f) => (
+            <div
+              key={f.name}
+              className="flex items-center gap-3 px-4 py-3 border-b border-[#0a0a12] last:border-b-0"
+            >
+              <div className="w-8 h-8 rounded-lg bg-[#111] flex items-center justify-center text-sm flex-shrink-0">
+                {f.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-neutral-600">{f.name}</p>
+                <p className="text-xs text-neutral-700">{f.otherDesc}</p>
+              </div>
+              <span className="text-neutral-700 text-lg ml-auto">
+                {f.hasOther === "partial" ? "~" : "✗"}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
