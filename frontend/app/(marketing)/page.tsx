@@ -1,5 +1,7 @@
 import { HeroWaitlistCTA } from "@/components/marketing/HeroWaitlistCTA";
+import { MascotGuide } from "@/components/marketing/MascotGuide";
 import { PipelineLoopAnim } from "@/components/marketing/PipelineLoopAnim";
+import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
 import { RevealMomentStory } from "@/components/marketing/RevealMomentStory";
 import { HowItHelpsGraph } from "@/components/marketing/HowItHelpsGraph";
 import { BiomarkerSplitPanel } from "@/components/marketing/BiomarkerSplitPanel";
@@ -59,6 +61,9 @@ export default function LandingPage() {
 
           {/* Right: pipeline animation */}
           <div id="demo" className="flex-1 flex justify-center w-full">
+            {FF_MASCOT_GUIDE && (
+              <MascotGuide src="/avatars/main.png" alt="BioShield mascot" speech="" size="lg" />
+            )}
             <PipelineLoopAnim />
           </div>
         </div>

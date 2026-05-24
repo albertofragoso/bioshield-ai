@@ -10,9 +10,9 @@ interface MascotGuideProps {
 }
 
 const sizeMap = {
-  sm: { px: 32, text: "text-sm" },
-  md: { px: 48, text: "text-sm" },
-  lg: { px: 64, text: "text-base" },
+  sm: { px: 72, text: "text-sm" },
+  md: { px: 96, text: "text-sm" },
+  lg: { px: 120, text: "text-base" },
 } as const;
 
 export function MascotGuide({ src, alt, speech, size = "md" }: MascotGuideProps) {
@@ -35,7 +35,7 @@ export function MascotGuide({ src, alt, speech, size = "md" }: MascotGuideProps)
       <div className="flex items-center gap-3">
         {/* Avatar */}
         <div
-          className="mascot-float shrink-0 rounded-full shadow-[0_0_20px_rgba(13,148,136,0.4)] overflow-hidden"
+          className="mascot-float shrink-0 rounded-2xl shadow-[0_0_20px_rgba(13,148,136,0.4)] overflow-hidden"
           style={{ width: px, height: px }}
         >
           <Image
@@ -44,7 +44,7 @@ export function MascotGuide({ src, alt, speech, size = "md" }: MascotGuideProps)
             width={px}
             height={px}
             sizes={`${px}px`}
-            className="rounded-full object-cover"
+            className="rounded-2xl object-cover"
           />
         </div>
 

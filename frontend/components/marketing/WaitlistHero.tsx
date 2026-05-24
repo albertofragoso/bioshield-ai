@@ -91,6 +91,9 @@ export function WaitlistHero() {
 
   return (
     <div className="max-w-lg mx-auto px-6 text-center">
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-brand-green mb-4 opacity-80">
+        Tu guardián nutricional con IA
+      </p>
       <h2 className="font-sans text-3xl lg:text-4xl font-bold text-foreground mb-4">
         Sé de los primeros en probarlo.
       </h2>

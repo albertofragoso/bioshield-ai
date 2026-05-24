@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { z } from "zod";
 import { toast } from "sonner";
-import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
 
 const schema = z.object({
   email: z.string().email("Email inválido"),
@@ -58,33 +56,6 @@ export function HeroWaitlistCTA() {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Mascot — feature flagged */}
-      {FF_MASCOT_GUIDE && (
-        <div className="relative w-[90px] h-[90px]">
-          <Image
-            src="/avatars/main.png"
-            alt="BioShield mascota"
-            width={90}
-            height={90}
-            priority={true}
-            sizes="90px"
-            className="rounded-full shadow-[0_0_40px_rgba(13,148,136,0.35)]"
-          />
-          {/* Badge decorativo */}
-          <span
-            aria-hidden="true"
-            className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center text-[12px] leading-none"
-          >
-            ✨
-          </span>
-        </div>
-      )}
-
-      {/* Eyebrow copy — always visible */}
-      <p className="text-xs font-semibold tracking-widest uppercase text-teal-400">
-        Tu guardián nutricional con IA
-      </p>
-
       {/* Form / done state */}
       {done ? (
         <p className="font-mono text-[12px] text-brand-green">
@@ -125,9 +96,7 @@ export function HeroWaitlistCTA() {
           <span className="w-5 h-5 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 inline-block ml-[-6px]" />
           <span className="w-5 h-5 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 inline-block ml-[-6px]" />
         </div>
-        <span className="text-xs text-neutral-500">
-          +1,200 personas ya en lista · Sin spam
-        </span>
+        <span className="text-xs text-neutral-500">+1,200 personas ya en lista · Sin spam</span>
       </div>
     </div>
   );
