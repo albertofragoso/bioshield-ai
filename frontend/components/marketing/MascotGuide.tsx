@@ -35,7 +35,7 @@ export function MascotGuide({ src, alt, speech, size = "md" }: MascotGuideProps)
       <div className="flex items-center gap-3">
         {/* Avatar */}
         <div
-          className="mascot-float shrink-0 rounded-2xl shadow-[0_0_20px_rgba(13,148,136,0.4)] overflow-hidden"
+          className="mascot-float shrink-0 drop-shadow-[0_0_20px_rgba(13,148,136,0.4)]"
           style={{ width: px, height: px }}
         >
           <Image
@@ -44,7 +44,7 @@ export function MascotGuide({ src, alt, speech, size = "md" }: MascotGuideProps)
             width={px}
             height={px}
             sizes={`${px}px`}
-            className="rounded-2xl object-cover"
+            className="object-contain w-full h-full"
           />
         </div>
 
