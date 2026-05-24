@@ -41,9 +41,9 @@ export function MascotGuide({ src, alt, speech, size = "md" }: MascotGuideProps)
           <Image
             src={src}
             alt={alt}
-            aria-label={alt}
             width={px}
             height={px}
+            sizes={`${px}px`}
             className="rounded-full object-cover"
           />
         </div>

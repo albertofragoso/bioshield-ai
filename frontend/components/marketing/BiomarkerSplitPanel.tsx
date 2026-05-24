@@ -81,7 +81,7 @@ export function BiomarkerSplitPanel() {
         {/* BioShield column */}
         <div className="border border-teal-700 rounded-xl overflow-hidden">
           <div className="bg-teal-900/30 px-4 py-3 border-b border-teal-700 flex items-center gap-2">
-            <span>🛡️</span>
+            <span aria-hidden="true">🛡️</span>
             <span className="text-teal-400 font-semibold">BioShield AI</span>
           </div>
           {FEATURES.map((f) => (
@@ -104,7 +104,7 @@ export function BiomarkerSplitPanel() {
         {/* Other apps column */}
         <div className="border border-[#1a1a2e] rounded-xl overflow-hidden">
           <div className="bg-[#0a0a0f] px-4 py-3 border-b border-[#1a1a2e] flex items-center gap-2">
-            <span>📱</span>
+            <span aria-hidden="true">📱</span>
             <span className="text-neutral-500 font-semibold">Otras apps</span>
           </div>
           {FEATURES.map((f) => (

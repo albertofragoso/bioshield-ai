@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getIngredientRisk, RISK_STYLES } from "@/lib/riskColors";
 import { MascotGuide } from "@/components/marketing/MascotGuide";
-import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
+import { FF_MASCOT_GUIDE, FF_RISK_PILLS } from "@/lib/featureFlags";
 
 const STORY_STEPS = [
   {
@@ -136,7 +136,7 @@ export function RevealMomentStory() {
           </p>
 
           {/* Ingredient → biomarker risk pills */}
-          {step?.ingredients && step.ingredients.length > 0 && (
+          {FF_RISK_PILLS && step?.ingredients && step.ingredients.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="font-mono text-[10px] text-subtext uppercase tracking-[0.1em] mb-1">
                 Ingredientes
