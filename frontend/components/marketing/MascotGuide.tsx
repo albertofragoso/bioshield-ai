@@ -25,43 +25,53 @@ export function MascotGuide({ src, alt, speech, size = "md" }: MascotGuideProps)
           0%, 100% { transform: translateY(-4px); }
           50%       { transform: translateY(0); }
         }
+        @keyframes mascot-glow-pulse {
+          0%, 100% { opacity: 0.35; transform: scale(1); }
+          50%       { opacity: 0.7;  transform: scale(1.12); }
+        }
         @media (prefers-reduced-motion: no-preference) {
-          .mascot-float {
-            animation: mascot-float 3s ease-in-out infinite;
-          }
+          .mascot-float { animation: mascot-float 3s ease-in-out infinite; }
+          .mascot-glow  { animation: mascot-glow-pulse 3s ease-in-out infinite; }
         }
       `}</style>
 
       <div className="flex items-center gap-3">
-        {/* Avatar */}
-        <div
-          className="mascot-float shrink-0 drop-shadow-[0_0_20px_rgba(13,148,136,0.4)]"
-          style={{ width: px, height: px }}
-        >
+        {/* Avatar + glow ring */}
+        <div className="mascot-float shrink-0 relative" style={{ width: px, height: px }}>
+          {/* Breathing glow behind avatar */}
+          <div
+            className="mascot-glow absolute inset-0 rounded-full pointer-events-none"
+            style={{
+              background: "radial-gradient(circle, rgba(13,148,136,0.45) 0%, transparent 70%)",
+              inset: "-12px",
+            }}
+            aria-hidden="true"
+          />
           <Image
             src={src}
             alt={alt}
             width={px}
             height={px}
             sizes={`${px}px`}
-            className="object-contain w-full h-full"
+            className="relative z-10 object-contain w-full h-full drop-shadow-[0_0_16px_rgba(13,148,136,0.5)]"
           />
         </div>
 
-        {/* Speech bubble */}
-        <div className="relative">
-          {/* Left notch/arrow */}
-          <span
-            className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 border-[6px] border-transparent"
-            style={{ borderRightColor: "#1a1a2e" }}
-            aria-hidden="true"
-          />
-          <div
-            className={`${text} text-white bg-[#111] border border-[#1a1a2e] rounded-lg rounded-tl-none px-3 py-2 leading-snug`}
-          >
-            {speech}
+        {/* Speech bubble — only when speech is provided */}
+        {speech && (
+          <div className="relative">
+            <span
+              className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 border-[6px] border-transparent"
+              style={{ borderRightColor: "#1a1a2e" }}
+              aria-hidden="true"
+            />
+            <div
+              className={`${text} text-white bg-[#111] border border-[#1a1a2e] rounded-lg rounded-tl-none px-3 py-2 leading-snug`}
+            >
+              {speech}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );

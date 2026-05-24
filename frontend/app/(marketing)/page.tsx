@@ -1,5 +1,7 @@
 import { HeroWaitlistCTA } from "@/components/marketing/HeroWaitlistCTA";
 import { MascotGuide } from "@/components/marketing/MascotGuide";
+import { HeroCursorGlow } from "@/components/marketing/HeroCursorGlow";
+import { HeroFloatingBadges } from "@/components/marketing/HeroFloatingBadges";
 import { PipelineLoopAnim } from "@/components/marketing/PipelineLoopAnim";
 import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
 import { RevealMomentStory } from "@/components/marketing/RevealMomentStory";
@@ -20,7 +22,14 @@ export default function LandingPage() {
       <section
         id="hero"
         className="relative min-h-screen flex flex-col items-center justify-center px-6 py-24 overflow-hidden"
+        style={{
+          backgroundImage: "radial-gradient(rgba(13,148,136,0.10) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
       >
+        {/* Cursor-following ambient glow — client component */}
+        <HeroCursorGlow />
+
         <div className="relative z-10 flex flex-col lg:flex-row items-center gap-12 lg:gap-16 max-w-5xl w-full">
           {/* Left: copy + CTA */}
           <div className="flex-1 text-center lg:text-left">
@@ -59,10 +68,13 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Right: pipeline animation */}
-          <div id="demo" className="flex-1 flex justify-center w-full">
+          {/* Right: mascot (with floating badges) + pipeline demo */}
+          <div id="demo" className="flex-1 flex flex-col items-center gap-8 w-full">
             {FF_MASCOT_GUIDE && (
-              <MascotGuide src="/avatars/main.png" alt="BioShield mascot" speech="" size="lg" />
+              <div className="relative">
+                <HeroFloatingBadges />
+                <MascotGuide src="/avatars/main.png" alt="BioShield mascot" speech="" size="lg" />
+              </div>
             )}
             <PipelineLoopAnim />
           </div>

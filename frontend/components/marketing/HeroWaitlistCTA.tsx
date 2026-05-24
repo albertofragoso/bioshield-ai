@@ -56,13 +56,30 @@ export function HeroWaitlistCTA() {
 
   return (
     <div className="flex flex-col items-center gap-4">
+      <style>{`
+        @keyframes hero-fade-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          .hero-reveal {
+            opacity: 0;
+            animation: hero-fade-up 0.55s ease forwards;
+          }
+        }
+      `}</style>
+
       {/* Form / done state */}
       {done ? (
         <p className="font-mono text-[12px] text-brand-green">
           Estás en la lista. Te avisamos pronto.
         </p>
       ) : (
-        <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="hero-reveal flex gap-2 w-full max-w-sm"
+          style={{ animationDelay: "0.1s" }}
+        >
           <input
             type="email"
             value={email}
@@ -87,7 +104,8 @@ export function HeroWaitlistCTA() {
 
       {/* Social proof — always visible */}
       <div
-        className="flex items-center gap-2"
+        className="hero-reveal flex items-center gap-2"
+        style={{ animationDelay: "0.25s" }}
         aria-label="Más de 1200 personas en la lista de espera"
       >
         {/* Avatar stack */}
