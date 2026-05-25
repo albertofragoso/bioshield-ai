@@ -140,6 +140,7 @@ export function ScrollytellingSection() {
       ref={sectionRef}
       className="relative lg:h-[300vh] h-auto"
       style={{ backgroundColor: "#080C07" }}
+      aria-label="Cómo BioShield analiza tu alimento"
     >
       {/* panelRef wraps the full grid — GSAP pins both columns together.
           Background required: when position:fixed (during pin), the panel floats

@@ -21,6 +21,7 @@ export function NutritionLabelPanel() {
     <div
       className="relative w-full"
       style={{ height: "100vh" }}
+      role="region"
       aria-label="Visualización de etiqueta nutricional interactiva"
     >
       {/* ─── Centering wrapper ─── */}
@@ -54,6 +55,7 @@ export function NutritionLabelPanel() {
           <div
             className="label-additives absolute inset-0 overflow-hidden rounded-[18px]"
             style={{ opacity: 0 }}
+            aria-hidden="true"
           >
             <LabelWithAdditives />
           </div>
@@ -66,6 +68,7 @@ export function NutritionLabelPanel() {
           <div
             className="blood-overlay absolute inset-0 overflow-hidden rounded-[18px]"
             style={{ opacity: 0 }}
+            aria-hidden="true"
           >
             <BloodOverlay />
           </div>
@@ -77,6 +80,7 @@ export function NutritionLabelPanel() {
           <div
             className="verdict-card absolute inset-0 overflow-hidden rounded-[18px]"
             style={{ opacity: 0 }}
+            aria-hidden="true"
           >
             <VerdictCard />
           </div>
@@ -98,9 +102,9 @@ function LabelClean() {
         <p className="font-mono text-[10px] text-[#6B8A6A] tracking-widest uppercase">
           Información Nutrimental · FDA/COFEPRIS
         </p>
-        <h3 className="font-sans text-base font-extrabold text-[#DCF0DC] leading-tight mt-0.5">
+        <p className="font-sans text-base font-extrabold text-[#DCF0DC] leading-tight mt-0.5">
           Yogurt Natural
-        </h3>
+        </p>
         <p className="font-mono text-[10px] text-[#6B8A6A]">Danone · SKU 7501055300072</p>
       </div>
 
@@ -155,9 +159,9 @@ function LabelWithAdditives() {
         <p className="font-mono text-[10px] text-[#6B8A6A] tracking-widest uppercase">
           Información Nutrimental · FDA/COFEPRIS
         </p>
-        <h3 className="font-sans text-base font-extrabold text-[#DCF0DC] leading-tight mt-0.5">
+        <p className="font-sans text-base font-extrabold text-[#DCF0DC] leading-tight mt-0.5">
           Yogurt Natural
-        </h3>
+        </p>
         <p className="font-mono text-[10px] text-[#6B8A6A]">Danone · SKU 7501055300072</p>
       </div>
 
