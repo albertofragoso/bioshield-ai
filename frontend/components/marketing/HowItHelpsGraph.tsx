@@ -3,13 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import { MascotGuide } from "@/components/marketing/MascotGuide";
 import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
+import { Camera } from "@phosphor-icons/react/dist/csr/Camera";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { Dna } from "@phosphor-icons/react/dist/csr/Dna";
+import { Link } from "@phosphor-icons/react/dist/csr/Link";
+import { Siren } from "@phosphor-icons/react/dist/csr/Siren";
+import type { Icon } from "@phosphor-icons/react";
 
-const PIPELINE_STEPS = [
-  { num: "01", icon: "📷", label: "Escanear barcode" },
-  { num: "02", icon: "🔍", label: "Identificar producto" },
-  { num: "03", icon: "🧬", label: "Extraer ingredientes" },
-  { num: "04", icon: "🔗", label: "Cruzar biomarkers" },
-  { num: "05", icon: "🚨", label: "Alertar riesgos" },
+type PipelineStep = {
+  num: string;
+  Icon: Icon;
+  iconColor: string;
+  label: string;
+};
+
+const PIPELINE_STEPS: PipelineStep[] = [
+  { num: "01", Icon: Camera, iconColor: "#4ADE80", label: "Escanear barcode" },
+  { num: "02", Icon: MagnifyingGlass, iconColor: "#4ADE80", label: "Identificar producto" },
+  { num: "03", Icon: Dna, iconColor: "#4ADE80", label: "Extraer ingredientes" },
+  { num: "04", Icon: Link, iconColor: "#4ADE80", label: "Cruzar biomarkers" },
+  { num: "05", Icon: Siren, iconColor: "#F87171", label: "Alertar riesgos" },
 ];
 
 export function HowItHelpsGraph() {
@@ -107,9 +120,13 @@ export function HowItHelpsGraph() {
 
                 {/* Icon box */}
                 <div
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all duration-500 ${iconBoxClass}`}
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-500 ${iconBoxClass}`}
                 >
-                  {step.icon}
+                  <step.Icon
+                    weight="duotone"
+                    size={20}
+                    color={isActive ? "#ffffff" : step.iconColor}
+                  />
                 </div>
 
                 {/* Label */}

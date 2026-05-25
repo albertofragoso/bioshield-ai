@@ -3,10 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import { MascotGuide } from "@/components/marketing/MascotGuide";
 import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
+import { Drop } from "@phosphor-icons/react/dist/csr/Drop";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
+import { Lightning } from "@phosphor-icons/react/dist/csr/Lightning";
+import { Globe } from "@phosphor-icons/react/dist/csr/Globe";
+import type { Icon } from "@phosphor-icons/react";
 
-const FEATURES = [
+type Feature = {
+  Icon: Icon;
+  iconColor: string;
+  name: string;
+  bioDesc: string;
+  otherDesc: string;
+  hasBio: boolean;
+  hasOther: boolean | "partial";
+};
+
+const FEATURES: Feature[] = [
   {
-    icon: "🩸",
+    Icon: Drop,
+    iconColor: "#F87171",
     name: "Cruce con biomarkers",
     bioDesc: "Personalizado a tus resultados de sangre",
     otherDesc: "No disponible",
@@ -14,7 +30,8 @@ const FEATURES = [
     hasOther: false,
   },
   {
-    icon: "🔍",
+    Icon: MagnifyingGlass,
+    iconColor: "#4ADE80",
     name: "Búsqueda semántica",
     bioDesc: "Detecta aditivos por nombre comercial y genérico",
     otherDesc: "Solo keywords exactas",
@@ -22,7 +39,8 @@ const FEATURES = [
     hasOther: false,
   },
   {
-    icon: "⚡",
+    Icon: Lightning,
+    iconColor: "#F59E0B",
     name: "Análisis en tiempo real",
     bioDesc: "Pipeline SSE — resultados en <3s",
     otherDesc: "Respuesta batch, sin streaming",
@@ -30,7 +48,8 @@ const FEATURES = [
     hasOther: false,
   },
   {
-    icon: "🌎",
+    Icon: Globe,
+    iconColor: "#4ADE80",
     name: "Base de datos global",
     bioDesc: "Open Food Facts + USDA (millones de productos)",
     otherDesc: "Solo productos locales",
@@ -91,8 +110,8 @@ export function BiomarkerSplitPanel() {
               key={f.name}
               className="flex items-center gap-3 px-4 py-3 border-b border-[#0a0a12] last:border-b-0"
             >
-              <div className="w-8 h-8 rounded-lg bg-teal-900/40 flex items-center justify-center text-sm flex-shrink-0">
-                {f.icon}
+              <div className="w-8 h-8 rounded-lg bg-teal-900/40 flex items-center justify-center flex-shrink-0">
+                <f.Icon weight="duotone" size={18} color={f.iconColor} />
               </div>
               <div className="min-w-0">
                 <p className="text-sm text-neutral-200">{f.name}</p>
@@ -114,8 +133,8 @@ export function BiomarkerSplitPanel() {
               key={f.name}
               className="flex items-center gap-3 px-4 py-3 border-b border-[#0a0a12] last:border-b-0"
             >
-              <div className="w-8 h-8 rounded-lg bg-[#111] flex items-center justify-center text-sm flex-shrink-0">
-                {f.icon}
+              <div className="w-8 h-8 rounded-lg bg-[#111] flex items-center justify-center flex-shrink-0">
+                <f.Icon weight="duotone" size={18} color="#4B5563" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm text-neutral-600">{f.name}</p>
