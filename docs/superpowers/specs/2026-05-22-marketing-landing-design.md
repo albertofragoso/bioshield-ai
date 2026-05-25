@@ -91,22 +91,24 @@ CTA 1:     Quiero acceso anticipado
 CTA 2:     Ver demo ↓
 ```
 
-### 2. El momento revelador — ~80vh
+### 2. La brecha de información — 300vh scrollytelling
+
+> ⚠️ **Reemplaza `RevealMomentStory`** — implementado en `feature/scrollytelling-landing` (2026-05-24).  
+> Ver spec completo: `docs/superpowers/specs/2026-05-24-scrollytelling-landing-design.md`
 
 **Componentes:**
-- `RevealMomentStory` (scroll-triggered, CSS + Intersection Observer)
-- `SemaphoreBadge` (variants orange/red)
-- `AvatarGlow`
+- `ScrollytellingSection` — orquestador (desktop: GSAP ScrollTrigger; mobile/reduced-motion: `StaticBeats`)
+- `NutritionLabelPanel` — 4 capas absolutas animadas por GSAP
+- `ScrollyBeat` — texto por beat con fade-in scrubbed
+- `StaticBeats` — fallback estático para mobile y `prefers-reduced-motion`
 
-**Copy:**
-```
-H2:   Lo que tu etiqueta no te dice.
-Body: Carragenina (E407). Tu lab muestra LDL elevado.
-      BioShield te muestra la correlación reportada en estudios públicos
-      — para que decidas con tu médico.
-```
+**4 beats narrativos:**
+1. *Lo que crees saber* — label limpia (claims de marketing)
+2. *Lo que hay realmente* — aditivos E407/E621/E202 revelados
+3. *Lo que significa para ti* — overlay de biomarcadores ilustrativo
+4. *La brecha cerrada* — verdict card + CTA waitlist
 
-Visual: scan de un yogurt + biomarker overlay (sin claim de outcome).
+**Compliance:** Beat 3 usa datos ilustrativos con watermark permanente. Ningún valor numérico ni claim causal.
 
 ### 3. Cómo te ayuda — ~70vh
 

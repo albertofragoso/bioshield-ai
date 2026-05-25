@@ -1,19 +1,30 @@
 "use client";
 
+import { Shield } from "@phosphor-icons/react/dist/csr/Shield";
+import { BookOpen } from "@phosphor-icons/react/dist/csr/BookOpen";
+import { Globe } from "@phosphor-icons/react/dist/csr/Globe";
+import type { Icon } from "@phosphor-icons/react";
+
 const N_INGREDIENTS = 8_000; // TODO: verify with SELECT COUNT(*) FROM ingredients before deploy
 
-const SOURCES = [
+type Source = {
+  name: string;
+  url: string;
+  Icon: Icon;
+};
+
+const SOURCES: Source[] = [
   {
     name: "FDA EAFUS",
     url: "https://www.fda.gov/food/food-additives-petitions/food-additive-status-list",
-    flag: "🇺🇸",
+    Icon: Shield,
   },
   {
     name: "EFSA OpenFoodTox",
     url: "https://www.efsa.europa.eu/en/data/data-open-food-tox",
-    flag: "🇪🇺",
+    Icon: BookOpen,
   },
-  { name: "Codex Alimentarius", url: "https://www.fao.org/fao-who-codexalimentarius", flag: "🌐" },
+  { name: "Codex Alimentarius", url: "https://www.fao.org/fao-who-codexalimentarius", Icon: Globe },
 ];
 
 export function RegulatoryTrust() {
@@ -38,7 +49,7 @@ export function RegulatoryTrust() {
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(74,222,128,.4)")}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
           >
-            <span>{source.flag}</span>
+            <source.Icon weight="duotone" size={16} color="#4ADE80" />
             <span>{source.name}</span>
           </a>
         ))}
