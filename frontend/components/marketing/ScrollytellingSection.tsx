@@ -21,10 +21,12 @@ export function ScrollytellingSection() {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let ctx: any;
+    let cancelled = false;
 
     const init = async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+      if (cancelled) return;
       gsap.registerPlugin(ScrollTrigger);
 
       ctx = gsap.context(() => {
@@ -110,6 +112,7 @@ export function ScrollytellingSection() {
     init();
 
     return () => {
+      cancelled = true;
       ctx?.revert();
     };
   }, [isStaticMode]);
