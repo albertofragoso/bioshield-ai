@@ -30,7 +30,7 @@ export function ScrollytellingSection() {
       gsap.registerPlugin(ScrollTrigger);
 
       ctx = gsap.context(() => {
-        // Pin left panel for entire 300vh scroll
+        // Pin full grid for entire 300vh scroll.
         ScrollTrigger.create({
           trigger: sectionRef.current,
           start: "top top",
@@ -38,6 +38,23 @@ export function ScrollytellingSection() {
           pin: panelRef.current,
           pinSpacing: false,
         });
+
+        // Hide panel when scroll exits the section — tracked by context so ctx.revert() cleans it up.
+        // gsap.set() in onLeave callbacks is NOT tracked by context and persists across Strict Mode re-renders.
+        gsap.fromTo(
+          panelRef.current,
+          { autoAlpha: 1 },
+          {
+            autoAlpha: 0,
+            immediateRender: false,
+            duration: 0.001,
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "bottom top",
+              toggleActions: "play none none reverse",
+            },
+          }
+        );
 
         // Beat 1 → Beat 2 (25–50%)
         const tl2 = gsap.timeline({
@@ -127,10 +144,17 @@ export function ScrollytellingSection() {
       className="relative lg:h-[300vh] h-auto"
       style={{ backgroundColor: "#080C07" }}
     >
-      <div className="lg:sticky lg:top-0 lg:h-screen flex items-center">
+      {/* panelRef wraps the full grid — GSAP pins both columns together.
+          Background required: when position:fixed (during pin), the panel floats
+          over content below; without it, subsequent sections show through. */}
+      <div
+        ref={panelRef}
+        className="lg:h-screen flex items-center w-full z-10"
+        style={{ backgroundColor: "#080C07" }}
+      >
         <div className="grid lg:grid-cols-2 w-full h-full">
-          {/* Left: sticky panel */}
-          <div ref={panelRef} className="relative h-screen">
+          {/* Left: nutrition label panel */}
+          <div className="relative h-screen">
             <NutritionLabelPanel />
           </div>
 
