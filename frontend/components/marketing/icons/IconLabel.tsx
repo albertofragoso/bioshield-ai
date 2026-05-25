@@ -14,6 +14,7 @@ export const IconLabel: React.FC<IconLabelProps> = ({ size = 32, className = "" 
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      aria-hidden="true"
     >
       {/* Glow effect */}
       <defs>
@@ -100,5 +101,3 @@ export const IconLabel: React.FC<IconLabelProps> = ({ size = 32, className = "" 
     </svg>
   );
 };
-
-export default IconLabel;

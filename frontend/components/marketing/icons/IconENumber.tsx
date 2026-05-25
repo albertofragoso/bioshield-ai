@@ -14,6 +14,7 @@ export const IconENumber: React.FC<IconENumberProps> = ({ size = 32, className =
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      aria-hidden="true"
     >
       {/* Glow effect */}
       <defs>
@@ -42,6 +43,7 @@ export const IconENumber: React.FC<IconENumberProps> = ({ size = 32, className =
         x="14"
         y="19"
         textAnchor="middle"
+        dominantBaseline="middle"
         fontSize="10"
         fontWeight="600"
         fill="#4ADE80"
@@ -56,8 +58,9 @@ export const IconENumber: React.FC<IconENumberProps> = ({ size = 32, className =
       {/* Badge text "07" */}
       <text
         x="24"
-        y="11"
+        y="8"
         textAnchor="middle"
+        dominantBaseline="middle"
         fontSize="8"
         fontWeight="700"
         fill="#FFFFFF"
@@ -68,5 +71,3 @@ export const IconENumber: React.FC<IconENumberProps> = ({ size = 32, className =
     </svg>
   );
 };
-
-export default IconENumber;
