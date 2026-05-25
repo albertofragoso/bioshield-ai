@@ -34,7 +34,7 @@ export function ScrollytellingSection() {
         ScrollTrigger.create({
           trigger: sectionRef.current,
           start: "top top",
-          end: "bottom bottom",
+          end: "bottom top",
           pin: panelRef.current,
           pinSpacing: false,
         });
