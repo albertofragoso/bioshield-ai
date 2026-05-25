@@ -4,7 +4,7 @@ import { HeroCursorGlow } from "@/components/marketing/HeroCursorGlow";
 import { HeroFloatingBadges } from "@/components/marketing/HeroFloatingBadges";
 import { PipelineLoopAnim } from "@/components/marketing/PipelineLoopAnim";
 import { FF_MASCOT_GUIDE } from "@/lib/featureFlags";
-import { RevealMomentStory } from "@/components/marketing/RevealMomentStory";
+import { ScrollytellingSection } from "@/components/marketing/ScrollytellingSection";
 import { HowItHelpsGraph } from "@/components/marketing/HowItHelpsGraph";
 import { BiomarkerSplitPanel } from "@/components/marketing/BiomarkerSplitPanel";
 import { RegulatoryTrust } from "@/components/marketing/RegulatoryTrust";
@@ -81,9 +81,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Sección 2: El momento revelador */}
+      {/* Sección 2: Scrollytelling */}
       <section id="reveal" className="py-24" style={{ background: "var(--surface)" }}>
-        <RevealMomentStory />
+        <ScrollytellingSection />
       </section>
 
       {/* Sección 3: Cómo te ayuda */}
