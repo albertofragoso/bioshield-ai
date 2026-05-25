@@ -783,6 +783,8 @@ def create_share_link(
         db.commit()
         db.refresh(scan)
 
+    # share_expires_at is always set by this point (either pre-existing or just assigned above)
+    assert scan.share_expires_at is not None
     return ShareResponse(
         share_url=f"{settings.frontend_url}/scan/share/{scan.share_token}",
         expires_at=scan.share_expires_at,
