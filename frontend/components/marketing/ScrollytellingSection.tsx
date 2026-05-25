@@ -39,22 +39,19 @@ export function ScrollytellingSection() {
           pinSpacing: false,
         });
 
-        // Hide panel when scroll exits the section — tracked by context so ctx.revert() cleans it up.
-        // gsap.set() in onLeave callbacks is NOT tracked by context and persists across Strict Mode re-renders.
-        gsap.fromTo(
-          panelRef.current,
-          { autoAlpha: 1 },
-          {
-            autoAlpha: 0,
-            immediateRender: false,
-            duration: 0.001,
+        // Smooth exit: fade the full grid over the last 10% of scroll so the
+        // transition into the next section is gradual rather than a hard cut.
+        // Scrub handles both forward and backward directions automatically.
+        gsap
+          .timeline({
             scrollTrigger: {
               trigger: sectionRef.current,
-              start: "bottom top",
-              toggleActions: "play none none reverse",
+              start: "90% top",
+              end: "bottom top",
+              scrub: 1,
             },
-          }
-        );
+          })
+          .to(panelRef.current, { autoAlpha: 0, ease: "power1.in" });
 
         // Beat 1 → Beat 2 (25–50%)
         const tl2 = gsap.timeline({
