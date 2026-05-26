@@ -97,8 +97,10 @@ def test_compatibility_pct_never_negative():
     assert _compatibility_pct(4, 4, 5) == 0
 
 
-def test_biomarker_conflicts_detects_sugar():
-    conflicts = _biomarker_conflicts(["sugar", "water", "salt"], ["glucose"])
+def test_biomarker_conflicts_detects_dextrose():
+    # "sugar" is not in the canonical GLUCOSE keywords (too generic);
+    # use "dextrose" which is an explicit entry in BIOMARKER_RULES for glucose.
+    conflicts = _biomarker_conflicts(["dextrose", "water", "salt"], ["glucose"])
     assert any("glucose" in c.lower() for c in conflicts)
 
 

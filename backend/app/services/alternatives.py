@@ -21,6 +21,7 @@ from app.schemas.models import (
     ScannedProductSummary,
     SemaphoreColor,
 )
+from app.services.biomarker_rules import excludes_for, keywords_for
 from app.services.embeddings import embed_text
 from app.services.rag import get_products_collection
 
@@ -32,13 +33,6 @@ _AVATAR_FROM_SEMAPHORE: dict[str, str] = {
     "ORANGE": "orange",
     "RED": "red",
     "GRAY": "gray",
-}
-
-_BIOMARKER_FLAG_KEYWORDS: dict[str, list[str]] = {
-    "ldl": ["trans fat", "hydrogenated", "palm oil", "saturated fat"],
-    "glucose": ["sugar", "sucrose", "high fructose", "dextrose", "maltose"],
-    "sodium": ["sodium", "salt", "monosodium"],
-    "triglycerides": ["sugar", "fructose", "alcohol"],
 }
 
 
@@ -72,10 +66,12 @@ def _biomarker_conflicts(
     conflicts: list[str] = []
     ingredients_lower = [i.lower() for i in product_ingredients]
     for biomarker in active_biomarkers:
-        keywords = _BIOMARKER_FLAG_KEYWORDS.get(biomarker, [])
+        keywords = keywords_for(biomarker)
+        excludes = excludes_for(biomarker)
         for kw in keywords:
-            if any(kw in ing for ing in ingredients_lower):
+            if any(kw in ing and not any(ex in ing for ex in excludes) for ing in ingredients_lower):
                 conflicts.append(f"{biomarker.upper()} · contiene {kw}")
+                break  # one label per biomarker; display-only, not exhaustive matching
     return conflicts
 
 
@@ -235,7 +231,7 @@ async def find_alternatives(
     remaining: list[Product] = list(top5)
 
     for candidate in top5:
-        cand_ingredients = [candidate.name or ""]
+        cand_ingredients = candidate.ingredients_json or []
         conflicts = _biomarker_conflicts(cand_ingredients, active_biomarkers)
         if not conflicts or not has_biomarkers:
             semaphore = _semaphore_from_clean_score(candidate.clean_score)
