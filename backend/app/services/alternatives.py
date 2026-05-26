@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.core.semaphore import semaphore_from_score
 from app.models import Product, ScanHistory
 from app.schemas.models import (
     AlternativeItem,
@@ -22,22 +23,21 @@ from app.schemas.models import (
     SemaphoreColor,
 )
 from app.services.biomarker_rules import excludes_for, keywords_for
-from app.services.semaphore import semaphore_from_score
 from app.services.embeddings import embed_text
 from app.services.rag import get_products_collection
 
 logger = logging.getLogger(__name__)
 
-_AVATAR_FROM_SEMAPHORE: dict[str, str] = {
-    "BLUE": "blue",
-    "YELLOW": "yellow",
-    "ORANGE": "orange",
-    "RED": "red",
-    "GRAY": "gray",
+_AVATAR_FROM_SEMAPHORE: dict[SemaphoreColor, str] = {
+    SemaphoreColor.BLUE: "blue",
+    SemaphoreColor.YELLOW: "yellow",
+    SemaphoreColor.ORANGE: "orange",
+    SemaphoreColor.RED: "red",
+    SemaphoreColor.GRAY: "gray",
 }
 
 
-def _avatar_from_semaphore(sem: str) -> str:
+def _avatar_from_semaphore(sem: SemaphoreColor) -> str:
     return _AVATAR_FROM_SEMAPHORE.get(sem, "gray")
 
 
