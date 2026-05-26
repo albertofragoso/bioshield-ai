@@ -15,9 +15,9 @@ from app.services.alternatives import (
     _biomarker_conflicts,
     _clean_ingredient_labels,
     _compatibility_pct,
-    _semaphore_from_clean_score,
     find_alternatives,
 )
+from app.services.semaphore import semaphore_from_score
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -74,11 +74,11 @@ def _make_scan(
 
 
 def test_semaphore_from_clean_score():
-    assert _semaphore_from_clean_score(0) == "BLUE"
-    assert _semaphore_from_clean_score(1) == "YELLOW"
-    assert _semaphore_from_clean_score(2) == "YELLOW"
-    assert _semaphore_from_clean_score(3) == "ORANGE"
-    assert _semaphore_from_clean_score(5) == "RED"
+    assert semaphore_from_score(0) == "BLUE"
+    assert semaphore_from_score(1) == "YELLOW"
+    assert semaphore_from_score(2) == "YELLOW"
+    assert semaphore_from_score(3) == "ORANGE"
+    assert semaphore_from_score(5) == "RED"
 
 
 def test_compatibility_pct_perfect():

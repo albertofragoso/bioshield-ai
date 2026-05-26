@@ -13,6 +13,7 @@ from app.models import Ingredient, Product, RegulatoryStatus, ScanHistory
 from app.schemas.models import IngredientResult
 from app.services.embeddings import embed_text
 from app.services.rag import build_product_profile, get_products_collection
+from app.services.semaphore import semaphore_from_score
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +39,6 @@ def _compute_clean_score(canonical_names: list[str], db: Session) -> int:
     return score
 
 
-def _semaphore(clean_score: int) -> str:
-    if clean_score == 0:
-        return "BLUE"
-    if clean_score <= 2:
-        return "YELLOW"
-    if clean_score <= 4:
-        return "ORANGE"
-    return "RED"
-
-
 async def _reindex_chroma(product: Product, settings: Settings) -> None:
     collection = get_products_collection(settings)
     profile = build_product_profile(product)
@@ -61,7 +52,7 @@ async def _reindex_chroma(product: Product, settings: Settings) -> None:
                 "barcode": product.barcode,
                 "category": product.category or "",
                 "clean_score": product.clean_score,
-                "semaphore_precomputed": _semaphore(product.clean_score),
+                "semaphore_precomputed": semaphore_from_score(product.clean_score),
             }
         ],
     )

@@ -22,6 +22,7 @@ from app.schemas.models import (
     SemaphoreColor,
 )
 from app.services.biomarker_rules import excludes_for, keywords_for
+from app.services.semaphore import semaphore_from_score
 from app.services.embeddings import embed_text
 from app.services.rag import get_products_collection
 
@@ -34,16 +35,6 @@ _AVATAR_FROM_SEMAPHORE: dict[str, str] = {
     "RED": "red",
     "GRAY": "gray",
 }
-
-
-def _semaphore_from_clean_score(score: int) -> str:
-    if score == 0:
-        return "BLUE"
-    if score <= 2:
-        return "YELLOW"
-    if score <= 4:
-        return "ORANGE"
-    return "RED"
 
 
 def _avatar_from_semaphore(sem: str) -> str:
@@ -234,7 +225,7 @@ async def find_alternatives(
         cand_ingredients = candidate.ingredients_json or []
         conflicts = _biomarker_conflicts(cand_ingredients, active_biomarkers)
         if not conflicts or not has_biomarkers:
-            semaphore = _semaphore_from_clean_score(candidate.clean_score)
+            semaphore = semaphore_from_score(candidate.clean_score)
             clean_labels = _clean_ingredient_labels(all_ingredients, flagged_ingredients)
             top_pick = AlternativeTopPick(
                 product=AlternativeProductOut(
@@ -256,7 +247,7 @@ async def find_alternatives(
     # ── 6. Build secondary list ───────────────────────────────────────────────
     alternatives: list[AlternativeItem] = []
     for candidate in remaining[:4]:
-        sem = _semaphore_from_clean_score(candidate.clean_score)
+        sem = semaphore_from_score(candidate.clean_score)
         alternatives.append(
             AlternativeItem(
                 product=AlternativeProductOut(
@@ -266,7 +257,7 @@ async def find_alternatives(
                     clean_score=candidate.clean_score,
                 ),
                 avatar_variant=_avatar_from_semaphore(sem),
-                semaphore_precomputed=SemaphoreColor(sem),
+                semaphore_precomputed=sem,
             )
         )
 
