@@ -1,6 +1,6 @@
 import pytest
 from app.schemas.models import SemaphoreColor
-from app.services.semaphore import semaphore_from_score
+from app.core.semaphore import semaphore_from_score
 
 
 @pytest.mark.parametrize("score,expected", [

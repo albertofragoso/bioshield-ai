@@ -24,7 +24,7 @@ from app.models import Product
 from app.models.base import SessionLocal
 from app.services.embeddings import embed_text
 from app.services.rag import build_product_profile, get_products_collection
-from app.services.semaphore import semaphore_from_score
+from app.core.semaphore import semaphore_from_score
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

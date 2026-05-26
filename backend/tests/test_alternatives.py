@@ -17,7 +17,7 @@ from app.services.alternatives import (
     _compatibility_pct,
     find_alternatives,
 )
-from app.services.semaphore import semaphore_from_score
+from app.core.semaphore import semaphore_from_score
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 

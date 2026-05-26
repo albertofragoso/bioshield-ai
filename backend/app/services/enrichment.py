@@ -13,7 +13,7 @@ from app.models import Ingredient, Product, RegulatoryStatus, ScanHistory
 from app.schemas.models import IngredientResult
 from app.services.embeddings import embed_text
 from app.services.rag import build_product_profile, get_products_collection
-from app.services.semaphore import semaphore_from_score
+from app.core.semaphore import semaphore_from_score
 
 logger = logging.getLogger(__name__)
 
