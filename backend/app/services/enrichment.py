@@ -52,7 +52,7 @@ async def _reindex_chroma(product: Product, settings: Settings) -> None:
                 "barcode": product.barcode,
                 "category": product.category or "",
                 "clean_score": product.clean_score,
-                "semaphore_precomputed": semaphore_from_score(product.clean_score),
+                "semaphore_precomputed": semaphore_from_score(product.clean_score).value,
             }
         ],
     )

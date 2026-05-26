@@ -73,12 +73,12 @@ def _make_scan(
 # ── pure function tests (no DB needed) ───────────────────────────────────────
 
 
-def test_semaphore_from_clean_score():
-    assert semaphore_from_score(0) == "BLUE"
-    assert semaphore_from_score(1) == "YELLOW"
-    assert semaphore_from_score(2) == "YELLOW"
-    assert semaphore_from_score(3) == "ORANGE"
-    assert semaphore_from_score(5) == "RED"
+def test_semaphore_from_score_via_alternatives():
+    assert semaphore_from_score(0).value == "BLUE"
+    assert semaphore_from_score(1).value == "YELLOW"
+    assert semaphore_from_score(2).value == "YELLOW"
+    assert semaphore_from_score(3).value == "ORANGE"
+    assert semaphore_from_score(5).value == "RED"
 
 
 def test_compatibility_pct_perfect():

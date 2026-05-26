@@ -24,6 +24,7 @@ from app.models import Product
 from app.models.base import SessionLocal
 from app.services.embeddings import embed_text
 from app.services.rag import build_product_profile, get_products_collection
+from app.services.semaphore import semaphore_from_score
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,16 +41,6 @@ def _start_heartbeat(interval: int = 30) -> threading.Event:
     t = threading.Thread(target=_beat, daemon=True)
     t.start()
     return stop
-
-
-def _semaphore(clean_score: int) -> str:
-    if clean_score == 0:
-        return "BLUE"
-    if clean_score <= 2:
-        return "YELLOW"
-    if clean_score <= 4:
-        return "ORANGE"
-    return "RED"
 
 
 def _parse_args() -> argparse.Namespace:
@@ -112,7 +103,7 @@ async def main() -> None:
                         "barcode": product.barcode,
                         "category": product.category or "",
                         "clean_score": product.clean_score,
-                        "semaphore_precomputed": _semaphore(product.clean_score),
+                        "semaphore_precomputed": semaphore_from_score(product.clean_score).value,
                     }
                 ],
             )
