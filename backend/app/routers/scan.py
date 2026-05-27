@@ -230,8 +230,7 @@ async def scan_barcode(
                     yield f"event: ingredients\ndata: {_serialize({'ingredients': ingredients, 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
 
                 elif name == "personalize":
-                    # Acumula insights personalizados
-                    accumulator.personalized_insights = output.get("personalized_insights", [])
+                    accumulator.apply(output)
                     yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulator.personalized_insights})}\n\n"
 
                 elif name == "calculate_risk":
@@ -357,8 +356,7 @@ async def scan_photo(
                     yield f"event: ingredients\ndata: {_serialize({'ingredients': ingredients, 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
 
                 elif name == "personalize":
-                    # Acumula insights personalizados
-                    accumulator.personalized_insights = output.get("personalized_insights", [])
+                    accumulator.apply(output)
                     yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulator.personalized_insights})}\n\n"
 
                 elif name == "calculate_risk":
