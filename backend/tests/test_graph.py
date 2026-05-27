@@ -368,6 +368,44 @@ async def test_normal_glucose_with_hfcs_produces_watch_insight(seeded_db, monkey
     assert watch.reference_range_high == 99.0
 
 
+# ─────────────────────────────────────────────
+# Idempotency — detect_conflicts node must not accumulate on re-runs
+# ─────────────────────────────────────────────
+
+
+async def test_detect_conflicts_node_is_idempotent(seeded_db, monkeypatch):
+    """Running detect_conflicts twice on the same state must not double conflict list."""
+    from app.agents.nodes import make_detect_conflicts_node
+
+    async def _off_hit(*a, **kw):
+        return {
+            "barcode": "8888",
+            "name": "Candy",
+            "brand": "Confectio",
+            "image_url": None,
+            "ingredients": ["Titanium Dioxide"],
+        }
+
+    monkeypatch.setattr(off_client, "fetch_product", _off_hit)
+
+    # Run full graph once to get a resolved state with conflicts
+    result_first = await _run_graph(seeded_db, {"barcode": "8888", "user_id": "x"})
+    resolved_after_first = result_first["resolved"]
+    conflicts_after_first = len(resolved_after_first[0].conflicts)
+    assert conflicts_after_first > 0, "Expected at least one conflict for Titanium Dioxide"
+
+    # Run detect_conflicts node again on the already-resolved state — must not accumulate
+    node = make_detect_conflicts_node(seeded_db)
+    state_with_resolved = dict(result_first)
+    result_second = await node(state_with_resolved)
+    resolved_after_second = result_second["resolved"]
+    conflicts_after_second = len(resolved_after_second[0].conflicts)
+
+    assert conflicts_after_second == conflicts_after_first, (
+        f"Conflicts doubled on re-run: {conflicts_after_first} → {conflicts_after_second}"
+    )
+
+
 async def test_high_glucose_with_hfcs_produces_alert_insight(seeded_db, monkeypatch):
     """Regression: glucose HIGH + HFCS → kind='alert', not watch."""
 

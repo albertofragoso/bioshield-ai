@@ -192,26 +192,32 @@ def make_detect_conflicts_node(db: Session):
     async def node(state: ScanState) -> ScanState:
         resolved = state.get("resolved") or []
 
+        new_resolved: list[IngredientResult] = []
         for item in resolved:
             if item.canonical_name is None:
+                new_resolved.append(item)
                 continue
 
             res = resolve(item.canonical_name, db)
             if not res.ingredient:
+                new_resolved.append(item)
                 continue
 
             db_conflicts = detect_conflicts(res.ingredient, db)
-            for c in db_conflicts:
-                item.conflicts.append(
-                    IngredientConflict(
-                        conflict_type=ConflictType(c.conflict_type),
-                        severity=ConflictSeverity(c.severity),
-                        summary=c.summary,
-                        sources=_sources_from_summary(c.summary),
-                    )
+            new_conflicts = [
+                IngredientConflict(
+                    conflict_type=ConflictType(c.conflict_type),
+                    severity=ConflictSeverity(c.severity),
+                    summary=c.summary,
+                    sources=_sources_from_summary(c.summary),
                 )
+                for c in db_conflicts
+            ]
+            new_resolved.append(
+                item.model_copy(update={"conflicts": new_conflicts})
+            )
 
-        return {"resolved": resolved}
+        return {"resolved": new_resolved}
 
     return node
 
