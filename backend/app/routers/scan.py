@@ -247,7 +247,13 @@ async def scan_barcode(
                         image_url=accumulator.get("product_image_url"),
                     )
                     response = _build_response(accumulator, product.barcode, product.name)
-                    _finalize_scan_history(db, pending_row.id, response)
+                    _finalize_scan_history(
+                        db,
+                        pending_row.id,
+                        response,
+                        semaphore_result=accumulator.semaphore.value if isinstance(accumulator.semaphore, SemaphoreColor) else str(accumulator.semaphore),
+                        conflict_severity=accumulator.conflict_severity,
+                    )
                     finalized = True
 
                     # Dispara enriquecimiento si hay alta confianza
@@ -370,7 +376,13 @@ async def scan_photo(
                     product.needs_barcode_link = True
                     response = _build_response(accumulator, product.barcode, product.name)
                     response.show_barcode_cta = True
-                    _finalize_scan_history(db, pending_row.id, response)
+                    _finalize_scan_history(
+                        db,
+                        pending_row.id,
+                        response,
+                        semaphore_result=accumulator.semaphore.value if isinstance(accumulator.semaphore, SemaphoreColor) else str(accumulator.semaphore),
+                        conflict_severity=accumulator.conflict_severity,
+                    )
                     finalized = True
 
                     # Dispara búsqueda OFF por nombre+marca en background
@@ -504,45 +516,6 @@ def _upsert_product(
     return product
 
 
-def _persist_scan_history(
-    db: Session,
-    user: User,
-    product_barcode: str,
-    state: dict,
-    response: ScanResponse,
-) -> None:
-    resolved: list[IngredientResult] = state.get("resolved") or []
-    semaphore = state.get("semaphore", SemaphoreColor.GRAY)
-
-    primary_ingredient_id: str | None = None
-    for ing in resolved:
-        if ing.canonical_name:
-            row = db.scalar(
-                select(Ingredient).where(Ingredient.canonical_name == ing.canonical_name)
-            )
-            if row:
-                primary_ingredient_id = row.id
-                break
-
-    avg_confidence = (
-        sum(ing.confidence_score for ing in resolved) / len(resolved) if resolved else 0.0
-    )
-
-    db.add(
-        ScanHistory(
-            user_id=user.id,
-            product_barcode=product_barcode,
-            ingredient_id=primary_ingredient_id,
-            semaphore_result=(
-                semaphore.value if isinstance(semaphore, SemaphoreColor) else str(semaphore)
-            ),
-            confidence_score=avg_confidence,
-            conflict_severity=state.get("conflict_severity"),
-            result_json=response.model_dump(mode="json", exclude={"show_barcode_cta"}),
-        )
-    )
-
-
 def _create_pending_row(
     db: Session,
     barcode: str,
@@ -567,12 +540,16 @@ def _finalize_scan_history(
     db: Session,
     scan_id: str,
     response: ScanResponse,
+    semaphore_result: str,
+    conflict_severity: str | None = None,
 ) -> None:
     # UPDATE de la fila pending con el resultado completo.
     row = db.get(ScanHistory, scan_id)
     if not row:
         return
     row.result_json = response.model_dump(mode="json", exclude={"show_barcode_cta"})
+    row.semaphore_result = semaphore_result
+    row.conflict_severity = conflict_severity
     row.status = "done"
     db.commit()
 
@@ -585,7 +562,7 @@ def _mark_scan_failed(db: Session, scan_id: str) -> None:
         db.commit()
 
 
-def _build_response(state: dict, barcode: str, product_name: str | None) -> ScanResponse:
+def _build_response(state: ScanStateAccumulator, barcode: str, product_name: str | None) -> ScanResponse:
     return ScanResponse(
         product_barcode=barcode,
         product_name=product_name or state.get("product_name"),
