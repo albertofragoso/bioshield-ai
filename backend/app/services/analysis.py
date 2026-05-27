@@ -31,6 +31,7 @@ from app.schemas.models import (
     RegulatoryStatus,
     SemaphoreColor,
 )
+from app.core.priorities import worst_severity, worst_status
 from app.services.biomarker_rules import BiomarkerRule, BIOMARKER_RULES
 
 logger = logging.getLogger(__name__)
@@ -40,19 +41,6 @@ logger = logging.getLogger(__name__)
 # similitudes bajas (~0.4–0.55); este valor captura sinónimos sin ruido.
 # Calibrar con ground truth antes de subir.
 _SEMANTIC_SIMILARITY_THRESHOLD = 0.65
-
-_SEVERITY_RANK = {
-    ConflictSeverity.HIGH: 3,
-    ConflictSeverity.MEDIUM: 2,
-    ConflictSeverity.LOW: 1,
-}
-
-_STATUS_RANK = {
-    RegulatoryStatus.BANNED: 4,
-    RegulatoryStatus.RESTRICTED: 3,
-    RegulatoryStatus.UNDER_REVIEW: 2,
-    RegulatoryStatus.APPROVED: 1,
-}
 
 _NEGATION_TERMS = ("free", "without", "sin", "no ", "zero", "libre", "free of")
 
@@ -105,17 +93,10 @@ def aggregate_regulatory_status(status_by_source: dict[str, str]) -> RegulatoryS
     Priority: Banned > Restricted > Under Review > Approved. Unknown values
     are ignored (returns the worst recognized one, or None if none match).
     """
-    worst: RegulatoryStatus | None = None
-    worst_rank = 0
-    for raw in status_by_source.values():
-        status = _coerce_status(raw)
-        if status is None:
-            continue
-        rank = _STATUS_RANK[status]
-        if rank > worst_rank:
-            worst = status
-            worst_rank = rank
-    return worst
+    recognized = [s for raw in status_by_source.values() if (s := _coerce_status(raw)) is not None]
+    if not recognized:
+        return None
+    return worst_status(recognized)
 
 
 def _find_matches_keywords(
@@ -307,7 +288,7 @@ def detect_biomarker_conflicts(
     seen: dict[str, PersonalizedAlert] = {}
     for alert in alerts:
         prev = seen.get(alert.ingredient)
-        if prev is None or _SEVERITY_RANK[alert.severity] > _SEVERITY_RANK[prev.severity]:
+        if prev is None or worst_severity([alert.severity, prev.severity]) == alert.severity:
             seen[alert.ingredient] = alert
     return list(seen.values())
 
@@ -334,7 +315,8 @@ def compute_semaphore(
     # ORANGE: biomarker conflict
     alerts = detect_biomarker_conflicts(ingredients, biomarkers)
     if alerts:
-        worst = max(alerts, key=lambda a: _SEVERITY_RANK[a.severity])
+        worst_sev = worst_severity([a.severity for a in alerts])
+        worst = next(a for a in alerts if a.severity == worst_sev)
         return SemaphoreColor.ORANGE, worst.severity, alerts
 
     # YELLOW: restricted/under review, or existing ingredient conflict
@@ -346,7 +328,7 @@ def compute_semaphore(
         for conflict in ing.conflicts:
             if (
                 worst_conflict_severity is None
-                or _SEVERITY_RANK[conflict.severity] > _SEVERITY_RANK[worst_conflict_severity]
+                or worst_severity([conflict.severity, worst_conflict_severity]) == conflict.severity
             ):
                 worst_conflict_severity = conflict.severity
 
