@@ -22,6 +22,40 @@ Adiciones específicas del backend:
 - **Migraciones:** no modificar `alembic/versions/` manualmente, usar Alembic CLI.
 - **Queries:** usar SQLAlchemy, nunca queries SQL directas.
 
+## Reglas de arquitectura (refactors C1–C4)
+
+### Módulos compartidos van en `app/core/`, no en `app/services/`
+Funciones puras sin estado (semáforo, rankings) viven en `app/core/`. Si dos servicios comparten la misma lógica, extraerla a `app/core/` antes de duplicar.
+
+### Typed shapes para datos externos
+- Los payloads que llegan de fuentes externas (decrypt, API, DB) DEBEN tener un dataclass tipado con `parse_*(raw)` que valide en el punto de entrada.
+- `isinstance(x, dict)` en medio del pipeline = señal de que falta un typed shape.
+- Ejemplo: `DecryptedBiomarker` + `parse_biomarker_payload()` en `app/services/biomarker_rules.py`.
+
+### Acumuladores de estado: usar `apply()`, nunca dict ni asignación directa
+- Los acumuladores parciales (p.ej. `ScanStateAccumulator`) usan `apply(output)` para TODAS las actualizaciones de nodo — sin excepción.
+- `apply()` filtra `None` y claves desconocidas; la asignación directa bypasea esa guardia.
+- Nunca mezclar `accumulator.apply(output)` con `accumulator.campo = output.get(...)` en el mismo stream.
+
+### Pydantic models son inmutables: usar `model_copy(update=...)`
+- Nunca mutar un modelo Pydantic in-place (`.campo = valor`, `.lista.append(...)`).
+- Usar `item = item.model_copy(update={"campo": nuevo_valor})`.
+- LangGraph con last-write-wins channels es especialmente vulnerable a mutaciones in-place que se acumulan en retries.
+
+### StrEnum: no extraer `.value` para comparaciones
+- `SemaphoreColor` y `ConflictSeverity` son `StrEnum` — sus instancias YA son strings.
+- Extraer `.value` solo cuando el destino rechaza enums explícitamente (ChromaDB metadata, columnas DB `str`).
+- En tests los mocks pueden devolver `str` crudo; proteger con `isinstance(x, SemaphoreColor)` antes de `.value`.
+
+### LangGraph TypedDict state: imports en runtime, no TYPE_CHECKING
+- LangGraph llama `get_type_hints()` al construir el grafo.
+- Si un tipo en `ScanState` está bajo `TYPE_CHECKING`, la resolución falla silenciosamente.
+- Usar import directo al nivel del módulo aunque genere una dependencia visible.
+
+### Rankings y mappings compartidos: centralizar en `app/core/priorities.py`
+- Dicts `_STATUS_RANK` / `_SEVERITY_RANK` duplicados en distintos servicios → `worst_status()` / `worst_severity()` en `app/core/priorities.py`.
+- Antes de consolidar: auditar semánticamente que los dicts sean idénticos (diff explícito).
+
 ## Regla crítica: endpoints LLM
 
 Todo endpoint que llame a `gemini.py` (directa o indirectamente via el agente LangGraph)
