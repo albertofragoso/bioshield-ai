@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agents.accumulator import ScanStateAccumulator
 from app.agents.graph import build_scan_graph
 from app.config import Settings, get_settings
 from app.dependencies.token_budget import ENDPOINT_TOKEN_COST, token_budget
@@ -191,17 +192,7 @@ async def scan_barcode(
 
     async def _event_stream():
         # Estado acumulado del grafo entre eventos
-        accumulated: dict = {
-            "extracted_ingredients": [],
-            "product_name": None,
-            "product_brand": None,
-            "product_image_url": None,
-            "source": "barcode",
-            "resolved": [],
-            "semaphore": SemaphoreColor.GRAY,
-            "conflict_severity": None,
-            "personalized_insights": [],
-        }
+        accumulator = ScanStateAccumulator(source="barcode")
         # Bandera para saber si el pipeline completó hasta calculate_risk
         finalized = False
 
@@ -222,7 +213,7 @@ async def scan_barcode(
 
                 if name == "identify_product":
                     # Acumula datos del producto e ingredientes
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
                     ingredients = output.get("extracted_ingredients", [])
 
                     # Si no hay ingredientes, el producto no existe — emite error y termina
@@ -240,27 +231,27 @@ async def scan_barcode(
 
                 elif name == "personalize":
                     # Acumula insights personalizados
-                    accumulated["personalized_insights"] = output.get("personalized_insights", [])
-                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulated['personalized_insights']})}\n\n"
+                    accumulator.personalized_insights = output.get("personalized_insights", [])
+                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulator.personalized_insights})}\n\n"
 
                 elif name == "calculate_risk":
                     # Acumula resultado de riesgo
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
 
                     # Persiste producto y finaliza la fila pending
                     product = _upsert_product(
                         db,
                         barcode=body.barcode,
-                        name=accumulated.get("product_name"),
-                        brand=accumulated.get("product_brand"),
-                        image_url=accumulated.get("product_image_url"),
+                        name=accumulator.get("product_name"),
+                        brand=accumulator.get("product_brand"),
+                        image_url=accumulator.get("product_image_url"),
                     )
-                    response = _build_response(accumulated, product.barcode, product.name)
+                    response = _build_response(accumulator, product.barcode, product.name)
                     _finalize_scan_history(db, pending_row.id, response)
                     finalized = True
 
                     # Dispara enriquecimiento si hay alta confianza
-                    resolved: list[IngredientResult] = accumulated.get("resolved") or []
+                    resolved: list[IngredientResult] = accumulator.get("resolved") or []
                     avg_conf = (
                         sum(r.confidence_score for r in resolved if hasattr(r, "confidence_score"))
                         / len(resolved)
@@ -333,16 +324,7 @@ async def scan_photo(
 
     async def _event_stream():
         # Estado acumulado del grafo entre eventos
-        accumulated: dict = {
-            "extracted_ingredients": [],
-            "product_name": None,
-            "product_brand": None,
-            "source": "photo",
-            "resolved": [],
-            "semaphore": SemaphoreColor.GRAY,
-            "conflict_severity": None,
-            "personalized_insights": [],
-        }
+        accumulator = ScanStateAccumulator(source="photo")
         # Bandera para saber si el pipeline completó hasta calculate_risk
         finalized = False
 
@@ -363,30 +345,30 @@ async def scan_photo(
 
                 if name == "extract_ingredients":
                     # Acumula datos extraídos de la foto
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
                     ingredients = output.get("extracted_ingredients", [])
 
                     yield f"event: ingredients\ndata: {_serialize({'ingredients': ingredients, 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
 
                 elif name == "personalize":
                     # Acumula insights personalizados
-                    accumulated["personalized_insights"] = output.get("personalized_insights", [])
-                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulated['personalized_insights']})}\n\n"
+                    accumulator.personalized_insights = output.get("personalized_insights", [])
+                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulator.personalized_insights})}\n\n"
 
                 elif name == "calculate_risk":
                     # Acumula resultado de riesgo
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
 
                     # Persiste producto y finaliza la fila pending
                     product = _upsert_product(
                         db,
                         barcode=photo_id,
-                        name=accumulated.get("product_name"),
-                        brand=accumulated.get("product_brand"),
+                        name=accumulator.get("product_name"),
+                        brand=accumulator.get("product_brand"),
                         image_url=None,
                     )
                     product.needs_barcode_link = True
-                    response = _build_response(accumulated, product.barcode, product.name)
+                    response = _build_response(accumulator, product.barcode, product.name)
                     response.show_barcode_cta = True
                     _finalize_scan_history(db, pending_row.id, response)
                     finalized = True
@@ -394,8 +376,8 @@ async def scan_photo(
                     # Dispara búsqueda OFF por nombre+marca en background
                     background_tasks.add_task(
                         _run_off_lookup_task,
-                        name=accumulated.get("product_name"),
-                        brand=accumulated.get("product_brand"),
+                        name=accumulator.get("product_name"),
+                        brand=accumulator.get("product_brand"),
                         pseudo_barcode=photo_id,
                         settings=settings,
                     )
