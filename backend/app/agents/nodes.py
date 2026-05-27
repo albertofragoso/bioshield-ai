@@ -169,7 +169,7 @@ def make_biosync_node(db: Session, settings: Settings):
             logger.error("biomarker_parse_failed: %s", exc)
             return {"biomarkers": None}
         except Exception as exc:
-            logger.error("biomarker_decrypt_failed: %s", exc)
+            logger.error("biomarker_decrypt_failed for user %s: %s", user_id, exc)
             return {"biomarkers": None}
 
     return node

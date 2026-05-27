@@ -99,3 +99,20 @@ class TestParseBiomarkerPayload:
         assert result[0].classification == "high"
         assert result[0].value == 145.0
         assert isinstance(result[0], DecryptedBiomarker)
+        assert all(isinstance(bm, DecryptedBiomarker) for bm in result)
+
+    def test_returns_empty_list_for_empty_biomarkers(self):
+        """User with no biomarkers on file: empty list, not an error."""
+        result = parse_biomarker_payload({"biomarkers": []})
+        assert result == []
+
+    def test_skips_malformed_item_and_keeps_valid_ones(self):
+        """Malformed item (missing required 'name') is skipped; valid items are kept."""
+        result = parse_biomarker_payload({
+            "biomarkers": [
+                {"name": "ldl", "classification": "high", "value": 145.0},
+                {"classification": "normal", "value": 95.0},  # missing 'name'
+            ]
+        })
+        assert len(result) == 1
+        assert result[0].name == "ldl"

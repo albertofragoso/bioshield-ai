@@ -146,11 +146,8 @@ def _find_matches_keywords(
         if name is None or classification is None:
             continue
 
-        # Normalize to string value (handles both enum and plain str)
-        name_val = name.value if hasattr(name, "value") else str(name)
-        class_val = (
-            classification.value if hasattr(classification, "value") else str(classification)
-        )
+        name_val = str(name)
+        class_val = str(classification)
 
         if class_val == "unknown":
             continue
@@ -226,7 +223,7 @@ async def find_ingredient_matches(
         bm, ingr_names, severity, kind, direction = match
 
         name = bm.name
-        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
+        name_val = str(name)
 
         rule = next(
             (
@@ -296,7 +293,7 @@ def detect_biomarker_conflicts(
     ):
         name = bm.name
         value = bm.value
-        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
+        name_val = str(name)
         for ingr in ingr_names:
             alerts.append(
                 PersonalizedAlert(
@@ -414,12 +411,8 @@ async def generate_personalized_insights(
         classification = bm.classification
         ref_low = bm.reference_range_low
         ref_high = bm.reference_range_high
-        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
-        class_val = (
-            classification.value
-            if (classification is not None and hasattr(classification, "value"))
-            else str(classification)
-        )
+        name_val = str(name)
+        class_val = str(classification)
         float_value = float(value or 0.0)
 
         copy = await gemini_service.generate_personalized_insight(

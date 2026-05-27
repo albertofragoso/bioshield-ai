@@ -8,8 +8,11 @@ Extending coverage is a data-curation task: add/edit rules here, no code changes
 
 from __future__ import annotations
 
+import logging as _log
 from dataclasses import dataclass
 from typing import Literal
+
+_logger = _log.getLogger(__name__)
 
 from app.schemas.models import (
     CanonicalBiomarker,
@@ -36,8 +39,8 @@ class DecryptedBiomarker:
     reference_range_high: float | None = None
 
 
-def parse_biomarker_payload(raw: dict) -> list["DecryptedBiomarker"]:
-    """Raises ValueError on unrecognized shape (including legacy flat-dict).
+def parse_biomarker_payload(raw: dict | None) -> list["DecryptedBiomarker"]:
+    """Raises ValueError on unrecognized top-level shape. Skips malformed individual items.
 
     Legacy format {"ldl": 130} is rejected — callers must migrate to
     {"biomarkers": [{"name": "ldl", ...}]}.
@@ -45,13 +48,17 @@ def parse_biomarker_payload(raw: dict) -> list["DecryptedBiomarker"]:
     if not isinstance(raw, dict) or "biomarkers" not in raw:
         raise ValueError(
             f"Unrecognized biomarker payload shape: expected dict with 'biomarkers' key, "
-            f"got keys={list(raw.keys()) if isinstance(raw, dict) else type(raw).__name__}"
+            f"got {list(raw.keys()) if isinstance(raw, dict) else type(raw).__name__!r}"
         )
     _fields = set(DecryptedBiomarker.__dataclass_fields__)  # type: ignore[attr-defined]
-    return [
-        DecryptedBiomarker(**{k: v for k, v in bm.items() if k in _fields})
-        for bm in raw["biomarkers"]
-    ]
+    result = []
+    for bm in raw["biomarkers"]:
+        try:
+            fields = {k: v for k, v in bm.items() if k in _fields}
+            result.append(DecryptedBiomarker(**fields))
+        except (TypeError, AttributeError) as exc:
+            _logger.warning("biomarker_item_malformed skipped: %s | item=%r", exc, bm)
+    return result
 
 
 @dataclass(frozen=True)
