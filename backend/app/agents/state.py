@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TypedDict
 
+from app.services.biomarker_rules import DecryptedBiomarker
+
 from app.schemas.models import (
     IngredientConflict,
     IngredientResult,
@@ -28,7 +30,7 @@ class ScanState(TypedDict, total=False):
     extracted_barcode: str | None
     resolved: list[IngredientResult]
     rag_context_by_ingredient: dict[str, str]
-    biomarkers: list | None  # list[Biomarker schema], structured (post-decrypt)
+    biomarkers: list[DecryptedBiomarker] | None
     conflicts_by_ingredient: dict[str, list[IngredientConflict]]
     personalized_insights: list[PersonalizedInsight]
 
