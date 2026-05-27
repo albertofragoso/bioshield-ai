@@ -16,7 +16,42 @@ from app.schemas.models import (
     ConflictSeverity,
 )
 
-__all__ = ["BiomarkerRule", "BIOMARKER_RULES", "keywords_for", "excludes_for"]
+__all__ = [
+    "BiomarkerRule",
+    "BIOMARKER_RULES",
+    "keywords_for",
+    "excludes_for",
+    "DecryptedBiomarker",
+    "parse_biomarker_payload",
+]
+
+
+@dataclass(frozen=True)
+class DecryptedBiomarker:
+    name: str
+    classification: str
+    value: float | None = None
+    unit: str | None = None
+    reference_range_low: float | None = None
+    reference_range_high: float | None = None
+
+
+def parse_biomarker_payload(raw: dict) -> list["DecryptedBiomarker"]:
+    """Raises ValueError on unrecognized shape (including legacy flat-dict).
+
+    Legacy format {"ldl": 130} is rejected — callers must migrate to
+    {"biomarkers": [{"name": "ldl", ...}]}.
+    """
+    if not isinstance(raw, dict) or "biomarkers" not in raw:
+        raise ValueError(
+            f"Unrecognized biomarker payload shape: expected dict with 'biomarkers' key, "
+            f"got keys={list(raw.keys()) if isinstance(raw, dict) else type(raw).__name__}"
+        )
+    _fields = set(DecryptedBiomarker.__dataclass_fields__)  # type: ignore[attr-defined]
+    return [
+        DecryptedBiomarker(**{k: v for k, v in bm.items() if k in _fields})
+        for bm in raw["biomarkers"]
+    ]
 
 
 @dataclass(frozen=True)

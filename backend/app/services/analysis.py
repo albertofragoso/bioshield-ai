@@ -140,12 +140,8 @@ def _find_matches_keywords(
         ]
     ] = []
     for bm in biomarkers:
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
-        classification = (
-            bm.get("classification")
-            if isinstance(bm, dict)
-            else getattr(bm, "classification", None)
-        )
+        name = bm.name
+        classification = bm.classification
 
         if name is None or classification is None:
             continue
@@ -229,7 +225,7 @@ async def find_ingredient_matches(
     for match in keyword_results:
         bm, ingr_names, severity, kind, direction = match
 
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
+        name = bm.name
         name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
 
         rule = next(
@@ -298,8 +294,8 @@ def detect_biomarker_conflicts(
     for bm, ingr_names, severity, _kind, _direction in _find_matches_keywords(
         biomarkers, ingredients
     ):
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
-        value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", None)
+        name = bm.name
+        value = bm.value
         name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
         for ingr in ingr_names:
             alerts.append(
@@ -412,24 +408,12 @@ async def generate_personalized_insights(
         direction: str,
         semantic_score: float = 0.0,
     ) -> PersonalizedInsight:
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", "")
-        value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", 0.0)
-        unit = bm.get("unit") if isinstance(bm, dict) else getattr(bm, "unit", "")
-        classification = (
-            bm.get("classification")
-            if isinstance(bm, dict)
-            else getattr(bm, "classification", "high")
-        )
-        ref_low = (
-            bm.get("reference_range_low")
-            if isinstance(bm, dict)
-            else getattr(bm, "reference_range_low", None)
-        )
-        ref_high = (
-            bm.get("reference_range_high")
-            if isinstance(bm, dict)
-            else getattr(bm, "reference_range_high", None)
-        )
+        name = bm.name
+        value = bm.value
+        unit = bm.unit
+        classification = bm.classification
+        ref_low = bm.reference_range_low
+        ref_high = bm.reference_range_high
         name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
         class_val = (
             classification.value

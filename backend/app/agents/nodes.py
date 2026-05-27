@@ -28,6 +28,7 @@ from app.services.analysis import (
     aggregate_regulatory_status,
     compute_semaphore,
 )
+from app.services.biomarker_rules import parse_biomarker_payload
 from app.services.conflicts import detect_conflicts
 from app.services.crypto import decrypt_biomarker
 from app.services.entity_resolution import resolve
@@ -160,19 +161,16 @@ def make_biosync_node(db: Session, settings: Settings):
             return {"biomarkers": None}
 
         try:
-            data = decrypt_biomarker(
+            raw = decrypt_biomarker(
                 biomarker.encrypted_data, biomarker.encryption_iv, settings.aes_key
             )
-        except Exception as exc:
-            logger.error("Biomarker decryption failed for user %s: %s", user_id, exc)
+            return {"biomarkers": parse_biomarker_payload(raw)}
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.error("biomarker_parse_failed: %s", exc)
             return {"biomarkers": None}
-
-        # New structured format: {"biomarkers": [...], "lab_name": ..., "test_date": ...}
-        # Legacy flat-dict format: {"ldl": 130, ...} — treat as no biomarkers for safety
-        if isinstance(data, dict) and "biomarkers" in data:
-            return {"biomarkers": data["biomarkers"]}
-
-        return {"biomarkers": None}
+        except Exception as exc:
+            logger.error("biomarker_decrypt_failed: %s", exc)
+            return {"biomarkers": None}
 
     return node
 

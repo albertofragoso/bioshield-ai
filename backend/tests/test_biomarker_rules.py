@@ -1,10 +1,14 @@
 """Tests for the biomarker_rules module and the updated alternatives helpers."""
 
+import pytest
+
 from app.services.biomarker_rules import (
     BIOMARKER_RULES,
     BiomarkerRule,
+    DecryptedBiomarker,
     excludes_for,
     keywords_for,
+    parse_biomarker_payload,
 )
 
 
@@ -71,3 +75,27 @@ class TestBiomarkerConflicts:
         # "sodium" keyword matches but "sodium bicarbonate" exclude fires — should not flag
         result = self._fn(["sodium bicarbonate"], ["sodium"])
         assert result == []
+
+
+class TestParseBiomarkerPayload:
+    def test_raises_on_legacy_flatdict(self):
+        """Legacy {"ldl": 130} format must raise ValueError, not return None."""
+        with pytest.raises(ValueError, match="Unrecognized biomarker payload shape"):
+            parse_biomarker_payload({"ldl": 130, "glucose": 95})
+
+    def test_raises_on_missing_biomarkers_key(self):
+        with pytest.raises(ValueError, match="Unrecognized biomarker payload shape"):
+            parse_biomarker_payload({"unexpected": "shape"})
+
+    def test_returns_typed_list_on_valid_payload(self):
+        result = parse_biomarker_payload({
+            "biomarkers": [
+                {"name": "ldl", "classification": "high", "value": 145.0, "unit": "mg/dL"},
+                {"name": "glucose", "classification": "normal", "value": 95.0, "unit": "mg/dL"},
+            ]
+        })
+        assert len(result) == 2
+        assert result[0].name == "ldl"
+        assert result[0].classification == "high"
+        assert result[0].value == 145.0
+        assert isinstance(result[0], DecryptedBiomarker)
