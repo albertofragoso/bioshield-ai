@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
-from app.schemas.models import IngredientResult, PersonalizedInsight, SemaphoreColor
+from app.schemas.models import ConflictSeverity, IngredientResult, PersonalizedInsight, SemaphoreColor
 
 
 @dataclass
@@ -10,7 +11,7 @@ class ScanStateAccumulator:
     """Acumulador tipado para actualizaciones parciales de ScanState desde nodos de astream_events."""
 
     # Origen del escaneo: "barcode" o "photo"
-    source: str = "barcode"
+    source: Literal["barcode", "photo"] = "barcode"
 
     # Datos del producto extraídos por Gemini
     product_name: str | None = None
@@ -23,7 +24,7 @@ class ScanStateAccumulator:
 
     # Evaluación de riesgo
     semaphore: SemaphoreColor = SemaphoreColor.GRAY
-    conflict_severity: str | None = None
+    conflict_severity: ConflictSeverity | None = None
 
     # Insights personalizados contra biomarcadores del usuario
     personalized_insights: list[PersonalizedInsight] = field(default_factory=list)

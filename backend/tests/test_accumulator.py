@@ -3,7 +3,7 @@
 import pytest
 
 from app.agents.accumulator import ScanStateAccumulator
-from app.schemas.models import SemaphoreColor
+from app.schemas.models import ConflictSeverity, SemaphoreColor
 
 
 # ---------------------------------------------------------------------------
@@ -121,3 +121,37 @@ def test_apply_partial_dict_leaves_other_fields_unchanged():
 def test_custom_source_photo():
     acc = ScanStateAccumulator(source="photo")
     assert acc.source == "photo"
+
+
+# ---------------------------------------------------------------------------
+# 9. apply() con dict vacío es no-op
+# ---------------------------------------------------------------------------
+
+def test_apply_empty_dict_is_noop():
+    acc = ScanStateAccumulator()
+    acc.product_name = "Milka"
+    acc.apply({})
+    assert acc.product_name == "Milka"
+
+
+# ---------------------------------------------------------------------------
+# 10. apply() con lista vacía sí sobreescribe ([] no es None)
+# ---------------------------------------------------------------------------
+
+def test_apply_empty_list_overwrites_existing():
+    acc = ScanStateAccumulator()
+    acc.extracted_ingredients = ["azúcar", "sal"]
+    acc.apply({"extracted_ingredients": []})
+    # [] es un update explícito válido, no debe ignorarse
+    assert acc.extracted_ingredients == []
+
+
+# ---------------------------------------------------------------------------
+# 11. apply() reemplaza lista, no hace append
+# ---------------------------------------------------------------------------
+
+def test_apply_list_field_replaces_not_appends():
+    acc = ScanStateAccumulator()
+    acc.extracted_ingredients = ["a", "b"]
+    acc.apply({"extracted_ingredients": ["c"]})
+    assert acc.extracted_ingredients == ["c"]
