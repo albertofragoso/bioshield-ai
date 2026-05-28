@@ -135,8 +135,8 @@ def make_search_regulatory_node(db: Session, settings: Settings):
         for item in resolved:
             lookup = item.canonical_name or item.name
             try:
-                hits = await hybrid_search(lookup, db, settings, top_k=3)
-                context[item.name] = "\n".join(h.document for h in hits)
+                result = await hybrid_search(lookup, db, settings, top_k=3)
+                context[item.name] = "\n".join(h.document for h in result.hits)
             except Exception as exc:
                 logger.warning("RAG search failed for %s: %s", lookup, exc)
                 context[item.name] = ""
