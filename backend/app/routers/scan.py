@@ -684,11 +684,13 @@ async def _run_enrich_task(
     settings,
 ) -> None:
     from app.services.enrichment import enrich_product  # noqa: PLC0415
+    from app.services.retrieval import invalidate_bm25_cache  # noqa: PLC0415
 
     db = SessionLocal()
     try:
         resolved = [IngredientResult.model_validate(i) for i in resolved_json]
         await enrich_product(barcode, resolved, avg_confidence, source, db, settings)
+        invalidate_bm25_cache()
     except Exception as exc:
         logger.error("Enrichment failed for %s: %s", barcode, exc)
     finally:
@@ -702,10 +704,12 @@ async def _run_off_lookup_task(
     settings,
 ) -> None:
     from app.services.enrichment import try_off_lookup  # noqa: PLC0415
+    from app.services.retrieval import invalidate_bm25_cache  # noqa: PLC0415
 
     db = SessionLocal()
     try:
         await try_off_lookup(name, brand, pseudo_barcode, db, settings)
+        invalidate_bm25_cache()
     except Exception as exc:
         logger.error("OFF lookup failed for %s: %s", pseudo_barcode, exc)
     finally:
