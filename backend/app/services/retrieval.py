@@ -75,7 +75,13 @@ def _build_bm25_corpus(db: Session) -> tuple[BM25L, list[Ingredient]]:
 
 
 def _get_bm25_corpus(db: Session) -> tuple[BM25L, list[Ingredient]]:
-    """Devuelve corpus cacheado; reconstruye si el cache está vacío."""
+    """Devuelve corpus cacheado; reconstruye si el cache está vacío.
+
+    NOTA: bajo concurrencia dos tareas pueden ver None simultáneamente y
+    ambas construir el corpus. Es una doble-construcción benigna (mismo
+    resultado, último escritor gana). No agregar lock — el corpus es pequeño
+    (< 20k registros) y la contención es rara.
+    """
     global _bm25_cache
     if _bm25_cache is None:
         _bm25_cache = _build_bm25_corpus(db)
