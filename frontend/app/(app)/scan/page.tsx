@@ -27,18 +27,21 @@ export default function ScanPage() {
   const scanningRef = useRef<boolean>(false);
   const navigatedRef = useRef<boolean>(false);
 
-  const { startBarcodeStream, startPhotoStream, scanId, status } = useScanStreamingStore();
+  const { startBarcodeStream, startPhotoStream, productBarcode, status } = useScanStreamingStore();
 
-  // Navega a /scan/[scanId] cuando el evento init llega y el store tiene scanId
+  // Navega a /scan/[productBarcode] cuando productBarcode llega.
+  // Acepta "streaming" O "done": si todos los eventos SSE llegan en un solo
+  // chunk de red, Zustand los procesa en batch y el status salta directo a
+  // "done" antes del siguiente render — la condición "streaming" sola lo pierde.
   useEffect(() => {
-    if (scanId && status === "streaming" && !navigatedRef.current) {
+    if (productBarcode && (status === "streaming" || status === "done") && !navigatedRef.current) {
       navigatedRef.current = true;
-      router.push(`/scan/${scanId}`);
+      router.push(`/scan/${productBarcode}`);
     }
     if (status === "idle") {
       navigatedRef.current = false;
     }
-  }, [scanId, status, router]);
+  }, [productBarcode, status, router]);
 
   const handleBarcodeDetect = useCallback(
     (barcode: string) => {

@@ -7,6 +7,7 @@ avoid duplicating product metadata per scan.
 /scan/contribute delega el POST a OFF a BackgroundTasks con sesión DB separada.
 """
 
+import base64
 import json
 import logging
 import secrets
@@ -16,6 +17,7 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import null as sql_null
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,7 +27,7 @@ from app.config import Settings, get_settings
 from app.dependencies.token_budget import ENDPOINT_TOKEN_COST, token_budget
 from app.middleware.auth import get_current_user
 from app.middleware.rate_limit import limiter
-from app.models import Ingredient, OFFContribution, Product, ScanHistory, User
+from app.models import OFFContribution, Product, ScanHistory, User
 from app.models.base import SessionLocal, get_db
 from app.schemas.models import (
     AlternativesResponse,
@@ -86,7 +88,10 @@ def get_scan_history(
     rows = db.execute(
         select(ScanHistory, Product.name)
         .join(Product, ScanHistory.product_barcode == Product.barcode)
-        .where(ScanHistory.user_id == current_user.id)
+        .where(
+            ScanHistory.user_id == current_user.id,
+            ScanHistory.semaphore_result != "PENDING",
+        )
         .order_by(ScanHistory.scanned_at.desc())
         .limit(limit)
     ).all()
@@ -120,11 +125,11 @@ def get_scan_result(
         .where(
             ScanHistory.product_barcode == barcode,
             ScanHistory.user_id == current_user.id,
-            ScanHistory.result_json.isnot(None),
+            ScanHistory.status == "done",
         )
         .order_by(ScanHistory.scanned_at.desc())
     )
-    if row is None:
+    if row is None or row.result_json is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
     product = db.scalar(select(Product).where(Product.barcode == barcode))
     response = ScanResponse.model_validate(row.result_json)
@@ -185,8 +190,13 @@ async def scan_barcode(
     settings: Settings = Depends(get_settings),
     _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["scan_barcode"])),
 ):
+    # Captura user_id como string mientras la sesión está abierta.
+    # token_budget hace db.commit() que expira current_user; FastAPI cierra la sesión
+    # antes de iterar el StreamingResponse body → el generator no puede acceder al ORM object.
+    user_id = str(current_user.id)
+
     # Inserta fila pending antes de iniciar el stream para evitar 404 durante streaming
-    pending_row = _create_pending_row(db, body.barcode, current_user.id)
+    pending_row = _create_pending_row(db, body.barcode, user_id)
 
     graph = build_scan_graph(db, settings)
 
@@ -201,7 +211,7 @@ async def scan_barcode(
             yield f"event: init\ndata: {_serialize({'scan_id': pending_row.id, 'product_barcode': body.barcode})}\n\n"
 
             async for event in graph.astream_events(
-                {"barcode": body.barcode, "user_id": current_user.id},
+                {"barcode": body.barcode, "user_id": user_id},
                 version="v2",
             ):
                 # Solo procesamos eventos de fin de nodo
@@ -209,6 +219,7 @@ async def scan_barcode(
                     continue
 
                 name = event.get("name", "")
+
                 output = event.get("data", {}).get("output", {})
 
                 if name == "identify_product":
@@ -320,10 +331,15 @@ async def scan_photo(
     _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["scan_photo"])),
 ):
     image_bytes = await file.read()
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
     photo_id = f"photo-{secrets.token_urlsafe(8)}"
+    # Captura user_id como string mientras la sesión está abierta.
+    # token_budget hace db.commit() que expira current_user; FastAPI cierra la sesión
+    # antes de iterar el StreamingResponse body → el generator no puede acceder al ORM object.
+    user_id = str(current_user.id)
 
     # Inserta fila pending antes de iniciar el stream para evitar 404 durante streaming
-    pending_row = _create_pending_row(db, photo_id, current_user.id)
+    pending_row = _create_pending_row(db, photo_id, user_id)
 
     graph = build_scan_graph(db, settings)
 
@@ -338,7 +354,7 @@ async def scan_photo(
             yield f"event: init\ndata: {_serialize({'scan_id': pending_row.id, 'product_barcode': photo_id})}\n\n"
 
             async for event in graph.astream_events(
-                {"image_bytes": image_bytes, "user_id": current_user.id},
+                {"image_b64": image_b64, "user_id": user_id},
                 version="v2",
             ):
                 # Solo procesamos eventos de fin de nodo
@@ -525,7 +541,7 @@ def _create_pending_row(
         product_barcode=barcode,
         user_id=user_id,
         semaphore_result="PENDING",
-        result_json=None,
+        result_json=sql_null(),  # SQL NULL, not JSON null — evita que el GET lo devuelva como "más reciente"
         status="pending",
     )
     db.add(row)

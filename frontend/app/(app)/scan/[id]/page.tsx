@@ -224,19 +224,28 @@ function ScanResultInner() {
   const id = decodeURIComponent(rawId);
   const queryClient = useQueryClient();
 
+  const isMountedRef = useRef(false);
   const { status: streamStatus, partial, productBarcode, clearStream } = useScanStreamingStore();
   const isStreaming = streamStatus === "streaming";
 
-  // Limpia el store al desmontar para evitar state stale en back-navigation
+  // Limpia el store al desmontar para evitar state stale en back-navigation.
+  // Usa setTimeout(0) para que React Strict Mode (dev) no aborte un stream en progreso:
+  // el remount del Strict Mode pone isMountedRef.current = true antes de que el timeout
+  // dispare → skip. En unmount real el timeout dispara con isMountedRef.current = false.
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
-      clearStream();
+      isMountedRef.current = false;
+      const ref = isMountedRef;
+      setTimeout(() => {
+        if (!ref.current) clearStream();
+      }, 0);
     };
   }, [clearStream]);
 
-  // Cuando el stream termina, invalida el query para obtener datos completos del servidor
+  // Cuando el stream termina (ok o error), invalida el query para datos finales del servidor
   useEffect(() => {
-    if (streamStatus === "done") {
+    if (streamStatus === "done" || streamStatus === "error") {
       queryClient.invalidateQueries({ queryKey: ["scan", id] });
     }
   }, [streamStatus, id, queryClient]);
@@ -266,7 +275,8 @@ function ScanResultInner() {
   if (!displayData && isStreaming) return <LoadingState />;
 
   if (isLoading && !displayData) return <LoadingState />;
-  if (isError || !displayData) return <NoCacheState />;
+  if (isStreaming && !displayData) return <LoadingState />;
+  if ((isError || !displayData) && !isStreaming) return <NoCacheState />;
 
   // A partir de aquí, displayData es siempre non-null
   const data_ = displayData;
