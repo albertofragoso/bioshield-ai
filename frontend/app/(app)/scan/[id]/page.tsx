@@ -267,10 +267,10 @@ function ScanResultInner() {
     gcTime: 10 * 60 * 1000,
   });
 
-  // Usa data del query si está disponible; si no, usa partial del stream activo.
-  // Cubre también la ventana de transición post-done donde el query aún no completó.
-  const hasPartialData =
-    (isStreaming || (streamStatus === "done" && !data)) && Object.keys(partial).length > 0;
+  // Usa data del query si está disponible; si no, usa partial como fallback
+  // SOLO en la ventana post-done/pre-query (no durante streaming — evita mostrar
+  // semáforo GRAY "Sin datos suficientes" mientras el pipeline aún no terminó).
+  const hasPartialData = streamStatus === "done" && !data && Object.keys(partial).length > 0;
   const displayData: ScanResponse | null =
     data ?? (hasPartialData ? buildPartialDisplay(partial, productBarcode) : null);
 
