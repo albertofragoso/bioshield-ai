@@ -150,12 +150,10 @@ function LinkBarcodeCard({ pseudoBarcode }: { pseudoBarcode: string }) {
       <div className="flex items-start gap-2">
         <span className="text-[18px]">🔗</span>
         <div>
-          <p className="text-[13px] font-semibold text-[#cbd5e1]">
-            ¿Tienes el producto a la mano?
-          </p>
+          <p className="text-[13px] font-semibold text-[#cbd5e1]">¿Tienes el producto a la mano?</p>
           <p className="text-[11px] text-[#475569] mt-0.5">
-            Escanea su código de barras para que BioShield lo recuerde
-            y pueda sugerirte alternativas más limpias.
+            Escanea su código de barras para que BioShield lo recuerde y pueda sugerirte
+            alternativas más limpias.
           </p>
         </div>
       </div>
@@ -258,6 +256,8 @@ function ScanResultInner() {
     staleTime: 30 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
+    // No disparar mientras el stream está activo — evita 404 prematuro y retry backoff
+    enabled: !isStreaming,
   });
 
   const { data: bioStatus } = useQuery<BiomarkerStatusResponse>({
@@ -267,16 +267,22 @@ function ScanResultInner() {
     gcTime: 10 * 60 * 1000,
   });
 
-  // Usa data del query si está disponible; si no, usa partial del stream activo
-  const hasPartialData = isStreaming && Object.keys(partial).length > 0;
-  const displayData: ScanResponse | null = data ?? (hasPartialData ? buildPartialDisplay(partial, productBarcode) : null);
+  // Usa data del query si está disponible; si no, usa partial del stream activo.
+  // Cubre también la ventana de transición post-done donde el query aún no completó.
+  const hasPartialData =
+    (isStreaming || (streamStatus === "done" && !data)) && Object.keys(partial).length > 0;
+  const displayData: ScanResponse | null =
+    data ?? (hasPartialData ? buildPartialDisplay(partial, productBarcode) : null);
 
   // Skeleton mientras el stream está activo y no hay datos parciales aún
   if (!displayData && isStreaming) return <LoadingState />;
 
   if (isLoading && !displayData) return <LoadingState />;
   if (isStreaming && !displayData) return <LoadingState />;
-  if ((isError || !displayData) && !isStreaming) return <NoCacheState />;
+  // No mostrar NoCacheState mientras el query está refetcheando post-stream
+  if ((isError || !displayData) && !isStreaming && !isFetching) return <NoCacheState />;
+  // Cubre el gap: sin partial, sin data, pero isFetching=true (post-done, query en vuelo)
+  if (!displayData) return <LoadingState />;
 
   // A partir de aquí, displayData es siempre non-null
   const data_ = displayData;
@@ -420,9 +426,7 @@ function ScanResultInner() {
                 Reportar
               </button>
             </div>
-            {data?.db_id && (
-              <ShareButton scanDbId={data.db_id} />
-            )}
+            {data?.db_id && <ShareButton scanDbId={data.db_id} />}
           </div>
         </div>
 
@@ -649,7 +653,13 @@ const INSIGHT_BORDER: Record<string, string> = {
 
 // ── Para ti — section ────────────────────────────────────────────────────────
 
-function ParaTiSection({ insights, scannedAt }: { insights: PersonalizedInsight[], scannedAt: string }) {
+function ParaTiSection({
+  insights,
+  scannedAt,
+}: {
+  insights: PersonalizedInsight[];
+  scannedAt: string;
+}) {
   const alerts = insights.filter((i) => i.kind === "alert");
   const watches = insights.filter((i) => i.kind === "watch");
   const initialTab: "alerts" | "watches" = alerts.length > 0 ? "alerts" : "watches";
@@ -683,7 +693,12 @@ function ParaTiSection({ insights, scannedAt }: { insights: PersonalizedInsight[
             Cruce con tus biomarcadores recientes
           </p>
           <p className="font-mono text-[9px] text-subtext">
-            Basado en biomarkers del {new Date(scannedAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
+            Basado en biomarkers del{" "}
+            {new Date(scannedAt).toLocaleDateString("es-MX", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
           </p>
         </div>
         <div className="sm:w-64 shrink-0">
