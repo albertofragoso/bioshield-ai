@@ -1,16 +1,19 @@
 import logging
 import logging.config
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.core.context import REQUEST_ID_VAR
 from app.middleware.logging import LOGGING_CONFIG, RequestIDMiddleware
 from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
+from app.models.base import get_db
 from app.routers import analytics, auth, biosync, scan, waitlist
 
 settings = get_settings()
@@ -72,5 +75,11 @@ app.include_router(waitlist.router)  # público, sin JWT
 
 
 @app.get("/health", tags=["health"])
-def health_check():
-    return {"status": "ok", "app": settings.app_name}
+async def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+        db_status = "ok"
+    except Exception:
+        db_status = "error"
+    overall = "ok" if db_status == "ok" else "degraded"
+    return {"status": overall, "db": db_status, "app": settings.app_name}
