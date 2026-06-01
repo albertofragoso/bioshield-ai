@@ -434,7 +434,7 @@ def _biomarkers_to_flags(biomarkers: dict) -> dict[str, bool]:
     """
     flags: dict[str, bool] = {}
     for name, value in biomarkers.items():
-        if not isinstance(value, (int, float)):
+        if not isinstance(value, int | float):
             continue
         if name in _BIOMARKER_THRESHOLDS:
             low, high = _BIOMARKER_THRESHOLDS[name]

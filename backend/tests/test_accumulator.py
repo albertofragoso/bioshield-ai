@@ -1,14 +1,12 @@
 """Tests para ScanStateAccumulator — acumulador tipado de estado parcial del agente."""
 
-import pytest
-
 from app.agents.accumulator import ScanStateAccumulator
-from app.schemas.models import ConflictSeverity, SemaphoreColor
-
+from app.schemas.models import SemaphoreColor
 
 # ---------------------------------------------------------------------------
 # 1. Valores por defecto
 # ---------------------------------------------------------------------------
+
 
 def test_default_semaphore_is_gray():
     acc = ScanStateAccumulator()
@@ -34,6 +32,7 @@ def test_default_source_is_barcode():
 # 2. apply() establece valores no-None para claves conocidas
 # ---------------------------------------------------------------------------
 
+
 def test_apply_sets_known_key():
     acc = ScanStateAccumulator()
     acc.apply({"product_name": "Oreo"})
@@ -50,6 +49,7 @@ def test_apply_sets_semaphore():
 # 3. apply() NO sobreescribe cuando el valor del output es None
 # ---------------------------------------------------------------------------
 
+
 def test_apply_does_not_overwrite_with_none():
     acc = ScanStateAccumulator()
     acc.product_name = "Coca-Cola"
@@ -62,6 +62,7 @@ def test_apply_does_not_overwrite_with_none():
 # 4. apply() ignora claves desconocidas sin lanzar excepción
 # ---------------------------------------------------------------------------
 
+
 def test_apply_ignores_unknown_keys():
     acc = ScanStateAccumulator()
     # No debe lanzar excepción con claves que no existen en el dataclass
@@ -71,6 +72,7 @@ def test_apply_ignores_unknown_keys():
 # ---------------------------------------------------------------------------
 # 5. get() retorna el valor del atributo para claves conocidas
 # ---------------------------------------------------------------------------
+
 
 def test_get_returns_known_attribute():
     acc = ScanStateAccumulator()
@@ -87,6 +89,7 @@ def test_get_returns_default_source():
 # 6. get() retorna el default proporcionado para claves desconocidas
 # ---------------------------------------------------------------------------
 
+
 def test_get_returns_default_for_unknown_key():
     acc = ScanStateAccumulator()
     assert acc.get("no_existe", "fallback") == "fallback"
@@ -100,6 +103,7 @@ def test_get_returns_none_default_for_unknown_key():
 # ---------------------------------------------------------------------------
 # 7. apply() con dict parcial solo toca las claves especificadas
 # ---------------------------------------------------------------------------
+
 
 def test_apply_partial_dict_leaves_other_fields_unchanged():
     acc = ScanStateAccumulator()
@@ -118,6 +122,7 @@ def test_apply_partial_dict_leaves_other_fields_unchanged():
 # 8. Instanciar con source="photo" personalizado
 # ---------------------------------------------------------------------------
 
+
 def test_custom_source_photo():
     acc = ScanStateAccumulator(source="photo")
     assert acc.source == "photo"
@@ -126,6 +131,7 @@ def test_custom_source_photo():
 # ---------------------------------------------------------------------------
 # 9. apply() con dict vacío es no-op
 # ---------------------------------------------------------------------------
+
 
 def test_apply_empty_dict_is_noop():
     acc = ScanStateAccumulator()
@@ -138,6 +144,7 @@ def test_apply_empty_dict_is_noop():
 # 10. apply() con lista vacía sí sobreescribe ([] no es None)
 # ---------------------------------------------------------------------------
 
+
 def test_apply_empty_list_overwrites_existing():
     acc = ScanStateAccumulator()
     acc.extracted_ingredients = ["azúcar", "sal"]
@@ -149,6 +156,7 @@ def test_apply_empty_list_overwrites_existing():
 # ---------------------------------------------------------------------------
 # 11. apply() reemplaza lista, no hace append
 # ---------------------------------------------------------------------------
+
 
 def test_apply_list_field_replaces_not_appends():
     acc = ScanStateAccumulator()

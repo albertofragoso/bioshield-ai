@@ -3,7 +3,6 @@
 RED phase: all tests should FAIL before fixes are applied.
 """
 
-
 import pytest
 from pydantic import ValidationError
 

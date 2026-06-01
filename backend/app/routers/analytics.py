@@ -11,9 +11,8 @@ from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.middleware.rate_limit import limiter
-
 from app.middleware.auth import get_current_user
+from app.middleware.rate_limit import limiter
 from app.models import AnalyticsEvent, User
 from app.models.base import get_db
 from app.schemas.models import AnalyticsEventIn

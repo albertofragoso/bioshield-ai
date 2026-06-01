@@ -12,12 +12,12 @@ import logging as _log
 from dataclasses import dataclass
 from typing import Literal
 
-_logger = _log.getLogger(__name__)
-
 from app.schemas.models import (
     CanonicalBiomarker,
     ConflictSeverity,
 )
+
+_logger = _log.getLogger(__name__)
 
 __all__ = [
     "BiomarkerRule",
@@ -39,7 +39,7 @@ class DecryptedBiomarker:
     reference_range_high: float | None = None
 
 
-def parse_biomarker_payload(raw: dict | None) -> list["DecryptedBiomarker"]:
+def parse_biomarker_payload(raw: dict | None) -> list[DecryptedBiomarker]:
     """Raises ValueError on unrecognized top-level shape. Skips malformed individual items.
 
     Legacy format {"ldl": 130} is rejected — callers must migrate to

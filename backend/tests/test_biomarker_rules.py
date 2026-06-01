@@ -88,12 +88,14 @@ class TestParseBiomarkerPayload:
             parse_biomarker_payload({"unexpected": "shape"})
 
     def test_returns_typed_list_on_valid_payload(self):
-        result = parse_biomarker_payload({
-            "biomarkers": [
-                {"name": "ldl", "classification": "high", "value": 145.0, "unit": "mg/dL"},
-                {"name": "glucose", "classification": "normal", "value": 95.0, "unit": "mg/dL"},
-            ]
-        })
+        result = parse_biomarker_payload(
+            {
+                "biomarkers": [
+                    {"name": "ldl", "classification": "high", "value": 145.0, "unit": "mg/dL"},
+                    {"name": "glucose", "classification": "normal", "value": 95.0, "unit": "mg/dL"},
+                ]
+            }
+        )
         assert len(result) == 2
         assert result[0].name == "ldl"
         assert result[0].classification == "high"
@@ -108,11 +110,13 @@ class TestParseBiomarkerPayload:
 
     def test_skips_malformed_item_and_keeps_valid_ones(self):
         """Malformed item (missing required 'name') is skipped; valid items are kept."""
-        result = parse_biomarker_payload({
-            "biomarkers": [
-                {"name": "ldl", "classification": "high", "value": 145.0},
-                {"classification": "normal", "value": 95.0},  # missing 'name'
-            ]
-        })
+        result = parse_biomarker_payload(
+            {
+                "biomarkers": [
+                    {"name": "ldl", "classification": "high", "value": 145.0},
+                    {"classification": "normal", "value": 95.0},  # missing 'name'
+                ]
+            }
+        )
         assert len(result) == 1
         assert result[0].name == "ldl"

@@ -5,14 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TypedDict
 
-from app.services.biomarker_rules import DecryptedBiomarker
-
 from app.schemas.models import (
     IngredientConflict,
     IngredientResult,
     PersonalizedInsight,
     SemaphoreColor,
 )
+from app.services.biomarker_rules import DecryptedBiomarker
 
 
 class ScanState(TypedDict, total=False):

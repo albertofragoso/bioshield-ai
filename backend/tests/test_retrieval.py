@@ -7,20 +7,17 @@ import unittest
 from dataclasses import dataclass
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 import app.services.retrieval as r
 from app.services.retrieval import (
     RetrievalResult,
-    RankedHit,
     _get_bm25_corpus,
     invalidate_bm25_cache,
 )
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _make_ingredient(name: str = "aspartame", entity_id: str = "eid-001"):
     ing = MagicMock()
@@ -48,6 +45,7 @@ def _reset_cache():
 # 1. invalidate_bm25_cache limpia el cache
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestInvalidateCache(unittest.TestCase):
     def tearDown(self):
         _reset_cache()
@@ -64,6 +62,7 @@ class TestInvalidateCache(unittest.TestCase):
 # ──────────────────────────────────────────────────────────────────────────────
 # 2. _get_bm25_corpus cachea en el segundo llamado
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestGetBm25CorpusCaching(unittest.TestCase):
     def tearDown(self):
@@ -85,6 +84,7 @@ class TestGetBm25CorpusCaching(unittest.TestCase):
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. hybrid_search devuelve RetrievalResult en el camino feliz
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class _FakeVectorHit:
@@ -130,6 +130,7 @@ class TestHybridSearchReturnsRetrievalResult(unittest.IsolatedAsyncioTestCase):
 # 4. fallback activa fallback_used=True cuando embed_text lanza excepción
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestHybridSearchFallback(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):
         _reset_cache()
@@ -153,6 +154,7 @@ class TestHybridSearchFallback(unittest.IsolatedAsyncioTestCase):
 # ──────────────────────────────────────────────────────────────────────────────
 # 5. embed_ms es positivo cuando embed_text tiene latencia real
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestEmbedMsPositiveOnSuccess(unittest.IsolatedAsyncioTestCase):
     def tearDown(self):

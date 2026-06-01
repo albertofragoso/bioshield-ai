@@ -1,4 +1,5 @@
 """S7 — Log formatter redaction tests (L3)."""
+
 import logging
 
 
@@ -31,9 +32,7 @@ def test_safe_keys_pass_through():
 
 def test_token_count_keys_pass_through():
     """tokens_total / tokens_prompt are legitimate cost-logging fields — not redacted."""
-    payload = _format_record(
-        "app", "call", extra={"tokens_total": 1000, "tokens_prompt": 500}
-    )
+    payload = _format_record("app", "call", extra={"tokens_total": 1000, "tokens_prompt": 500})
     assert payload["tokens_total"] == 1000
     assert payload["tokens_prompt"] == 500
 

@@ -213,9 +213,7 @@ def make_detect_conflicts_node(db: Session):
                 )
                 for c in db_conflicts
             ]
-            new_resolved.append(
-                item.model_copy(update={"conflicts": new_conflicts})
-            )
+            new_resolved.append(item.model_copy(update={"conflicts": new_conflicts}))
 
         return {"resolved": new_resolved}
 

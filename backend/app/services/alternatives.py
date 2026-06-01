@@ -60,7 +60,9 @@ def _biomarker_conflicts(
         keywords = keywords_for(biomarker)
         excludes = excludes_for(biomarker)
         for kw in keywords:
-            if any(kw in ing and not any(ex in ing for ex in excludes) for ing in ingredients_lower):
+            if any(
+                kw in ing and not any(ex in ing for ex in excludes) for ing in ingredients_lower
+            ):
                 conflicts.append(f"{biomarker.upper()} · contiene {kw}")
                 break  # one label per biomarker; display-only, not exhaustive matching
     return conflicts

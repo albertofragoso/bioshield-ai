@@ -7,6 +7,7 @@ Limits:
 - Global fallback:                 60 req/min per IP
 """
 
+import os as _os
 from datetime import UTC, datetime, time, timedelta
 
 from fastapi import Request
@@ -50,8 +51,6 @@ def _seconds_until_midnight_utc() -> int:
     midnight = datetime.combine(now.date() + timedelta(days=1), time.min, tzinfo=UTC)
     return max(1, int((midnight - now).total_seconds()))
 
-
-import os as _os
 
 _forwarded_allow_ips = _os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
 

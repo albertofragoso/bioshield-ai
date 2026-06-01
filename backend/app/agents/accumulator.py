@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from app.schemas.models import ConflictSeverity, IngredientResult, PersonalizedInsight, SemaphoreColor
+from app.schemas.models import (
+    ConflictSeverity,
+    IngredientResult,
+    PersonalizedInsight,
+    SemaphoreColor,
+)
 
 
 @dataclass

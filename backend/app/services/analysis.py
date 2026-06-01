@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Literal, cast
 if TYPE_CHECKING:
     from app.config import Settings
 
+from app.core.priorities import worst_severity, worst_status
 from app.schemas.models import (
     CanonicalBiomarker,
     ConflictSeverity,
@@ -31,8 +32,7 @@ from app.schemas.models import (
     RegulatoryStatus,
     SemaphoreColor,
 )
-from app.core.priorities import worst_severity, worst_status
-from app.services.biomarker_rules import BiomarkerRule, BIOMARKER_RULES
+from app.services.biomarker_rules import BIOMARKER_RULES
 
 logger = logging.getLogger(__name__)
 

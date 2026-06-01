@@ -3,6 +3,7 @@
 Red phase: these tests fail until _biomarkers_to_flags and _decode_base64_safe
 are added to app.services.gemini.
 """
+
 import base64
 import json
 

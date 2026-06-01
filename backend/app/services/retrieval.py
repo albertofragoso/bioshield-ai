@@ -47,8 +47,8 @@ class RankedHit:
 class RetrievalResult:
     hits: list[RankedHit]
     fallback_used: bool  # True cuando vector search falló, se usó solo BM25
-    corpus_size: int     # número de ingredientes en el corpus BM25 al momento del query
-    embed_ms: float      # wall-clock ms del llamado a embed_text() (0.0 si fallback)
+    corpus_size: int  # número de ingredientes en el corpus BM25 al momento del query
+    embed_ms: float  # wall-clock ms del llamado a embed_text() (0.0 si fallback)
 
 
 __all__ = ["hybrid_search", "invalidate_bm25_cache", "RankedHit", "RetrievalResult"]

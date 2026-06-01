@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from app.core.semaphore import semaphore_from_score
 from app.models import Product, ScanHistory
 from app.services.alternatives import (
     _biomarker_conflicts,
@@ -17,7 +18,6 @@ from app.services.alternatives import (
     _compatibility_pct,
     find_alternatives,
 )
-from app.core.semaphore import semaphore_from_score
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
