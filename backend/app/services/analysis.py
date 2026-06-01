@@ -32,7 +32,7 @@ from app.schemas.models import (
     RegulatoryStatus,
     SemaphoreColor,
 )
-from app.services.biomarker_rules import BIOMARKER_RULES
+from app.services.biomarker_rules import BIOMARKER_RULES, DecryptedBiomarker
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,11 @@ def _find_matches_keywords(
     ingredients: list[IngredientResult],
 ) -> list[
     tuple[
-        object, list[str], ConflictSeverity, Literal["alert", "watch"], Literal["raises", "lowers"]
+        DecryptedBiomarker,
+        list[str],
+        ConflictSeverity,
+        Literal["alert", "watch"],
+        Literal["raises", "lowers"],
     ]
 ]:
     """Keyword-only matching. Sync — usado por detect_biomarker_conflicts y como base de find_ingredient_matches."""
@@ -113,7 +117,7 @@ def _find_matches_keywords(
 
     matches: list[
         tuple[
-            object,
+            DecryptedBiomarker,
             list[str],
             ConflictSeverity,
             Literal["alert", "watch"],
@@ -175,7 +179,7 @@ async def find_ingredient_matches(
     collection=None,
 ) -> list[
     tuple[
-        object,
+        DecryptedBiomarker,
         list[str],
         ConflictSeverity,
         Literal["alert", "watch"],
