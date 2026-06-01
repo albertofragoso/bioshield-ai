@@ -11,6 +11,7 @@ import base64
 import binascii
 import json
 import logging
+import re
 from typing import Any
 
 import google.generativeai as genai
@@ -216,7 +217,7 @@ async def reconcile_ingredient(
     prompt = RECONCILER_PROMPT.format(
         ingredient=ingredient,
         rag_context=rag_context or "(sin contexto regulatorio disponible)",
-        user_biomarkers=json.dumps(biomarkers) if biomarkers else "(ninguno)",
+        user_biomarkers=json.dumps(_biomarkers_to_flags(biomarkers)) if biomarkers else "(ninguno)",
     )
 
     model = genai.GenerativeModel(settings.gemini_model)
@@ -326,7 +327,7 @@ async def extract_biomarkers_from_pdf(
     _configure(settings)
     model = genai.GenerativeModel(settings.gemini_model)
 
-    raw = base64.b64decode(pdf_b64)
+    raw = _decode_base64_safe(pdf_b64, _MAX_PDF_BYTES)
     parts: list = [
         BIOMARKER_EXTRACTION_PROMPT,
         {"mime_type": "application/pdf", "data": raw},
@@ -395,6 +396,81 @@ _INSIGHT_FALLBACK_LABEL: dict[str, str] = {
     "wbc": "tus defensas",
 }
 
+# Normal ranges (low, high) for de-identification — values outside range get
+# an "elevated" or "low" flag; unknown biomarkers get a "_present" flag only.
+_BIOMARKER_THRESHOLDS: dict[str, tuple[float, float]] = {
+    "ldl": (0.0, 129.0),
+    "hdl": (40.0, 9999.0),
+    "total_cholesterol": (0.0, 199.0),
+    "triglycerides": (0.0, 149.0),
+    "glucose": (70.0, 99.0),
+    "hba1c": (0.0, 5.6),
+    "sodium": (136.0, 145.0),
+    "potassium": (3.5, 5.0),
+    "uric_acid": (2.4, 7.0),
+    "creatinine": (0.7, 1.2),
+    "alt": (0.0, 40.0),
+    "ast": (0.0, 40.0),
+    "tsh": (0.4, 4.0),
+    "vitamin_d": (30.0, 100.0),
+    "iron": (60.0, 170.0),
+    "ferritin": (12.0, 300.0),
+    "hemoglobin": (12.0, 17.0),
+    "hematocrit": (36.0, 50.0),
+    "platelets": (150.0, 400.0),
+    "wbc": (4.5, 11.0),
+}
+
+_MAX_PDF_BYTES = 20_971_520  # 20 MB
+
+# Pattern used to detect numeric biomarker measurements leaking into LLM output.
+_PHI_PATTERN = re.compile(r"\b\d+\.?\d*\s*(?:mg/dL|mmol/L|IU/L|g/dL|mEq/L|U/L|%)\b")
+
+
+def _biomarkers_to_flags(biomarkers: dict) -> dict[str, bool]:
+    """Convert raw biomarker dict to de-identified boolean flags.
+
+    Numeric values never leave this function — only True/False classifications.
+    """
+    flags: dict[str, bool] = {}
+    for name, value in biomarkers.items():
+        if not isinstance(value, (int, float)):
+            continue
+        if name in _BIOMARKER_THRESHOLDS:
+            low, high = _BIOMARKER_THRESHOLDS[name]
+            if value < low:
+                flags[f"{name}_low"] = True
+            elif value > high:
+                flags[f"{name}_elevated"] = True
+            else:
+                flags[f"{name}_normal"] = True
+        else:
+            flags[f"{name}_present"] = True
+    return flags
+
+
+def _decode_base64_safe(data: str, max_bytes: int) -> bytes:
+    """Decode base64, rejecting oversized or malformed input before allocating."""
+    estimated = len(data) * 3 // 4
+    if estimated > max_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Payload exceeds maximum allowed size ({max_bytes} bytes)",
+        )
+    try:
+        return base64.b64decode(data, validate=True)
+    except binascii.Error as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid base64 encoding",
+        ) from exc
+
+
+def _assert_no_phi_leak(text: str) -> None:
+    """Raise if LLM output contains numeric biomarker measurements."""
+    if _PHI_PATTERN.search(text):
+        raise ValueError(f"Potential PHI leak in LLM output: {text[:120]!r}")
+
 
 async def generate_personalized_insight(
     biomarker_name: str,
@@ -415,8 +491,6 @@ async def generate_personalized_insight(
 
     prompt = PERSONALIZED_INSIGHT_PROMPT.format(
         biomarker_name=biomarker_name,
-        biomarker_value=biomarker_value,
-        biomarker_unit=biomarker_unit,
         classification=classification,
         severity=severity,
         affecting_ingredients=", ".join(affecting_ingredients),
@@ -442,7 +516,10 @@ async def generate_personalized_insight(
                 "model": settings.gemini_model,
             },
         )
-        return _extract_parsed(response, PersonalizedInsightCopy)
+        result = _extract_parsed(response, PersonalizedInsightCopy)
+        _assert_no_phi_leak(result.friendly_explanation)
+        _assert_no_phi_leak(result.friendly_recommendation)
+        return result
     except (google_exceptions.ResourceExhausted, google_exceptions.GoogleAPIError) as exc:
         logger.warning("Gemini unavailable for personalized insight, using fallback: %s", exc)
         label = _INSIGHT_FALLBACK_LABEL.get(biomarker_name, biomarker_name)

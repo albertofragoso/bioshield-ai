@@ -29,6 +29,7 @@ def test_both_safe_secrets_accepted_in_production():
         debug=False,
         jwt_secret="safe-jwt-secret-for-testing-only",
         aes_key="safe-aes-key-32-bytes-xxxxxxxxxxx",
+        turnstile_secret_key="safe-turnstile-key-for-testing",
         database_url="sqlite:///./test.db",
     )
     assert s.debug is False

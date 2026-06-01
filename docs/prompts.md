@@ -144,7 +144,6 @@ Eres un asistente que ayuda a un usuario a entender el resultado de un escaneo d
 
 Datos del escaneo:
 - Biomarcador (canónico): {biomarker_name}
-- Valor del usuario: {biomarker_value} {biomarker_unit}
 - Clasificación: {classification}  (low = bajo, normal = en rango, high = alto)
 - Tipo de insight: {kind}  (alert = biomarcador ya fuera de rango | watch = biomarcador normal, predictivo)
 - Severidad detectada: {severity}  (HIGH | MEDIUM | LOW)
