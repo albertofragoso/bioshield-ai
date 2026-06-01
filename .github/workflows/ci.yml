@@ -11,6 +11,8 @@ jobs:
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -28,6 +30,8 @@ jobs:
   typecheck:
     name: Type check (mypy)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -44,6 +48,11 @@ jobs:
   test:
     name: Tests (pytest)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Don't inject GEMINI_API_KEY on fork PRs (secrets not available to forks anyway,
+    # but this makes the intent explicit and future-proofs against misconfigured settings)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     defaults:
       run:
         working-directory: backend
@@ -63,6 +72,9 @@ jobs:
   docker:
     name: Docker build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # required for type=gha cache-to
     needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
