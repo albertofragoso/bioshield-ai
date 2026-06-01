@@ -25,7 +25,7 @@ def _get_user_or_ip(request: Request) -> str:
     # access_token cookie is already validated upstream by get_current_user;
     # here we just need the sub claim as a stable key — decode without raising.
     try:
-        from jose import jwt as _jwt
+        import jwt as _jwt
 
         token = request.cookies.get("access_token")
         if token:

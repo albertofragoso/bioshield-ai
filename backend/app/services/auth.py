@@ -9,8 +9,9 @@ if TYPE_CHECKING:
     from app.models import RefreshToken
 
 import bcrypt
+import jwt
 from fastapi import HTTPException, status
-from jose import JWTError, jwt
+from jwt.exceptions import PyJWTError as JWTError
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
