@@ -7,9 +7,11 @@ Errors are swallowed to never block the UI.
 import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+
+from app.middleware.rate_limit import limiter
 
 from app.middleware.auth import get_current_user
 from app.models import AnalyticsEvent, User
@@ -22,7 +24,9 @@ router = APIRouter(prefix="/analytics", dependencies=[Depends(get_current_user)]
 
 
 @router.post("/event", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit("30/minute")
 def record_event(
+    request: Request,
     body: AnalyticsEventIn,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

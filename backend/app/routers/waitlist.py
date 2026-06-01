@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -34,9 +34,9 @@ router = APIRouter(prefix="/waitlist", tags=["waitlist"])
 
 class WaitlistSignupIn(BaseModel):
     email: EmailStr
-    name: str | None = None
-    source: str | None = None
-    signup_intent: str | None = None
+    name: str | None = Field(default=None, max_length=100)
+    source: str | None = Field(default=None, max_length=100)
+    signup_intent: str | None = Field(default=None, max_length=500)
     consent: bool
     turnstile_token: str
 
