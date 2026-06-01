@@ -51,7 +51,16 @@ def _seconds_until_midnight_utc() -> int:
     return max(1, int((midnight - now).total_seconds()))
 
 
-limiter = Limiter(key_func=_get_user_or_ip, default_limits=["60/minute"])
+import os as _os
+
+_forwarded_allow_ips = _os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
+
+limiter = Limiter(
+    key_func=_get_user_or_ip,
+    default_limits=["60/minute"],
+    headers_enabled=True,
+    strategy="fixed-window",
+)
 
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:

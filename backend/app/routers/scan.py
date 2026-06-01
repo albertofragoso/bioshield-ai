@@ -261,7 +261,9 @@ async def scan_barcode(
                         db,
                         pending_row.id,
                         response,
-                        semaphore_result=accumulator.semaphore.value if isinstance(accumulator.semaphore, SemaphoreColor) else str(accumulator.semaphore),
+                        semaphore_result=accumulator.semaphore.value
+                        if isinstance(accumulator.semaphore, SemaphoreColor)
+                        else str(accumulator.semaphore),
                         conflict_severity=accumulator.conflict_severity,
                     )
                     finalized = True
@@ -394,7 +396,9 @@ async def scan_photo(
                         db,
                         pending_row.id,
                         response,
-                        semaphore_result=accumulator.semaphore.value if isinstance(accumulator.semaphore, SemaphoreColor) else str(accumulator.semaphore),
+                        semaphore_result=accumulator.semaphore.value
+                        if isinstance(accumulator.semaphore, SemaphoreColor)
+                        else str(accumulator.semaphore),
                         conflict_severity=accumulator.conflict_severity,
                     )
                     finalized = True
@@ -576,7 +580,9 @@ def _mark_scan_failed(db: Session, scan_id: str) -> None:
         db.commit()
 
 
-def _build_response(state: ScanStateAccumulator, barcode: str, product_name: str | None) -> ScanResponse:
+def _build_response(
+    state: ScanStateAccumulator, barcode: str, product_name: str | None
+) -> ScanResponse:
     return ScanResponse(
         product_barcode=barcode,
         product_name=product_name or state.get("product_name"),
@@ -790,7 +796,9 @@ def revoke_share_link(
 
 
 @public_router.get("/share/{token}", response_model=ScanShareProjection)
+@limiter.limit("30/minute")
 def get_shared_scan(
+    request: Request,
     token: str,
     db: Session = Depends(get_db),
 ):

@@ -34,6 +34,17 @@ LOGGING_CONFIG = {
 }
 
 
+# Exact field names that are always redacted.
+_SENSITIVE_EXACT: frozenset[str] = frozenset({"password", "secret", "token"})
+# Field name suffixes that trigger redaction (e.g. jwt_key, access_token).
+_SENSITIVE_SUFFIXES: tuple[str, ...] = ("_key", "_password", "_secret", "_token")
+
+
+def _should_redact(key: str) -> bool:
+    k = key.lower()
+    return k in _SENSITIVE_EXACT or k.endswith(_SENSITIVE_SUFFIXES)
+
+
 class JsonFormatter(logging.Formatter):
     """Emit one JSON object per log line with standard + extra fields."""
 
@@ -75,7 +86,7 @@ class JsonFormatter(logging.Formatter):
         }
         for key, val in record.__dict__.items():
             if key not in _SKIP:
-                payload[key] = val
+                payload[key] = "[REDACTED]" if _should_redact(key) else val
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
         return json.dumps(payload, default=str)
