@@ -7,6 +7,7 @@ avoid duplicating product metadata per scan.
 /scan/contribute delega el POST a OFF a BackgroundTasks con sesión DB separada.
 """
 
+import base64
 import json
 import logging
 import secrets
@@ -16,15 +17,17 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import null as sql_null
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agents.accumulator import ScanStateAccumulator
 from app.agents.graph import build_scan_graph
 from app.config import Settings, get_settings
 from app.dependencies.token_budget import ENDPOINT_TOKEN_COST, token_budget
 from app.middleware.auth import get_current_user
 from app.middleware.rate_limit import limiter
-from app.models import Ingredient, OFFContribution, Product, ScanHistory, User
+from app.models import OFFContribution, Product, ScanHistory, User
 from app.models.base import SessionLocal, get_db
 from app.schemas.models import (
     AlternativesResponse,
@@ -85,7 +88,10 @@ def get_scan_history(
     rows = db.execute(
         select(ScanHistory, Product.name)
         .join(Product, ScanHistory.product_barcode == Product.barcode)
-        .where(ScanHistory.user_id == current_user.id)
+        .where(
+            ScanHistory.user_id == current_user.id,
+            ScanHistory.semaphore_result != "PENDING",
+        )
         .order_by(ScanHistory.scanned_at.desc())
         .limit(limit)
     ).all()
@@ -119,11 +125,11 @@ def get_scan_result(
         .where(
             ScanHistory.product_barcode == barcode,
             ScanHistory.user_id == current_user.id,
-            ScanHistory.result_json.isnot(None),
+            ScanHistory.status == "done",
         )
         .order_by(ScanHistory.scanned_at.desc())
     )
-    if row is None:
+    if row is None or row.result_json is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan no encontrado.")
     product = db.scalar(select(Product).where(Product.barcode == barcode))
     response = ScanResponse.model_validate(row.result_json)
@@ -184,24 +190,19 @@ async def scan_barcode(
     settings: Settings = Depends(get_settings),
     _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["scan_barcode"])),
 ):
+    # Captura user_id como string mientras la sesión está abierta.
+    # token_budget hace db.commit() que expira current_user; FastAPI cierra la sesión
+    # antes de iterar el StreamingResponse body → el generator no puede acceder al ORM object.
+    user_id = str(current_user.id)
+
     # Inserta fila pending antes de iniciar el stream para evitar 404 durante streaming
-    pending_row = _create_pending_row(db, body.barcode, current_user.id)
+    pending_row = _create_pending_row(db, body.barcode, user_id)
 
     graph = build_scan_graph(db, settings)
 
     async def _event_stream():
         # Estado acumulado del grafo entre eventos
-        accumulated: dict = {
-            "extracted_ingredients": [],
-            "product_name": None,
-            "product_brand": None,
-            "product_image_url": None,
-            "source": "barcode",
-            "resolved": [],
-            "semaphore": SemaphoreColor.GRAY,
-            "conflict_severity": None,
-            "personalized_insights": [],
-        }
+        accumulator = ScanStateAccumulator(source="barcode")
         # Bandera para saber si el pipeline completó hasta calculate_risk
         finalized = False
 
@@ -210,7 +211,7 @@ async def scan_barcode(
             yield f"event: init\ndata: {_serialize({'scan_id': pending_row.id, 'product_barcode': body.barcode})}\n\n"
 
             async for event in graph.astream_events(
-                {"barcode": body.barcode, "user_id": current_user.id},
+                {"barcode": body.barcode, "user_id": user_id},
                 version="v2",
             ):
                 # Solo procesamos eventos de fin de nodo
@@ -218,11 +219,12 @@ async def scan_barcode(
                     continue
 
                 name = event.get("name", "")
+
                 output = event.get("data", {}).get("output", {})
 
                 if name == "identify_product":
                     # Acumula datos del producto e ingredientes
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
                     ingredients = output.get("extracted_ingredients", [])
 
                     # Si no hay ingredientes, el producto no existe — emite error y termina
@@ -239,28 +241,35 @@ async def scan_barcode(
                     yield f"event: ingredients\ndata: {_serialize({'ingredients': ingredients, 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
 
                 elif name == "personalize":
-                    # Acumula insights personalizados
-                    accumulated["personalized_insights"] = output.get("personalized_insights", [])
-                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulated['personalized_insights']})}\n\n"
+                    accumulator.apply(output)
+                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulator.personalized_insights})}\n\n"
 
                 elif name == "calculate_risk":
                     # Acumula resultado de riesgo
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
 
                     # Persiste producto y finaliza la fila pending
                     product = _upsert_product(
                         db,
                         barcode=body.barcode,
-                        name=accumulated.get("product_name"),
-                        brand=accumulated.get("product_brand"),
-                        image_url=accumulated.get("product_image_url"),
+                        name=accumulator.get("product_name"),
+                        brand=accumulator.get("product_brand"),
+                        image_url=accumulator.get("product_image_url"),
                     )
-                    response = _build_response(accumulated, product.barcode, product.name)
-                    _finalize_scan_history(db, pending_row.id, response)
+                    response = _build_response(accumulator, product.barcode, product.name)
+                    _finalize_scan_history(
+                        db,
+                        pending_row.id,
+                        response,
+                        semaphore_result=accumulator.semaphore.value
+                        if isinstance(accumulator.semaphore, SemaphoreColor)
+                        else str(accumulator.semaphore),
+                        conflict_severity=accumulator.conflict_severity,
+                    )
                     finalized = True
 
                     # Dispara enriquecimiento si hay alta confianza
-                    resolved: list[IngredientResult] = accumulated.get("resolved") or []
+                    resolved: list[IngredientResult] = accumulator.get("resolved") or []
                     avg_conf = (
                         sum(r.confidence_score for r in resolved if hasattr(r, "confidence_score"))
                         / len(resolved)
@@ -324,25 +333,21 @@ async def scan_photo(
     _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["scan_photo"])),
 ):
     image_bytes = await file.read()
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
     photo_id = f"photo-{secrets.token_urlsafe(8)}"
+    # Captura user_id como string mientras la sesión está abierta.
+    # token_budget hace db.commit() que expira current_user; FastAPI cierra la sesión
+    # antes de iterar el StreamingResponse body → el generator no puede acceder al ORM object.
+    user_id = str(current_user.id)
 
     # Inserta fila pending antes de iniciar el stream para evitar 404 durante streaming
-    pending_row = _create_pending_row(db, photo_id, current_user.id)
+    pending_row = _create_pending_row(db, photo_id, user_id)
 
     graph = build_scan_graph(db, settings)
 
     async def _event_stream():
         # Estado acumulado del grafo entre eventos
-        accumulated: dict = {
-            "extracted_ingredients": [],
-            "product_name": None,
-            "product_brand": None,
-            "source": "photo",
-            "resolved": [],
-            "semaphore": SemaphoreColor.GRAY,
-            "conflict_severity": None,
-            "personalized_insights": [],
-        }
+        accumulator = ScanStateAccumulator(source="photo")
         # Bandera para saber si el pipeline completó hasta calculate_risk
         finalized = False
 
@@ -351,7 +356,7 @@ async def scan_photo(
             yield f"event: init\ndata: {_serialize({'scan_id': pending_row.id, 'product_barcode': photo_id})}\n\n"
 
             async for event in graph.astream_events(
-                {"image_bytes": image_bytes, "user_id": current_user.id},
+                {"image_b64": image_b64, "user_id": user_id},
                 version="v2",
             ):
                 # Solo procesamos eventos de fin de nodo
@@ -363,39 +368,46 @@ async def scan_photo(
 
                 if name == "extract_ingredients":
                     # Acumula datos extraídos de la foto
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
                     ingredients = output.get("extracted_ingredients", [])
 
                     yield f"event: ingredients\ndata: {_serialize({'ingredients': ingredients, 'product_name': output.get('product_name'), 'product_brand': output.get('product_brand')})}\n\n"
 
                 elif name == "personalize":
-                    # Acumula insights personalizados
-                    accumulated["personalized_insights"] = output.get("personalized_insights", [])
-                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulated['personalized_insights']})}\n\n"
+                    accumulator.apply(output)
+                    yield f"event: insights\ndata: {_serialize({'personalized_insights': accumulator.personalized_insights})}\n\n"
 
                 elif name == "calculate_risk":
                     # Acumula resultado de riesgo
-                    accumulated.update({k: v for k, v in output.items() if v is not None})
+                    accumulator.apply(output)
 
                     # Persiste producto y finaliza la fila pending
                     product = _upsert_product(
                         db,
                         barcode=photo_id,
-                        name=accumulated.get("product_name"),
-                        brand=accumulated.get("product_brand"),
+                        name=accumulator.get("product_name"),
+                        brand=accumulator.get("product_brand"),
                         image_url=None,
                     )
                     product.needs_barcode_link = True
-                    response = _build_response(accumulated, product.barcode, product.name)
+                    response = _build_response(accumulator, product.barcode, product.name)
                     response.show_barcode_cta = True
-                    _finalize_scan_history(db, pending_row.id, response)
+                    _finalize_scan_history(
+                        db,
+                        pending_row.id,
+                        response,
+                        semaphore_result=accumulator.semaphore.value
+                        if isinstance(accumulator.semaphore, SemaphoreColor)
+                        else str(accumulator.semaphore),
+                        conflict_severity=accumulator.conflict_severity,
+                    )
                     finalized = True
 
                     # Dispara búsqueda OFF por nombre+marca en background
                     background_tasks.add_task(
                         _run_off_lookup_task,
-                        name=accumulated.get("product_name"),
-                        brand=accumulated.get("product_brand"),
+                        name=accumulator.get("product_name"),
+                        brand=accumulator.get("product_brand"),
                         pseudo_barcode=photo_id,
                         settings=settings,
                     )
@@ -522,45 +534,6 @@ def _upsert_product(
     return product
 
 
-def _persist_scan_history(
-    db: Session,
-    user: User,
-    product_barcode: str,
-    state: dict,
-    response: ScanResponse,
-) -> None:
-    resolved: list[IngredientResult] = state.get("resolved") or []
-    semaphore = state.get("semaphore", SemaphoreColor.GRAY)
-
-    primary_ingredient_id: str | None = None
-    for ing in resolved:
-        if ing.canonical_name:
-            row = db.scalar(
-                select(Ingredient).where(Ingredient.canonical_name == ing.canonical_name)
-            )
-            if row:
-                primary_ingredient_id = row.id
-                break
-
-    avg_confidence = (
-        sum(ing.confidence_score for ing in resolved) / len(resolved) if resolved else 0.0
-    )
-
-    db.add(
-        ScanHistory(
-            user_id=user.id,
-            product_barcode=product_barcode,
-            ingredient_id=primary_ingredient_id,
-            semaphore_result=(
-                semaphore.value if isinstance(semaphore, SemaphoreColor) else str(semaphore)
-            ),
-            confidence_score=avg_confidence,
-            conflict_severity=state.get("conflict_severity"),
-            result_json=response.model_dump(mode="json", exclude={"show_barcode_cta"}),
-        )
-    )
-
-
 def _create_pending_row(
     db: Session,
     barcode: str,
@@ -572,7 +545,7 @@ def _create_pending_row(
         product_barcode=barcode,
         user_id=user_id,
         semaphore_result="PENDING",
-        result_json=None,
+        result_json=sql_null(),  # SQL NULL, not JSON null — evita que el GET lo devuelva como "más reciente"
         status="pending",
     )
     db.add(row)
@@ -585,12 +558,16 @@ def _finalize_scan_history(
     db: Session,
     scan_id: str,
     response: ScanResponse,
+    semaphore_result: str,
+    conflict_severity: str | None = None,
 ) -> None:
     # UPDATE de la fila pending con el resultado completo.
     row = db.get(ScanHistory, scan_id)
     if not row:
         return
     row.result_json = response.model_dump(mode="json", exclude={"show_barcode_cta"})
+    row.semaphore_result = semaphore_result
+    row.conflict_severity = conflict_severity
     row.status = "done"
     db.commit()
 
@@ -603,7 +580,9 @@ def _mark_scan_failed(db: Session, scan_id: str) -> None:
         db.commit()
 
 
-def _build_response(state: dict, barcode: str, product_name: str | None) -> ScanResponse:
+def _build_response(
+    state: ScanStateAccumulator, barcode: str, product_name: str | None
+) -> ScanResponse:
     return ScanResponse(
         product_barcode=barcode,
         product_name=product_name or state.get("product_name"),
@@ -727,11 +706,13 @@ async def _run_enrich_task(
     settings,
 ) -> None:
     from app.services.enrichment import enrich_product  # noqa: PLC0415
+    from app.services.retrieval import invalidate_bm25_cache  # noqa: PLC0415
 
     db = SessionLocal()
     try:
         resolved = [IngredientResult.model_validate(i) for i in resolved_json]
         await enrich_product(barcode, resolved, avg_confidence, source, db, settings)
+        invalidate_bm25_cache()
     except Exception as exc:
         logger.error("Enrichment failed for %s: %s", barcode, exc)
     finally:
@@ -745,10 +726,12 @@ async def _run_off_lookup_task(
     settings,
 ) -> None:
     from app.services.enrichment import try_off_lookup  # noqa: PLC0415
+    from app.services.retrieval import invalidate_bm25_cache  # noqa: PLC0415
 
     db = SessionLocal()
     try:
         await try_off_lookup(name, brand, pseudo_barcode, db, settings)
+        invalidate_bm25_cache()
     except Exception as exc:
         logger.error("OFF lookup failed for %s: %s", pseudo_barcode, exc)
     finally:
@@ -813,7 +796,9 @@ def revoke_share_link(
 
 
 @public_router.get("/share/{token}", response_model=ScanShareProjection)
+@limiter.limit("30/minute")
 def get_shared_scan(
+    request: Request,
     token: str,
     db: Session = Depends(get_db),
 ):

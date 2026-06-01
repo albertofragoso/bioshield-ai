@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Literal, cast
 if TYPE_CHECKING:
     from app.config import Settings
 
+from app.core.priorities import worst_severity, worst_status
 from app.schemas.models import (
     CanonicalBiomarker,
     ConflictSeverity,
@@ -31,7 +32,7 @@ from app.schemas.models import (
     RegulatoryStatus,
     SemaphoreColor,
 )
-from app.services.biomarker_rules import BiomarkerRule, BIOMARKER_RULES
+from app.services.biomarker_rules import BIOMARKER_RULES, DecryptedBiomarker
 
 logger = logging.getLogger(__name__)
 
@@ -40,19 +41,6 @@ logger = logging.getLogger(__name__)
 # similitudes bajas (~0.4–0.55); este valor captura sinónimos sin ruido.
 # Calibrar con ground truth antes de subir.
 _SEMANTIC_SIMILARITY_THRESHOLD = 0.65
-
-_SEVERITY_RANK = {
-    ConflictSeverity.HIGH: 3,
-    ConflictSeverity.MEDIUM: 2,
-    ConflictSeverity.LOW: 1,
-}
-
-_STATUS_RANK = {
-    RegulatoryStatus.BANNED: 4,
-    RegulatoryStatus.RESTRICTED: 3,
-    RegulatoryStatus.UNDER_REVIEW: 2,
-    RegulatoryStatus.APPROVED: 1,
-}
 
 _NEGATION_TERMS = ("free", "without", "sin", "no ", "zero", "libre", "free of")
 
@@ -105,17 +93,10 @@ def aggregate_regulatory_status(status_by_source: dict[str, str]) -> RegulatoryS
     Priority: Banned > Restricted > Under Review > Approved. Unknown values
     are ignored (returns the worst recognized one, or None if none match).
     """
-    worst: RegulatoryStatus | None = None
-    worst_rank = 0
-    for raw in status_by_source.values():
-        status = _coerce_status(raw)
-        if status is None:
-            continue
-        rank = _STATUS_RANK[status]
-        if rank > worst_rank:
-            worst = status
-            worst_rank = rank
-    return worst
+    recognized = [s for raw in status_by_source.values() if (s := _coerce_status(raw)) is not None]
+    if not recognized:
+        return None
+    return worst_status(recognized)
 
 
 def _find_matches_keywords(
@@ -123,7 +104,11 @@ def _find_matches_keywords(
     ingredients: list[IngredientResult],
 ) -> list[
     tuple[
-        object, list[str], ConflictSeverity, Literal["alert", "watch"], Literal["raises", "lowers"]
+        DecryptedBiomarker,
+        list[str],
+        ConflictSeverity,
+        Literal["alert", "watch"],
+        Literal["raises", "lowers"],
     ]
 ]:
     """Keyword-only matching. Sync — usado por detect_biomarker_conflicts y como base de find_ingredient_matches."""
@@ -132,7 +117,7 @@ def _find_matches_keywords(
 
     matches: list[
         tuple[
-            object,
+            DecryptedBiomarker,
             list[str],
             ConflictSeverity,
             Literal["alert", "watch"],
@@ -140,21 +125,14 @@ def _find_matches_keywords(
         ]
     ] = []
     for bm in biomarkers:
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
-        classification = (
-            bm.get("classification")
-            if isinstance(bm, dict)
-            else getattr(bm, "classification", None)
-        )
+        name = bm.name
+        classification = bm.classification
 
         if name is None or classification is None:
             continue
 
-        # Normalize to string value (handles both enum and plain str)
-        name_val = name.value if hasattr(name, "value") else str(name)
-        class_val = (
-            classification.value if hasattr(classification, "value") else str(classification)
-        )
+        name_val = str(name)
+        class_val = str(classification)
 
         if class_val == "unknown":
             continue
@@ -201,7 +179,7 @@ async def find_ingredient_matches(
     collection=None,
 ) -> list[
     tuple[
-        object,
+        DecryptedBiomarker,
         list[str],
         ConflictSeverity,
         Literal["alert", "watch"],
@@ -229,8 +207,8 @@ async def find_ingredient_matches(
     for match in keyword_results:
         bm, ingr_names, severity, kind, direction = match
 
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
-        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
+        name = bm.name
+        name_val = str(name)
 
         rule = next(
             (
@@ -298,9 +276,9 @@ def detect_biomarker_conflicts(
     for bm, ingr_names, severity, _kind, _direction in _find_matches_keywords(
         biomarkers, ingredients
     ):
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", None)
-        value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", None)
-        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
+        name = bm.name
+        value = bm.value
+        name_val = str(name)
         for ingr in ingr_names:
             alerts.append(
                 PersonalizedAlert(
@@ -314,7 +292,7 @@ def detect_biomarker_conflicts(
     seen: dict[str, PersonalizedAlert] = {}
     for alert in alerts:
         prev = seen.get(alert.ingredient)
-        if prev is None or _SEVERITY_RANK[alert.severity] > _SEVERITY_RANK[prev.severity]:
+        if prev is None or worst_severity([alert.severity, prev.severity]) == alert.severity:
             seen[alert.ingredient] = alert
     return list(seen.values())
 
@@ -341,7 +319,8 @@ def compute_semaphore(
     # ORANGE: biomarker conflict
     alerts = detect_biomarker_conflicts(ingredients, biomarkers)
     if alerts:
-        worst = max(alerts, key=lambda a: _SEVERITY_RANK[a.severity])
+        worst_sev = worst_severity([a.severity for a in alerts])
+        worst = next(a for a in alerts if a.severity == worst_sev)
         return SemaphoreColor.ORANGE, worst.severity, alerts
 
     # YELLOW: restricted/under review, or existing ingredient conflict
@@ -353,7 +332,7 @@ def compute_semaphore(
         for conflict in ing.conflicts:
             if (
                 worst_conflict_severity is None
-                or _SEVERITY_RANK[conflict.severity] > _SEVERITY_RANK[worst_conflict_severity]
+                or worst_severity([conflict.severity, worst_conflict_severity]) == conflict.severity
             ):
                 worst_conflict_severity = conflict.severity
 
@@ -412,30 +391,14 @@ async def generate_personalized_insights(
         direction: str,
         semantic_score: float = 0.0,
     ) -> PersonalizedInsight:
-        name = bm.get("name") if isinstance(bm, dict) else getattr(bm, "name", "")
-        value = bm.get("value") if isinstance(bm, dict) else getattr(bm, "value", 0.0)
-        unit = bm.get("unit") if isinstance(bm, dict) else getattr(bm, "unit", "")
-        classification = (
-            bm.get("classification")
-            if isinstance(bm, dict)
-            else getattr(bm, "classification", "high")
-        )
-        ref_low = (
-            bm.get("reference_range_low")
-            if isinstance(bm, dict)
-            else getattr(bm, "reference_range_low", None)
-        )
-        ref_high = (
-            bm.get("reference_range_high")
-            if isinstance(bm, dict)
-            else getattr(bm, "reference_range_high", None)
-        )
-        name_val = name.value if (name is not None and hasattr(name, "value")) else str(name)
-        class_val = (
-            classification.value
-            if (classification is not None and hasattr(classification, "value"))
-            else str(classification)
-        )
+        name = bm.name
+        value = bm.value
+        unit = bm.unit
+        classification = bm.classification
+        ref_low = bm.reference_range_low
+        ref_high = bm.reference_range_high
+        name_val = str(name)
+        class_val = str(classification)
         float_value = float(value or 0.0)
 
         copy = await gemini_service.generate_personalized_insight(

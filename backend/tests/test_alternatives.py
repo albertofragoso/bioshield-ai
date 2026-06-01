@@ -10,12 +10,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from app.core.semaphore import semaphore_from_score
 from app.models import Product, ScanHistory
 from app.services.alternatives import (
     _biomarker_conflicts,
     _clean_ingredient_labels,
     _compatibility_pct,
-    _semaphore_from_clean_score,
     find_alternatives,
 )
 
@@ -73,12 +73,12 @@ def _make_scan(
 # ── pure function tests (no DB needed) ───────────────────────────────────────
 
 
-def test_semaphore_from_clean_score():
-    assert _semaphore_from_clean_score(0) == "BLUE"
-    assert _semaphore_from_clean_score(1) == "YELLOW"
-    assert _semaphore_from_clean_score(2) == "YELLOW"
-    assert _semaphore_from_clean_score(3) == "ORANGE"
-    assert _semaphore_from_clean_score(5) == "RED"
+def test_semaphore_from_score_via_alternatives():
+    assert semaphore_from_score(0).value == "BLUE"
+    assert semaphore_from_score(1).value == "YELLOW"
+    assert semaphore_from_score(2).value == "YELLOW"
+    assert semaphore_from_score(3).value == "ORANGE"
+    assert semaphore_from_score(5).value == "RED"
 
 
 def test_compatibility_pct_perfect():

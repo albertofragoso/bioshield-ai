@@ -321,9 +321,10 @@ async def test_hybrid_search_bm25_fallback(db_session, monkeypatch):
     from tests.conftest import TEST_SETTINGS
 
     results = await retrieval.hybrid_search("titanium dioxide", db_session, TEST_SETTINGS)
-    assert results
+    assert results.hits
+    assert results.fallback_used is True
     # Top hit should be Titanium Dioxide; degraded flag present
-    top = results[0]
+    top = results.hits[0]
     assert "Titanium" in top.document
     assert top.metadata.get("degraded") is True
 

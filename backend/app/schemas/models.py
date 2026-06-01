@@ -1,9 +1,10 @@
+import json
 from datetime import date, datetime
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 # ─────────────────────────────────────────────
 # Enums
@@ -43,13 +44,13 @@ class RegulatoryStatus(StrEnum):
 
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8)
+    email: EmailStr = Field(max_length=254)
+    password: str = Field(min_length=8, max_length=128)
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+    email: EmailStr = Field(max_length=254)
+    password: str = Field(min_length=8, max_length=128)
 
 
 class AuthSuccessResponse(BaseModel):
@@ -76,7 +77,10 @@ class LinkBarcodeRequest(BaseModel):
 
 
 class PhotoScanRequest(BaseModel):
-    image_base64: str = Field(description="Base64-encoded image of the ingredient label")
+    image_base64: str = Field(
+        max_length=5_242_880,
+        description="Base64-encoded image of the ingredient label",
+    )
 
 
 # Structured output schema used with Gemini (§3.A PRD)
@@ -222,7 +226,7 @@ class BiomarkerExtractionResult(BaseModel):
 class BiomarkerUploadRequest(BaseModel):
     """Body de POST /biosync/upload — la lista revisada por el usuario."""
 
-    biomarkers: list[Biomarker] = Field(min_length=1)
+    biomarkers: list[Biomarker] = Field(min_length=1, max_length=50)
     lab_name: str | None = None
     test_date: date | None = None
 
@@ -299,8 +303,8 @@ class BiosyncAnalysis(BaseModel):
 
 
 class OFFContributeRequest(BaseModel):
-    barcode: str = Field(..., min_length=4, max_length=50)
-    ingredients: list[str] = Field(..., min_length=1)
+    barcode: str = Field(..., pattern=r"^\d{8,14}$")
+    ingredients: list[str] = Field(..., min_length=1, max_length=100)
     image_base64: str | None = None
     consent: Literal[True] = Field(
         description="Debe ser True — opt-in explícito por escaneo (PRD §9.6)"
@@ -377,7 +381,18 @@ class AlternativesResponse(BaseModel):
 
 class AnalyticsEventIn(BaseModel):
     event_type: Literal["alt_button_shown", "alt_page_opened", "alt_tapped"]
-    payload: dict = {}
+    payload: dict[str, str | int | float | bool] = {}
+
+    @field_validator("payload")
+    @classmethod
+    def validate_payload_size(
+        cls, v: dict[str, str | int | float | bool]
+    ) -> dict[str, str | int | float | bool]:
+        if len(v) > 20:
+            raise ValueError("payload must not exceed 20 keys")
+        if len(json.dumps(v)) > 4096:
+            raise ValueError("payload JSON must not exceed 4096 bytes")
+        return v
 
 
 class ScanShareProjection(BaseModel):

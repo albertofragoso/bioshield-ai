@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass
 
 from rank_bm25 import BM25L
@@ -26,6 +27,9 @@ from app.services.rag import get_collection, query_by_embedding
 
 logger = logging.getLogger(__name__)
 
+# Cache de corpus BM25 — se invalida cuando se ingresan nuevos ingredientes
+_bm25_cache: tuple[BM25L, list[Ingredient]] | None = None
+
 _VECTOR_WEIGHT = 0.7
 _BM25_WEIGHT = 0.3
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
@@ -37,6 +41,17 @@ class RankedHit:
     document: str
     metadata: dict
     score: float  # hybrid score (or BM25-only in fallback)
+
+
+@dataclass
+class RetrievalResult:
+    hits: list[RankedHit]
+    fallback_used: bool  # True cuando vector search falló, se usó solo BM25
+    corpus_size: int  # número de ingredientes en el corpus BM25 al momento del query
+    embed_ms: float  # wall-clock ms del llamado a embed_text() (0.0 si fallback)
+
+
+__all__ = ["hybrid_search", "invalidate_bm25_cache", "RankedHit", "RetrievalResult"]
 
 
 def _tokenize(text: str) -> list[str]:
@@ -59,6 +74,26 @@ def _build_bm25_corpus(db: Session) -> tuple[BM25L, list[Ingredient]]:
     return BM25L(corpus), ingredients
 
 
+def _get_bm25_corpus(db: Session) -> tuple[BM25L, list[Ingredient]]:
+    """Devuelve corpus cacheado; reconstruye si el cache está vacío.
+
+    NOTA: bajo concurrencia dos tareas pueden ver None simultáneamente y
+    ambas construir el corpus. Es una doble-construcción benigna (mismo
+    resultado, último escritor gana). No agregar lock — el corpus es pequeño
+    (< 20k registros) y la contención es rara.
+    """
+    global _bm25_cache
+    if _bm25_cache is None:
+        _bm25_cache = _build_bm25_corpus(db)
+    return _bm25_cache
+
+
+def invalidate_bm25_cache() -> None:
+    """Fuerza reconstrucción del corpus en el siguiente query. Llamar tras ingestar ingredientes."""
+    global _bm25_cache
+    _bm25_cache = None
+
+
 def _bm25_scores(bm25: BM25L, query: str) -> list[float]:
     scores = bm25.get_scores(_tokenize(query))
     peak = max(scores) if len(scores) else 0.0
@@ -73,21 +108,30 @@ async def hybrid_search(
     settings: Settings,
     top_k: int = 5,
     where: dict | None = None,
-) -> list[RankedHit]:
+) -> RetrievalResult:
     """Run hybrid vector + BM25 retrieval with graceful degradation."""
-    bm25, bm25_corpus = _build_bm25_corpus(db)
+    bm25, bm25_corpus = _get_bm25_corpus(db)
     bm25_norm = _bm25_scores(bm25, query)
     bm25_by_entity = {
         ing.entity_id: bm25_norm[i] for i, ing in enumerate(bm25_corpus) if ing.entity_id
     }
 
     try:
+        # Medir solo el tiempo del llamado a embed_text
+        _t0 = time.monotonic()
         embedding = await embed_text(query, settings)
+        embed_ms = (time.monotonic() - _t0) * 1000.0
+
         collection = get_collection(settings)
         vector_hits = query_by_embedding(collection, embedding, top_k=top_k * 3, where=where)
     except Exception as exc:
         logger.warning("Vector search failed, degrading to BM25-only: %s", exc)
-        return _bm25_only(bm25_corpus, bm25_norm, top_k)
+        return RetrievalResult(
+            hits=_bm25_only(bm25_corpus, bm25_norm, top_k),
+            fallback_used=True,
+            corpus_size=len(bm25_corpus),
+            embed_ms=0.0,
+        )
 
     fused: list[RankedHit] = []
     seen: set[str] = set()
@@ -101,7 +145,7 @@ async def hybrid_search(
         )
         seen.add(hit.entity_id)
 
-    # Include BM25-only matches not in vector hits (for recall)
+    # Incluir matches solo-BM25 que no aparecieron en vector hits (mejora recall)
     for ing, score in zip(bm25_corpus, bm25_norm):
         if ing.entity_id and ing.entity_id not in seen and score > 0.5:
             fused.append(
@@ -114,7 +158,12 @@ async def hybrid_search(
             )
 
     fused.sort(key=lambda h: h.score, reverse=True)
-    return fused[:top_k]
+    return RetrievalResult(
+        hits=fused[:top_k],
+        fallback_used=False,
+        corpus_size=len(bm25_corpus),
+        embed_ms=embed_ms,
+    )
 
 
 def _bm25_only(

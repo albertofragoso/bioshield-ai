@@ -1,7 +1,7 @@
 """FastAPI dependency for JWT authentication via HTTP-only cookie."""
 
+import jwt
 from fastapi import Cookie, Depends, HTTPException, status
-from jose import JWTError
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -30,7 +30,7 @@ def get_current_user(
 
     try:
         payload = decode_token(access_token, settings)
-    except JWTError:
+    except jwt.exceptions.PyJWTError:
         raise _CREDENTIALS_ERROR
 
     if payload.get("type") != "access":

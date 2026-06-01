@@ -120,7 +120,7 @@ async def test_contribute_feature_flag_off_creates_failed_row(client, db_session
     resp = await client.post(
         "/scan/contribute",
         json={
-            "barcode": "photo:abc123abc123abc1",
+            "barcode": "01234567",
             "ingredients": ["azúcar", "agua"],
             "consent": True,
         },
@@ -157,7 +157,7 @@ async def test_contribute_happy_path(client, db_session, monkeypatch):
     resp = await client.post(
         "/scan/contribute",
         json={
-            "barcode": "photo:happypath000001",
+            "barcode": "12345678",
             "ingredients": ["azúcar", "agua", "sal"],
             "consent": True,
         },
@@ -190,7 +190,7 @@ async def test_contribute_with_image_sets_image_submitted(client, db_session, mo
     resp = await client.post(
         "/scan/contribute",
         json={
-            "barcode": "photo:withimage000001",
+            "barcode": "23456789",
             "ingredients": ["harina"],
             "image_base64": fake_image,
             "consent": True,
@@ -219,7 +219,7 @@ async def test_contribute_off_5xx_creates_failed_row(client, db_session, monkeyp
     cookies = await _register_and_login(client)
     resp = await client.post(
         "/scan/contribute",
-        json={"barcode": "photo:serverfail00001", "ingredients": ["colorante"], "consent": True},
+        json={"barcode": "34567890", "ingredients": ["colorante"], "consent": True},
         cookies=cookies,
     )
     assert resp.status_code == 202
@@ -243,7 +243,7 @@ async def test_contribute_row_stores_ingredients_text(client, db_session):
     resp = await client.post(
         "/scan/contribute",
         json={
-            "barcode": "photo:checktext00001",
+            "barcode": "45678901",
             "ingredients": ["lecitina", "sorbitol", "agua"],
             "consent": True,
         },
@@ -263,7 +263,7 @@ async def test_contribute_response_shape(client):
     cookies = await _register_and_login(client)
     resp = await client.post(
         "/scan/contribute",
-        json={"barcode": "photo:shapetst000001", "ingredients": ["azúcar"], "consent": True},
+        json={"barcode": "56789012", "ingredients": ["azúcar"], "consent": True},
         cookies=cookies,
     )
     assert resp.status_code == 202

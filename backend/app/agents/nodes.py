@@ -28,6 +28,7 @@ from app.services.analysis import (
     aggregate_regulatory_status,
     compute_semaphore,
 )
+from app.services.biomarker_rules import parse_biomarker_payload
 from app.services.conflicts import detect_conflicts
 from app.services.crypto import decrypt_biomarker
 from app.services.entity_resolution import resolve
@@ -134,8 +135,8 @@ def make_search_regulatory_node(db: Session, settings: Settings):
         for item in resolved:
             lookup = item.canonical_name or item.name
             try:
-                hits = await hybrid_search(lookup, db, settings, top_k=3)
-                context[item.name] = "\n".join(h.document for h in hits)
+                result = await hybrid_search(lookup, db, settings, top_k=3)
+                context[item.name] = "\n".join(h.document for h in result.hits)
             except Exception as exc:
                 logger.warning("RAG search failed for %s: %s", lookup, exc)
                 context[item.name] = ""
@@ -160,19 +161,16 @@ def make_biosync_node(db: Session, settings: Settings):
             return {"biomarkers": None}
 
         try:
-            data = decrypt_biomarker(
+            raw = decrypt_biomarker(
                 biomarker.encrypted_data, biomarker.encryption_iv, settings.aes_key
             )
-        except Exception as exc:
-            logger.error("Biomarker decryption failed for user %s: %s", user_id, exc)
+            return {"biomarkers": parse_biomarker_payload(raw)}
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.error("biomarker_parse_failed for user %s: %s", user_id, exc)
             return {"biomarkers": None}
-
-        # New structured format: {"biomarkers": [...], "lab_name": ..., "test_date": ...}
-        # Legacy flat-dict format: {"ldl": 130, ...} — treat as no biomarkers for safety
-        if isinstance(data, dict) and "biomarkers" in data:
-            return {"biomarkers": data["biomarkers"]}
-
-        return {"biomarkers": None}
+        except Exception as exc:
+            logger.error("biomarker_decrypt_failed for user %s: %s", user_id, exc)
+            return {"biomarkers": None}
 
     return node
 
@@ -194,26 +192,30 @@ def make_detect_conflicts_node(db: Session):
     async def node(state: ScanState) -> ScanState:
         resolved = state.get("resolved") or []
 
+        new_resolved: list[IngredientResult] = []
         for item in resolved:
             if item.canonical_name is None:
+                new_resolved.append(item)
                 continue
 
             res = resolve(item.canonical_name, db)
             if not res.ingredient:
+                new_resolved.append(item)
                 continue
 
             db_conflicts = detect_conflicts(res.ingredient, db)
-            for c in db_conflicts:
-                item.conflicts.append(
-                    IngredientConflict(
-                        conflict_type=ConflictType(c.conflict_type),
-                        severity=ConflictSeverity(c.severity),
-                        summary=c.summary,
-                        sources=_sources_from_summary(c.summary),
-                    )
+            new_conflicts = [
+                IngredientConflict(
+                    conflict_type=ConflictType(c.conflict_type),
+                    severity=ConflictSeverity(c.severity),
+                    summary=c.summary,
+                    sources=_sources_from_summary(c.summary),
                 )
+                for c in db_conflicts
+            ]
+            new_resolved.append(item.model_copy(update={"conflicts": new_conflicts}))
 
-        return {"resolved": resolved}
+        return {"resolved": new_resolved}
 
     return node
 

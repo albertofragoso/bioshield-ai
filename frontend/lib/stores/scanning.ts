@@ -2,6 +2,8 @@
 
 import { create } from "zustand";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
 export type ScanStreamStatus = "idle" | "streaming" | "done" | "error";
 
 export interface IngredientResult {
@@ -54,7 +56,7 @@ export const useScanStreamingStore = create<ScanStreamingState>((set, get) => ({
     set({ scanId: null, productBarcode: barcode, status: "streaming", partial: {}, _abort: abort });
 
     _consumeStream(
-      fetch("/api/scan/barcode", {
+      fetch(`${BACKEND_URL}/scan/barcode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ barcode }),
@@ -77,7 +79,7 @@ export const useScanStreamingStore = create<ScanStreamingState>((set, get) => ({
     set({ scanId: null, productBarcode: null, status: "streaming", partial: {}, _abort: abort });
 
     _consumeStream(
-      fetch("/api/scan/photo", {
+      fetch(`${BACKEND_URL}/scan/photo`, {
         method: "POST",
         body: formData,
         credentials: "include",

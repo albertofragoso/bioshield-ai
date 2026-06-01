@@ -7,6 +7,7 @@ Limits:
 - Global fallback:                 60 req/min per IP
 """
 
+import os as _os
 from datetime import UTC, datetime, time, timedelta
 
 from fastapi import Request
@@ -25,7 +26,7 @@ def _get_user_or_ip(request: Request) -> str:
     # access_token cookie is already validated upstream by get_current_user;
     # here we just need the sub claim as a stable key — decode without raising.
     try:
-        from jose import jwt as _jwt
+        import jwt as _jwt
 
         token = request.cookies.get("access_token")
         if token:
@@ -51,7 +52,14 @@ def _seconds_until_midnight_utc() -> int:
     return max(1, int((midnight - now).total_seconds()))
 
 
-limiter = Limiter(key_func=_get_user_or_ip, default_limits=["60/minute"])
+_forwarded_allow_ips = _os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
+
+limiter = Limiter(
+    key_func=_get_user_or_ip,
+    default_limits=["60/minute"],
+    headers_enabled=True,
+    strategy="fixed-window",
+)
 
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:

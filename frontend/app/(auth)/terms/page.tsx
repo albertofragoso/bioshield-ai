@@ -2,6 +2,7 @@ import fs from "fs";
 import Link from "next/link";
 import Image from "next/image";
 import { marked } from "marked";
+import DOMPurify from "isomorphic-dompurify";
 import { getLegalDocPath } from "@/lib/legal-path";
 
 export default async function TermsPage() {
@@ -62,7 +63,7 @@ export default async function TermsPage() {
           {/* Markdown content */}
           <div
             className="legal-content font-mono text-[12px] leading-[1.7] text-subtext"
-            dangerouslySetInnerHTML={{ __html: html }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }}
           />
 
           {/* Back link */}

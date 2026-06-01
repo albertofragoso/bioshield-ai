@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _DEV_SECRETS = {
     "dev-secret-change-in-production",
     "dev-aes-key-32-bytes-changethis!",
+    "dev",
 }
 
 
@@ -78,10 +79,15 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def reject_dev_secrets_in_production(self) -> "Settings":
         if not self.debug:
-            if self.jwt_secret in _DEV_SECRETS or self.aes_key in _DEV_SECRETS:
+            if (
+                self.jwt_secret in _DEV_SECRETS
+                or self.aes_key in _DEV_SECRETS
+                or self.turnstile_secret_key in _DEV_SECRETS
+            ):
                 raise ValueError(
-                    "jwt_secret and aes_key must be overridden when debug=False. "
-                    "Set them via environment variables JWT_SECRET and AES_KEY."
+                    "jwt_secret, aes_key, and turnstile_secret_key must be overridden "
+                    "when debug=False. Set them via environment variables JWT_SECRET, "
+                    "AES_KEY, and TURNSTILE_SECRET_KEY."
                 )
         return self
 

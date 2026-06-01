@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.core.semaphore import semaphore_from_score
 from app.models import Product, ScanHistory
 from app.schemas.models import (
     AlternativeItem,
@@ -27,26 +28,16 @@ from app.services.rag import get_products_collection
 
 logger = logging.getLogger(__name__)
 
-_AVATAR_FROM_SEMAPHORE: dict[str, str] = {
-    "BLUE": "blue",
-    "YELLOW": "yellow",
-    "ORANGE": "orange",
-    "RED": "red",
-    "GRAY": "gray",
+_AVATAR_FROM_SEMAPHORE: dict[SemaphoreColor, str] = {
+    SemaphoreColor.BLUE: "blue",
+    SemaphoreColor.YELLOW: "yellow",
+    SemaphoreColor.ORANGE: "orange",
+    SemaphoreColor.RED: "red",
+    SemaphoreColor.GRAY: "gray",
 }
 
 
-def _semaphore_from_clean_score(score: int) -> str:
-    if score == 0:
-        return "BLUE"
-    if score <= 2:
-        return "YELLOW"
-    if score <= 4:
-        return "ORANGE"
-    return "RED"
-
-
-def _avatar_from_semaphore(sem: str) -> str:
+def _avatar_from_semaphore(sem: SemaphoreColor) -> str:
     return _AVATAR_FROM_SEMAPHORE.get(sem, "gray")
 
 
@@ -69,7 +60,9 @@ def _biomarker_conflicts(
         keywords = keywords_for(biomarker)
         excludes = excludes_for(biomarker)
         for kw in keywords:
-            if any(kw in ing and not any(ex in ing for ex in excludes) for ing in ingredients_lower):
+            if any(
+                kw in ing and not any(ex in ing for ex in excludes) for ing in ingredients_lower
+            ):
                 conflicts.append(f"{biomarker.upper()} · contiene {kw}")
                 break  # one label per biomarker; display-only, not exhaustive matching
     return conflicts
@@ -234,7 +227,7 @@ async def find_alternatives(
         cand_ingredients = candidate.ingredients_json or []
         conflicts = _biomarker_conflicts(cand_ingredients, active_biomarkers)
         if not conflicts or not has_biomarkers:
-            semaphore = _semaphore_from_clean_score(candidate.clean_score)
+            semaphore = semaphore_from_score(candidate.clean_score)
             clean_labels = _clean_ingredient_labels(all_ingredients, flagged_ingredients)
             top_pick = AlternativeTopPick(
                 product=AlternativeProductOut(
@@ -256,7 +249,7 @@ async def find_alternatives(
     # ── 6. Build secondary list ───────────────────────────────────────────────
     alternatives: list[AlternativeItem] = []
     for candidate in remaining[:4]:
-        sem = _semaphore_from_clean_score(candidate.clean_score)
+        sem = semaphore_from_score(candidate.clean_score)
         alternatives.append(
             AlternativeItem(
                 product=AlternativeProductOut(
@@ -266,7 +259,7 @@ async def find_alternatives(
                     clean_score=candidate.clean_score,
                 ),
                 avatar_variant=_avatar_from_semaphore(sem),
-                semaphore_precomputed=SemaphoreColor(sem),
+                semaphore_precomputed=sem,
             )
         )
 

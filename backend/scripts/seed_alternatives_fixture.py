@@ -13,6 +13,7 @@ from app.models import Product
 from app.models.base import SessionLocal
 from app.services.embeddings import embed_text
 from app.services.rag import get_products_collection
+from app.core.semaphore import semaphore_from_score
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,16 +30,6 @@ FIXTURE_PRODUCTS = [
     {"barcode": "FIX_SNACK_BAD", "name": "Cereal Azucarado", "brand": "Generic", "category": "cereales", "clean_score": 5},
     {"barcode": "FIX_NOCAT_001", "name": "Producto Sin Categoría", "brand": "Generic", "category": None, "clean_score": 3},
 ]
-
-
-def _semaphore(clean_score: int) -> str:
-    if clean_score == 0:
-        return "BLUE"
-    if clean_score <= 2:
-        return "YELLOW"
-    if clean_score <= 4:
-        return "ORANGE"
-    return "RED"
 
 
 async def main():
@@ -78,7 +69,7 @@ async def main():
                         "barcode": p["barcode"],
                         "category": p["category"],
                         "clean_score": p["clean_score"],
-                        "semaphore_precomputed": _semaphore(p["clean_score"]),
+                        "semaphore_precomputed": semaphore_from_score(p["clean_score"]).value,
                     }],
                 )
 

@@ -11,6 +11,7 @@ from app.schemas.models import (
     PersonalizedInsight,
     SemaphoreColor,
 )
+from app.services.biomarker_rules import DecryptedBiomarker
 
 
 class ScanState(TypedDict, total=False):
@@ -28,7 +29,7 @@ class ScanState(TypedDict, total=False):
     extracted_barcode: str | None
     resolved: list[IngredientResult]
     rag_context_by_ingredient: dict[str, str]
-    biomarkers: list | None  # list[Biomarker schema], structured (post-decrypt)
+    biomarkers: list[DecryptedBiomarker] | None
     conflicts_by_ingredient: dict[str, list[IngredientConflict]]
     personalized_insights: list[PersonalizedInsight]
 

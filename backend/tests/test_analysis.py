@@ -19,10 +19,11 @@ from app.services.analysis import (
     detect_biomarker_conflicts,
     find_ingredient_matches,
 )
+from app.services.biomarker_rules import DecryptedBiomarker
 
 
-def _bm(name: str, value: float, classification: str) -> dict:
-    return {"name": name, "value": value, "unit": "mg/dL", "classification": classification}
+def _bm(name: str, value: float, classification: str) -> DecryptedBiomarker:
+    return DecryptedBiomarker(name=name, value=value, unit="mg/dL", classification=classification)
 
 
 def _ing(name: str, canonical: str | None = None) -> IngredientResult:
