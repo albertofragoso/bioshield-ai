@@ -30,6 +30,13 @@
     "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "msw",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
     "@tailwindcss/postcss": "^4",
