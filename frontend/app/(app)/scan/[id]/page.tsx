@@ -1,13 +1,13 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useScanStreamingStore } from "@/lib/stores/scanning";
 import type { ScanPartial } from "@/lib/stores/scanning";
-import { getScanResult, linkPhotoToBarcode } from "@/lib/api/scan";
-import { getBiomarkerStatus } from "@/lib/api/biosync";
 import type { BiomarkerStatusResponse } from "@/lib/api/types";
+import { useScanResult, useLinkPhotoToBarcode, scanKeys } from "@/hooks/use-scan";
+import { useBiomarkerStatus } from "@/hooks/use-biosync";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -126,23 +126,19 @@ function getExplanation(sem: SemaphoreColor, conflictCount: number): string {
 function LinkBarcodeCard({ pseudoBarcode }: { pseudoBarcode: string }) {
   const router = useRouter();
   const [barcode, setBarcode] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { mutate: linkPhoto, isPending: loading } = useLinkPhotoToBarcode();
 
-  async function handleLink() {
+  function handleLink() {
     if (!/^\d{8,14}$/.test(barcode)) {
       setError("Código inválido — debe tener 8 a 14 dígitos");
       return;
     }
-    setLoading(true);
     setError(null);
-    try {
-      const result = await linkPhotoToBarcode(pseudoBarcode, barcode);
-      router.push(`/scan/${result.product_barcode}`);
-    } catch {
-      setError("No pudimos linkear el producto. Intenta de nuevo.");
-      setLoading(false);
-    }
+    linkPhoto({ pseudoBarcode, barcode }, {
+      onSuccess: (result) => router.push(`/scan/${result.product_barcode}`),
+      onError: () => setError("No pudimos linkear el producto. Intenta de nuevo."),
+    });
   }
 
   return (
@@ -244,28 +240,18 @@ function ScanResultInner() {
   // Cuando el stream termina (ok o error), invalida el query para datos finales del servidor
   useEffect(() => {
     if (streamStatus === "done" || streamStatus === "error") {
-      queryClient.invalidateQueries({ queryKey: ["scan", id] });
+      queryClient.invalidateQueries({ queryKey: scanKeys.result(id) });
     }
   }, [streamStatus, id, queryClient]);
 
-  const { data, isLoading, isError, isFetching } = useQuery<ScanResponse>({
-    queryKey: ["scan", id],
-    queryFn: () => getScanResult(id),
-    initialData: () => queryClient.getQueryData<ScanResponse>(["scan", id]),
-    initialDataUpdatedAt: () => queryClient.getQueryState(["scan", id])?.dataUpdatedAt,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    // No disparar mientras el stream está activo — evita 404 prematuro y retry backoff
+  const { data, isLoading, isError, isFetching } = useScanResult(id, {
     enabled: !isStreaming,
+    gcTime: 30 * 60 * 1000,
+    initialData: () => queryClient.getQueryData<ScanResponse>(scanKeys.result(id)),
+    initialDataUpdatedAt: () => queryClient.getQueryState(scanKeys.result(id))?.dataUpdatedAt,
   });
 
-  const { data: bioStatus } = useQuery<BiomarkerStatusResponse>({
-    queryKey: ["biomarker-status"],
-    queryFn: getBiomarkerStatus,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+  const { data: bioStatus } = useBiomarkerStatus();
 
   // Usa data del query si está disponible; si no, usa partial como fallback
   // SOLO en la ventana post-done/pre-query (no durante streaming — evita mostrar

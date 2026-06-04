@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { logout } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/stores/auth";
+import { useLogout } from "@/hooks/use-auth";
 import { SessionExpiredDialog } from "@/components/SessionExpiredDialog";
 import { BottomNav } from "@/components/BottomNav";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { logout: clearStore } = useAuthStore();
+  const { mutate: logoutMutate } = useLogout();
   const [sessionExpired, setSessionExpired] = useState(false);
 
   // Escucha el evento emitido por client.ts cuando el refresh falla
@@ -26,14 +27,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     window.location.href = "/login";
   }
 
-  async function handleLogout() {
-    try {
-      await logout();
-    } catch {
-      // Ignorar si la sesión ya expiró en el servidor
-    }
-    clearStore();
-    router.push("/login");
+  function handleLogout() {
+    logoutMutate(undefined, {
+      onSuccess: () => {
+        clearStore();
+        router.push("/login");
+      },
+      onError: () => {
+        // Si la sesión ya expiró en el servidor, limpiar igual
+        clearStore();
+        router.push("/login");
+      },
+    });
   }
 
   return (

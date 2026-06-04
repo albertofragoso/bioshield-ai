@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -23,13 +22,13 @@ import {
 } from "@/components/ui/dialog";
 import { AvatarGlow } from "@/components/AvatarGlow";
 import { AILoadingState, BIOSYNC_PHASES } from "@/components/AILoadingState";
-import {
-  extractBiomarkers,
-  uploadBiomarkers,
-  getBiomarkerStatus,
-  deleteBiomarkers,
-} from "@/lib/api/biosync";
 import { HttpError } from "@/lib/api/client";
+import {
+  useBiomarkerStatus,
+  useExtractBiomarkers,
+  useUploadBiomarkers,
+  useDeleteBiomarkers,
+} from "@/hooks/use-biosync";
 import type { Biomarker, BiomarkerExtractionResult, AvatarVariant } from "@/lib/api/types";
 
 /* ── Canonical biomarker display names ────────────────────── */
@@ -107,7 +106,6 @@ type FlowState = "upload" | "loading" | "review";
 
 export default function BiosyncPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   const [flow, setFlow] = useState<FlowState>("upload");
   const [isDragging, setIsDragging] = useState(false);
@@ -116,12 +114,7 @@ export default function BiosyncPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const statusQuery = useQuery({
-    queryKey: ["biosync-status"],
-    queryFn: getBiomarkerStatus,
-    retry: (count, err) => !(err instanceof HttpError && err.status === 404),
-    staleTime: 5 * 60 * 1000,
-  });
+  const statusQuery = useBiomarkerStatus();
 
   const hasData = statusQuery.data?.has_data === true;
   const expiresAt = statusQuery.data?.expires_at;
@@ -130,51 +123,9 @@ export default function BiosyncPage() {
     statusQuery.error instanceof HttpError &&
     statusQuery.error.status === 404;
 
-  const extractMutation = useMutation({
-    mutationFn: extractBiomarkers,
-    onMutate: () => setFlow("loading"),
-    onSuccess: (data) => {
-      setExtraction(data);
-      setEditedBiomarkers(data.biomarkers);
-      setFlow("review");
-    },
-    onError: (err) => {
-      setFlow("upload");
-      if (err instanceof HttpError && err.status === 413) {
-        toast.error("PDF demasiado grande", { description: "El límite es 10 MB." });
-      } else if (err instanceof HttpError && err.status === 422) {
-        toast.error("Archivo inválido", {
-          description: "Solo se aceptan PDFs de resultados de laboratorio.",
-        });
-      } else {
-        toast.error("Error al procesar el PDF", { description: "Intenta de nuevo." });
-      }
-    },
-  });
-
-  const uploadMutation = useMutation({
-    mutationFn: uploadBiomarkers,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["biosync-status"] });
-      toast.success("Biomarcadores guardados", {
-        description: "Tus datos se encriptaron y guardarán por 180 días.",
-      });
-      setTimeout(() => router.push("/home"), 1200);
-    },
-    onError: () => {
-      toast.error("Error al guardar", { description: "Verifica tu red e intenta de nuevo." });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteBiomarkers,
-    onSuccess: () => {
-      queryClient.resetQueries({ queryKey: ["biosync-status"] });
-      setDeleteOpen(false);
-      toast.success("Biomarcadores eliminados");
-    },
-    onError: () => toast.error("No se pudo eliminar. Intenta de nuevo."),
-  });
+  const extractMutation = useExtractBiomarkers();
+  const uploadMutation = useUploadBiomarkers();
+  const deleteMutation = useDeleteBiomarkers();
 
   const handleFile = useCallback(
     (file: File) => {
@@ -184,7 +135,27 @@ export default function BiosyncPage() {
         toast.error("Solo se aceptan archivos PDF");
         return;
       }
-      extractMutation.mutate(file);
+      setFlow("loading");
+      extractMutation.mutate(file, {
+        onSuccess: (data) => {
+          setExtraction(data);
+          setEditedBiomarkers(data.biomarkers);
+          setFlow("review");
+        },
+        onError: (err) => {
+          setFlow("upload");
+          const status = (err as { status?: number })?.status;
+          if (status === 413) {
+            toast.error("PDF demasiado grande", { description: "El límite es 10 MB." });
+          } else if (status === 422) {
+            toast.error("Archivo inválido", {
+              description: "Solo se aceptan PDFs de resultados de laboratorio.",
+            });
+          } else {
+            toast.error("Error al procesar el PDF", { description: "Intenta de nuevo." });
+          }
+        },
+      });
     },
     [extractMutation]
   );
@@ -212,6 +183,16 @@ export default function BiosyncPage() {
       biomarkers: editedBiomarkers,
       lab_name: extraction.lab_name,
       test_date: extraction.test_date,
+    }, {
+      onSuccess: () => {
+        toast.success("Biomarcadores guardados", {
+          description: "Tus datos se encriptaron y guardarán por 180 días.",
+        });
+        setTimeout(() => router.push("/home"), 1200);
+      },
+      onError: () => {
+        toast.error("Error al guardar", { description: "Verifica tu red e intenta de nuevo." });
+      },
     });
   }
 
@@ -515,7 +496,13 @@ export default function BiosyncPage() {
               Cancelar
             </button>
             <button
-              onClick={() => deleteMutation.mutate()}
+              onClick={() => deleteMutation.mutate(undefined, {
+                onSuccess: () => {
+                  setDeleteOpen(false);
+                  toast.success("Biomarcadores eliminados");
+                },
+                onError: () => toast.error("No se pudo eliminar. Intenta de nuevo."),
+              })}
               disabled={deleteMutation.isPending}
               className="px-4 py-2 rounded-button font-mono text-[12px] uppercase tracking-[0.08em] disabled:opacity-40 transition-all"
               style={{

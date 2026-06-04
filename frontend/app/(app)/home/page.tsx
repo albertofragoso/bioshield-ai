@@ -1,27 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getBiomarkerStatus } from "@/lib/api/biosync";
-import { getScanHistory } from "@/lib/api/scan";
-import { HttpError } from "@/lib/api/client";
 import type { ScanHistoryEntry } from "@/lib/api/types";
+import { useBiomarkerStatus } from "@/hooks/use-biosync";
+import { useScanHistory } from "@/hooks/use-scan";
 import { HomeOrbSection } from "@/components/home/HomeOrbSection";
 import { HomeStatsPanel } from "@/components/home/HomeStatsPanel";
 
 export default function DashboardPage() {
-  const biosyncQuery = useQuery({
-    queryKey: ["biosync-status"],
-    queryFn: getBiomarkerStatus,
-    retry: (count, err) => !(err instanceof HttpError && err.status === 404),
-    staleTime: 5 * 60 * 1000,
-  });
+  const biosyncQuery = useBiomarkerStatus();
 
-  const historyQuery = useQuery({
-    queryKey: ["scan-history", 5],
-    queryFn: () => getScanHistory(5),
-    retry: false,
-    staleTime: 60 * 1000,
-  });
+  const historyQuery = useScanHistory(5);
 
   const historyItems: ScanHistoryEntry[] = historyQuery.data ?? [];
   const historyEmpty =

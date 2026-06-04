@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Lock, WifiOff } from "lucide-react";
-import { login } from "@/lib/api/auth";
 import { HttpError } from "@/lib/api/client";
+import { useLogin } from "@/hooks/use-auth";
 import { AuthField } from "@/components/auth/AuthField";
 import { AuthAlert } from "@/components/auth/AuthAlert";
 
@@ -20,19 +19,7 @@ export default function LoginPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<FormError>(null);
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: login,
-    onSuccess: () => router.push("/home"),
-    onError: (error: unknown) => {
-      if (error instanceof HttpError) {
-        if (error.status === 401) setFormError("401");
-        else if (error.status === 429) setFormError("429");
-        else setFormError("network");
-      } else {
-        setFormError("network");
-      }
-    },
-  });
+  const { mutate, isPending } = useLogin();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,7 +35,18 @@ export default function LoginPage() {
       return;
     }
 
-    mutate({ email, password });
+    mutate({ email, password }, {
+      onSuccess: () => router.push("/home"),
+      onError: (error: unknown) => {
+        if (error instanceof HttpError) {
+          if (error.status === 401) setFormError("401");
+          else if (error.status === 429) setFormError("429");
+          else setFormError("network");
+        } else {
+          setFormError("network");
+        }
+      },
+    });
   }
 
   return (
