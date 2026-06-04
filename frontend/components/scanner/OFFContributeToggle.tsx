@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { contributeToOff } from "@/lib/api/scan";
 import type { ScanResponse } from "@/lib/api/types";
+import { useContributeToOff } from "@/hooks/use-scan";
 
 interface Props {
   scanData: ScanResponse;
@@ -13,23 +12,8 @@ interface Props {
 export function OFFContributeToggle({ scanData }: Props) {
   const [enabled, setEnabled] = useState(false);
   const [succeeded, setSucceeded] = useState(false);
-  const queryClient = useQueryClient();
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      contributeToOff({
-        barcode: scanData.product_barcode,
-        ingredients: scanData.ingredients.map((i) => i.name),
-        consent: true,
-      }),
-    onError: () => {
-      setSucceeded(false);
-      toast.error("No se pudo registrar — intenta de nuevo");
-      queryClient.invalidateQueries({
-        queryKey: ["contribute-status", scanData.product_barcode],
-      });
-    },
-  });
+  const mutation = useContributeToOff();
 
   const isLoading = mutation.isPending;
   const isError = mutation.isError;
@@ -40,14 +24,30 @@ export function OFFContributeToggle({ scanData }: Props) {
     mutation.reset();
   }
 
+  const contributePayload = {
+    barcode: scanData.product_barcode,
+    ingredients: scanData.ingredients.map((i) => i.name),
+    consent: true as const,
+  };
+
   function handleSubmit() {
     setSucceeded(true);
-    mutation.mutate();
+    mutation.mutate(contributePayload, {
+      onError: () => {
+        setSucceeded(false);
+        toast.error("No se pudo registrar — intenta de nuevo");
+      },
+    });
   }
 
   function handleRetry() {
     setSucceeded(true);
-    mutation.mutate();
+    mutation.mutate(contributePayload, {
+      onError: () => {
+        setSucceeded(false);
+        toast.error("No se pudo registrar — intenta de nuevo");
+      },
+    });
   }
 
   if (succeeded) {

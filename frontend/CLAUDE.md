@@ -23,6 +23,7 @@ Adiciones específicas del frontend:
 
 ## Convenciones
 
+- **Hooks layer (OBLIGATORIO):** todo `useQuery`/`useMutation` pasa por `frontend/hooks/`. Nunca instanciar TanStack Query directamente en páginas o componentes. Usar `hooks/use-auth.ts`, `hooks/use-biosync.ts`, `hooks/use-scan.ts`, `hooks/use-analytics.ts`. Las factories `*Keys` exportadas por cada hook son la única fuente de verdad para `queryKey`.
 - **Cliente API:** todo fetch pasa por `lib/api/client.ts`. Nunca llamar `fetch()` directo en componentes.
 - **Tipos:** `lib/api/types.ts` es el espejo de los schemas del backend. Si el backend cambia un schema, actualizar aquí también.
 - **Cookies:** el backend setea las cookies; Next.js las envía automáticamente con `credentials: "include"`. No usar `localStorage` para tokens.

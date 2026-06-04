@@ -1,17 +1,15 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
-import { getAlternatives } from "@/lib/api/scan";
-import { recordAnalyticsEvent } from "@/lib/api/analytics";
+import { useAlternatives } from "@/hooks/use-scan";
+import { useRecordAnalyticsEvent } from "@/hooks/use-analytics";
 import { AILoadingState, ALTERNATIVES_PHASES } from "@/components/AILoadingState";
 import { AlternativesHeroPanel } from "@/components/AlternativesHeroPanel";
 import { AlternativesRankingList } from "@/components/AlternativesRankingList";
 import { AvatarGlow } from "@/components/AvatarGlow";
-import type { AlternativesResponse } from "@/lib/api/types";
 
 function EmptyState() {
   return (
@@ -59,18 +57,12 @@ export default function AlternativesPage() {
   const { id: barcode } = useParams<{ id: string }>();
   const router = useRouter();
 
-  const { data, isLoading, isError } = useQuery<AlternativesResponse>({
-    queryKey: ["alternatives", barcode],
-    queryFn: () => getAlternatives(barcode),
-    staleTime: 10 * 60 * 1000,
-    // gcTime:0 evita hydration mismatch: el cache se limpia al desmontar el componente,
-    // así SSR y cliente siempre arrancan en isLoading:true en re-navegaciones.
-    gcTime: 0,
-  });
+  const { data, isLoading, isError } = useAlternatives(barcode);
+  const { mutate: trackEvent } = useRecordAnalyticsEvent();
 
   useEffect(() => {
-    recordAnalyticsEvent({ event_type: "alt_page_opened", payload: { barcode } });
-  }, [barcode]);
+    trackEvent({ event_type: "alt_page_opened", payload: { barcode } });
+  }, [barcode, trackEvent]);
 
   const isEmpty = data && !data.top_pick && data.alternatives.length === 0;
 

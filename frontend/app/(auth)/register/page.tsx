@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Lock, ShieldCheck } from "lucide-react";
-import { register, login } from "@/lib/api/auth";
 import { HttpError } from "@/lib/api/client";
+import { useRegister } from "@/hooks/use-auth";
 import { AuthField } from "@/components/auth/AuthField";
 import { AuthAlert } from "@/components/auth/AuthAlert";
 
@@ -40,22 +39,7 @@ export default function RegisterPage() {
   const strength = passwordStrength(password);
   const { width: strengthWidth, color: strengthColor } = STRENGTH_CONFIG[strength];
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (body: { email: string; password: string }) => {
-      await register(body);
-      // Auto-login inmediato post-register
-      await login(body);
-    },
-    onSuccess: () => router.push("/home"),
-    onError: (error: unknown) => {
-      if (error instanceof HttpError) {
-        if (error.status === 409) setFormError("409");
-        else setFormError("network");
-      } else {
-        setFormError("network");
-      }
-    },
-  });
+  const { mutate, isPending } = useRegister();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +59,17 @@ export default function RegisterPage() {
       return;
     }
 
-    mutate({ email, password });
+    mutate({ email, password }, {
+      onSuccess: () => router.push("/home"),
+      onError: (error: unknown) => {
+        if (error instanceof HttpError) {
+          if (error.status === 409) setFormError("409");
+          else setFormError("network");
+        } else {
+          setFormError("network");
+        }
+      },
+    });
   }
 
   return (
