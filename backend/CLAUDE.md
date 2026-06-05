@@ -12,7 +12,7 @@ Adiciones específicas del backend:
 
 - **ORM:** SQLAlchemy 2.0
 - **Autenticación:** JWT con HTTP-only cookies
-- **Encriptación:** AES-256 (Fernet) para biomarcadores
+- **Encriptación:** AES-256-GCM (cryptography.hazmat AESGCM) para biomarcadores
 - **Rate limiting:** slowapi (10 req/min auth, 20 req/min scan)
 
 ## Convenciones
@@ -122,7 +122,7 @@ pytest --cov=app --cov-report=term-missing
 | POST   | /scan/photo       | JWT  | Escaneo por foto de etiqueta (Gemini)|
 | GET    | /scan/{barcode}/alternatives | JWT | Alternativas más limpias — hybrid matching (SQL + ChromaDB) (Fase 2) |
 | POST   | /scan/contribute  | JWT  | Contribución a Open Food Facts (Fase 2) — 202 Accepted, BackgroundTask async |
-| POST   | /biosync/upload   | JWT  | Subir biomarcadores (AES-256)        |
+| POST   | /biosync/upload   | JWT  | Subir biomarcadores (AES-256-GCM)    |
 | GET    | /biosync/status   | JWT  | Estado y expiración de biomarcadores |
 | DELETE | /biosync/data     | JWT  | Eliminar datos médicos               |
 

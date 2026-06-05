@@ -36,7 +36,7 @@ BioShield AI es un agente que:
 
 Invariantes globales:
 - JWT obligatorio en todos los endpoints excepto `/auth/login`, `/auth/register`, `/auth/refresh`.
-- Datos médicos encriptados AES-256/Fernet antes de persistir — nunca plaintext.
+- Datos médicos encriptados AES-256-GCM antes de persistir — nunca plaintext.
 - Biomarkers expiran en 180 días (`expires_at` validado en DB y en queries).
 - Todo endpoint que llama a Gemini tiene `Depends(token_budget(...))` — verificado en `test_ci_gate.py`.
 - Config solo desde `backend/app/config.py` (Pydantic Settings) — nunca `os.environ` directo.
@@ -113,7 +113,7 @@ backend/
 │   └── services/
 │       ├── auth.py              # hash_password, create_access_token,
 │       │                        #   create_refresh_token, validate_and_rotate_refresh_token
-│       ├── crypto.py            # encrypt_biomarker / decrypt_biomarker (Fernet AES-256)
+│       ├── crypto.py            # encrypt_biomarker / decrypt_biomarker (AES-256-GCM)
 │       ├── gemini.py            # cliente Gemini 2.5 Flash:
 │       │                        #   analyze_label(), extract_biomarkers_from_pdf(),
 │       │                        #   parse_ingredients_ocr()
@@ -284,13 +284,13 @@ Toda petición HTTP pasa por `frontend/lib/api/client.ts`:
 ### 5.4 State management
 
 - **TanStack Query** — server state (scans, historial, biomarkers). Todo acceso pasa por `frontend/hooks/`:
-  - `hooks/use-auth.ts` — `useLogin`, `useRegister`, `useLogout` (con `cancelQueries → removeQueries` en logout)
+  - `hooks/use-auth.ts` — `useLogin`, `useRegister` (register + auto-login en un solo mutation), `useLogout` (con `cancelQueries → removeQueries` en logout)
   - `hooks/use-biosync.ts` — `useBiomarkerStatus`, `useExtractBiomarkers`, `useUploadBiomarkers`, `useDeleteBiomarkers`; key factory: `biosyncKeys`
   - `hooks/use-scan.ts` — `useScanResult`, `useScanHistory`, `useAlternatives`, `useSharedScan`, `useLinkPhotoToBarcode`, `useCreateShareLink`, `useRevokeShareLink`, `useContributeToOff`; key factory: `scanKeys`
   - `hooks/use-analytics.ts` — `useRecordAnalyticsEvent` (fire-and-forget)
 - **Invariante:** ninguna página o componente instancia `useQuery`/`useMutation` de `@tanstack/react-query` directamente — siempre a través de hooks.
 - **Zustand** — client state: `lib/stores/auth.ts` (user, isAuthenticated), `lib/stores/scanning.ts` (SSE stream state).
-- **`*Keys` factories** — fuente de verdad única para `queryKey`: `biosyncKeys.status()`, `scanKeys.result(id)`, `scanKeys.history(limit)`, etc.
+- **`*Keys` factories** — fuente de verdad única para `queryKey`: `biosyncKeys.status()`; `scanKeys.result(id)`, `scanKeys.history(limit)`, `scanKeys.alternatives(barcode?)`, `scanKeys.shared(token)`.
 
 ---
 
@@ -357,7 +357,7 @@ BiosyncPage → POST /biosync/extract (PDF base64)
   ├── resolve_range() → rango clínico por biomarcador
   ├── classify() → LOW/NORMAL/HIGH/CRITICAL
   │
-  └── POST /biosync/upload → encrypt_biomarker (Fernet)
+  └── POST /biosync/upload → encrypt_biomarker (AES-256-GCM)
         → Biomarker INSERT (encrypted_data, encryption_iv, expires_at = +180d)
 ```
 
@@ -388,8 +388,8 @@ ScanResultPage → GET /scan/{id}/alternatives
 
 ### 7.2 Encriptación de datos médicos
 
-- **Algoritmo:** Fernet (AES-128-CBC + HMAC-SHA256) vía `cryptography` library.
-- **Key:** `ENCRYPTION_KEY` env var — derivada de `FERNET_KEY` en `config.py`.
+- **Algoritmo:** AES-256-GCM vía `cryptography.hazmat.primitives.ciphers.aead.AESGCM`.
+- **Key:** `AES_KEY` env var — 32 bytes ASCII exactos (256 bits); validada en `config.py`.
 - **Funciones:** `encrypt_biomarker()` / `decrypt_biomarker()` en `services/crypto.py`.
 - Los valores numéricos de biomarkers **nunca** se persisten en plaintext ni se embeddean.
 
