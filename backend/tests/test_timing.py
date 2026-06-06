@@ -1,7 +1,4 @@
-"""Unit tests for app.agents.timing — timed_node wrapper.
-
-TDD RED phase: all tests fail until timing.py is implemented.
-"""
+"""Unit tests for app.agents.timing — timed_node wrapper."""
 
 from unittest.mock import patch
 
@@ -78,7 +75,7 @@ async def test_timed_node_sync():
 
 
 def test_timed_node_preserves_metadata():
-    """Wrapper preserves __name__ and sets __wrapped__ via functools.wraps."""
+    """Wrapper preserves __name__, __wrapped__, and sets _is_timed sentinel."""
     from app.agents.timing import timed_node
 
     fn = _make_async_node({})
@@ -87,6 +84,7 @@ def test_timed_node_preserves_metadata():
 
     assert wrapped.__name__ == fn.__name__
     assert wrapped.__wrapped__ is fn
+    assert wrapped._is_timed is True
 
 
 async def test_timed_node_slow_warning(monkeypatch):
@@ -96,16 +94,22 @@ async def test_timed_node_slow_warning(monkeypatch):
 
     monkeypatch.setitem(timing_module.SLOW_NODE_THRESHOLDS, "search_regulatory", 1)
 
-    async def slow_node(state: dict) -> dict:
-        import asyncio
+    call_count = 0
 
-        await asyncio.sleep(0.01)
-        return state
+    def fake_perf_counter():
+        nonlocal call_count
+        call_count += 1
+        # First call: start. Second call: after fn. Returns 10ms elapsed.
+        return 0.0 if call_count == 1 else 0.010
 
-    slow_node.__name__ = "search_regulatory"
-    wrapped = timed_node("search_regulatory", slow_node)
+    fn = _make_async_node({})
+    fn.__name__ = "search_regulatory"
+    wrapped = timed_node("search_regulatory", fn)
 
-    with patch("app.agents.timing.logger") as mock_logger:
+    with patch("app.agents.timing.time") as mock_time, patch(
+        "app.agents.timing.logger"
+    ) as mock_logger:
+        mock_time.perf_counter = fake_perf_counter
         await wrapped({})
 
     mock_logger.warning.assert_called_once()
@@ -114,11 +118,11 @@ async def test_timed_node_slow_warning(monkeypatch):
     extra = warn_kwargs[1]["extra"]
     assert extra["node"] == "search_regulatory"
     assert extra["threshold_ms"] == 1
-    assert extra["elapsed_ms"] > 1
+    assert extra["elapsed_ms"] == 10.0
 
 
 async def test_timed_node_exception_propagates():
-    """Exception propagates unchanged; logger.info still fires via finally."""
+    """Async exception propagates unchanged; logger.info fires via finally."""
     from app.agents.timing import timed_node
 
     async def bad_node(state: dict) -> dict:
@@ -128,25 +132,43 @@ async def test_timed_node_exception_propagates():
     wrapped = timed_node("bad_node", bad_node)
 
     with patch("app.agents.timing.logger") as mock_logger:
-        with pytest.raises(RuntimeError, match="boom"):
+        with pytest.raises(RuntimeError) as exc_info:
             await wrapped({})
 
+    assert str(exc_info.value) == "boom"
     mock_logger.info.assert_called_once()
     extra = mock_logger.info.call_args[1]["extra"]
     assert extra["node"] == "bad_node"
-    # warning must NOT fire on exception path
     mock_logger.warning.assert_not_called()
 
 
-def test_timed_node_disabled(monkeypatch):
-    """ENABLE_NODE_TIMING=false returns the original fn without __wrapped__."""
-    monkeypatch.setenv("ENABLE_NODE_TIMING", "false")
+def test_timed_node_sync_exception_propagates():
+    """Sync exception propagates unchanged; logger.info fires via finally."""
+    from app.agents.timing import timed_node
 
-    # Re-import so the env var is re-evaluated on the call
+    def bad_node(state: dict) -> dict:
+        raise ValueError("sync-boom")
+
+    bad_node.__name__ = "bad_sync_node"
+    wrapped = timed_node("bad_sync_node", bad_node)
+
+    with patch("app.agents.timing.logger") as mock_logger:
+        with pytest.raises(ValueError) as exc_info:
+            wrapped({})
+
+    assert str(exc_info.value) == "sync-boom"
+    mock_logger.info.assert_called_once()
+    extra = mock_logger.info.call_args[1]["extra"]
+    assert extra["node"] == "bad_sync_node"
+    mock_logger.warning.assert_not_called()
+
+
+def test_timed_node_disabled():
+    """enabled=False returns the original fn without wrapping."""
     from app.agents.timing import timed_node
 
     fn = _make_sync_node({})
-    result = timed_node("identify_product", fn)
+    result = timed_node("identify_product", fn, enabled=False)
 
     assert result is fn
-    assert not hasattr(result, "__wrapped__")
+    assert not hasattr(result, "_is_timed")

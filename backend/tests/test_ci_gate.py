@@ -92,24 +92,51 @@ EXPECTED_NODE_NAMES = [
 def test_all_nodes_are_timed():
     """Every LangGraph pipeline node must be wrapped with timed_node.
 
-    Builds the compiled graph with mock dependencies and checks that each node's
-    inner callable carries __wrapped__ (set by functools.wraps in timed_node).
-    Adding a node to graph.py without updating EXPECTED_NODE_NAMES fails CI.
+    Checks the _is_timed sentinel set exclusively by timed_node — unlike __wrapped__,
+    this is not set by arbitrary functools.wraps decorators.
+
+    Reverse-check: asserts graph.nodes matches EXPECTED_NODE_NAMES exactly so that
+    adding a new node without updating this list fails CI.
+
+    LangGraph compat: verified with langgraph==0.4.x (.bound.afunc/.func access pattern).
+    If this test errors with AttributeError, the LangGraph internal API changed —
+    update the introspection path and bump the version comment above.
     """
     from unittest.mock import MagicMock
+
+    import pytest
 
     from app.agents.graph import build_scan_graph
     from app.config import Settings
 
     mock_db = MagicMock()
     mock_settings = MagicMock(spec=Settings)
+    mock_settings.enable_node_timing = True
     graph = build_scan_graph(db=mock_db, settings=mock_settings)
+
+    # Reverse check: no new nodes silently bypass the gate
+    actual_nodes = [k for k in graph.nodes.keys() if k != "__start__"]
+    assert set(actual_nodes) == set(EXPECTED_NODE_NAMES), (
+        f"graph.nodes has changed — update EXPECTED_NODE_NAMES.\n"
+        f"Actual: {sorted(actual_nodes)}\nExpected: {sorted(EXPECTED_NODE_NAMES)}"
+    )
 
     violations = []
     for node_name in EXPECTED_NODE_NAMES:
-        rc = graph.nodes[node_name].bound
-        fn = rc.afunc if rc.afunc is not None else rc.func
-        if not hasattr(fn, "__wrapped__"):
+        try:
+            rc = graph.nodes[node_name].bound
+            fn = rc.afunc if rc.afunc is not None else rc.func
+        except AttributeError as exc:
+            pytest.fail(
+                f"Cannot introspect {node_name} via .bound.afunc/.func — "
+                f"LangGraph internal API may have changed: {exc}"
+            )
+
+        assert fn is not None, (
+            f"Could not resolve callable for {node_name} — check LangGraph version"
+        )
+
+        if not hasattr(fn, "_is_timed"):
             violations.append(node_name)
 
     assert violations == [], (

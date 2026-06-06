@@ -14,16 +14,15 @@ from __future__ import annotations
 import functools
 import inspect
 import logging
-import os
 import time
-from typing import Callable
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
 # Threshold per node in milliseconds.
 # Update from baseline before merge — see module docstring.
 SLOW_NODE_THRESHOLDS: dict[str, int] = {
-    "identify_product": 8000,     # Gemini Vision
+    "identify_product": 8000,  # Gemini Vision
     "extract_ingredients": 8000,  # Gemini Vision
     "resolve_entities": 2000,
     "search_regulatory": 2000,
@@ -34,13 +33,16 @@ SLOW_NODE_THRESHOLDS: dict[str, int] = {
 }
 
 
-def timed_node(name: str, fn: Callable) -> Callable:
+def timed_node(name: str, fn: Callable, *, enabled: bool = True) -> Callable:
     """Wrap a LangGraph node callable with wall-clock timing.
 
     In async context, elapsed includes event-loop yield time from other
     concurrent tasks — it is not pure CPU or I/O time for this node alone.
+
+    Pass enabled=False (from Settings.enable_node_timing) to skip wrapping
+    without a redeploy.
     """
-    if os.getenv("ENABLE_NODE_TIMING", "true") != "true":
+    if not enabled:
         return fn
 
     if inspect.iscoroutinefunction(fn):
@@ -48,27 +50,30 @@ def timed_node(name: str, fn: Callable) -> Callable:
         @functools.wraps(fn)
         async def async_wrapper(state):
             start = time.perf_counter()
+            success = False
             try:
                 result = await fn(state)
-                elapsed = time.perf_counter() - start
-                elapsed_ms = round(elapsed * 1000, 1)
-                logger.info("node_timing", extra={"node": name, "elapsed_ms": elapsed_ms})
-                threshold = SLOW_NODE_THRESHOLDS.get(name)
-                if threshold is not None and elapsed_ms > threshold:
-                    logger.warning(
-                        "slow_node",
-                        extra={
-                            "node": name,
-                            "elapsed_ms": elapsed_ms,
-                            "threshold_ms": threshold,
-                        },
-                    )
+                success = True
                 return result
-            except Exception:
+            finally:
                 elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
-                logger.info("node_timing", extra={"node": name, "elapsed_ms": elapsed_ms})
-                raise
+                try:
+                    logger.info("node_timing", extra={"node": name, "elapsed_ms": elapsed_ms})
+                    if success:
+                        threshold = SLOW_NODE_THRESHOLDS.get(name)
+                        if threshold is not None and elapsed_ms > threshold:
+                            logger.warning(
+                                "slow_node",
+                                extra={
+                                    "node": name,
+                                    "elapsed_ms": elapsed_ms,
+                                    "threshold_ms": threshold,
+                                },
+                            )
+                except Exception:
+                    pass
 
+        async_wrapper._is_timed = True
         return async_wrapper
 
     else:
@@ -76,25 +81,28 @@ def timed_node(name: str, fn: Callable) -> Callable:
         @functools.wraps(fn)
         def sync_wrapper(state):
             start = time.perf_counter()
+            success = False
             try:
                 result = fn(state)
-                elapsed = time.perf_counter() - start
-                elapsed_ms = round(elapsed * 1000, 1)
-                logger.info("node_timing", extra={"node": name, "elapsed_ms": elapsed_ms})
-                threshold = SLOW_NODE_THRESHOLDS.get(name)
-                if threshold is not None and elapsed_ms > threshold:
-                    logger.warning(
-                        "slow_node",
-                        extra={
-                            "node": name,
-                            "elapsed_ms": elapsed_ms,
-                            "threshold_ms": threshold,
-                        },
-                    )
+                success = True
                 return result
-            except Exception:
+            finally:
                 elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
-                logger.info("node_timing", extra={"node": name, "elapsed_ms": elapsed_ms})
-                raise
+                try:
+                    logger.info("node_timing", extra={"node": name, "elapsed_ms": elapsed_ms})
+                    if success:
+                        threshold = SLOW_NODE_THRESHOLDS.get(name)
+                        if threshold is not None and elapsed_ms > threshold:
+                            logger.warning(
+                                "slow_node",
+                                extra={
+                                    "node": name,
+                                    "elapsed_ms": elapsed_ms,
+                                    "threshold_ms": threshold,
+                                },
+                            )
+                except Exception:
+                    pass
 
+        sync_wrapper._is_timed = True
         return sync_wrapper

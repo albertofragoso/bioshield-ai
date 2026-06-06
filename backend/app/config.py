@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     off_contrib_timeout_seconds: int = 15
     off_contrib_sync_for_tests: bool = False  # ejecutar background task sincrónicamente en pytest
 
+    # Node timing
+    enable_node_timing: bool = True  # env: ENABLE_NODE_TIMING — False deshabilita sin redeploy
+
     # Token budget
     daily_token_budget: int = 50_000  # env: DAILY_TOKEN_BUDGET
 
