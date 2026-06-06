@@ -1,4 +1,7 @@
-"""CI gate: every router function calling Gemini must declare token_budget dependency."""
+"""CI gates:
+1. Every router function calling Gemini must declare token_budget dependency.
+2. Every LangGraph pipeline node must be wrapped with timed_node.
+"""
 
 import ast
 import pathlib
@@ -67,4 +70,49 @@ def test_all_gemini_endpoints_have_token_budget():
     assert violations == [], (
         f"These router functions call Gemini but lack Depends(token_budget(...)): {violations}\n"
         "Add _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST[...])) to each."
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Gate 2: all pipeline nodes must be wrapped with timed_node
+# ─────────────────────────────────────────────────────────────────────────────
+
+EXPECTED_NODE_NAMES = [
+    "identify_product",
+    "extract_ingredients",
+    "resolve_entities",
+    "search_regulatory",
+    "biosync",
+    "detect_conflicts",
+    "personalize",
+    "calculate_risk",
+]
+
+
+def test_all_nodes_are_timed():
+    """Every LangGraph pipeline node must be wrapped with timed_node.
+
+    Builds the compiled graph with mock dependencies and checks that each node's
+    inner callable carries __wrapped__ (set by functools.wraps in timed_node).
+    Adding a node to graph.py without updating EXPECTED_NODE_NAMES fails CI.
+    """
+    from unittest.mock import MagicMock
+
+    from app.agents.graph import build_scan_graph
+    from app.config import Settings
+
+    mock_db = MagicMock()
+    mock_settings = MagicMock(spec=Settings)
+    graph = build_scan_graph(db=mock_db, settings=mock_settings)
+
+    violations = []
+    for node_name in EXPECTED_NODE_NAMES:
+        rc = graph.nodes[node_name].bound
+        fn = rc.afunc if rc.afunc is not None else rc.func
+        if not hasattr(fn, "__wrapped__"):
+            violations.append(node_name)
+
+    assert violations == [], (
+        f"These pipeline nodes are missing timed_node wrapper: {violations}\n"
+        "Wrap the add_node call in graph.py with timed_node(name, fn)."
     )

@@ -26,6 +26,7 @@ from app.agents.nodes import (
     needs_image_extraction,
 )
 from app.agents.state import ScanState
+from app.agents.timing import timed_node
 from app.config import Settings
 
 
@@ -33,14 +34,26 @@ def build_scan_graph(db: Session, settings: Settings):
     """Compile a per-request scan graph that closes over the live DB session."""
     graph = StateGraph(ScanState)
 
-    graph.add_node("identify_product", make_identify_product_node(settings))
-    graph.add_node("extract_ingredients", make_extract_ingredients_node(settings))
-    graph.add_node("resolve_entities", make_resolve_entities_node(db))
-    graph.add_node("search_regulatory", make_search_regulatory_node(db, settings))
-    graph.add_node("biosync", make_biosync_node(db, settings))
-    graph.add_node("detect_conflicts", make_detect_conflicts_node(db))
-    graph.add_node("personalize", make_personalize_node(settings))
-    graph.add_node("calculate_risk", make_calculate_risk_node())
+    graph.add_node(
+        "identify_product", timed_node("identify_product", make_identify_product_node(settings))
+    )
+    graph.add_node(
+        "extract_ingredients",
+        timed_node("extract_ingredients", make_extract_ingredients_node(settings)),
+    )
+    graph.add_node(
+        "resolve_entities", timed_node("resolve_entities", make_resolve_entities_node(db))
+    )
+    graph.add_node(
+        "search_regulatory",
+        timed_node("search_regulatory", make_search_regulatory_node(db, settings)),
+    )
+    graph.add_node("biosync", timed_node("biosync", make_biosync_node(db, settings)))
+    graph.add_node(
+        "detect_conflicts", timed_node("detect_conflicts", make_detect_conflicts_node(db))
+    )
+    graph.add_node("personalize", timed_node("personalize", make_personalize_node(settings)))
+    graph.add_node("calculate_risk", timed_node("calculate_risk", make_calculate_risk_node()))
 
     graph.add_edge(START, "identify_product")
     graph.add_conditional_edges(
