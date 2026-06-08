@@ -1,7 +1,12 @@
 # LangGraph Node Latency Metrics — Requirements
 
 **Date:** 2026-06-06
-**Status:** Ready for planning
+**Status:** Shipped — `feat/langgraph-node-timing` (2026-06-06)
+**Plan:** `docs/plans/2026-06-06-001-feat-langgraph-node-timing-plan.md`
+**Solution doc:** `docs/solutions/design-patterns/langgraph-timed-node-instrumentation.md`
+
+> ⚠️ Este documento refleja los **requisitos originales**. El plan anota las deviaciones
+> de implementación. Ver plan para el estado real del código.
 
 ---
 

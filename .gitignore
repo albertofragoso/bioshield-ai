@@ -55,3 +55,6 @@ tests/fixtures/integration-auth.json
 # Ingestion script output (can be large, regenerated on demand)
 backend/scripts/data/
 .worktrees/
+
+# Compound Engineering — machine-local config (never commit)
+.compound-engineering/config.local.yaml

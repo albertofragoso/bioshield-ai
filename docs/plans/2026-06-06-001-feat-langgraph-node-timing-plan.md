@@ -1,7 +1,9 @@
 ---
 title: "LangGraph Per-Node Latency Instrumentation"
-status: active
+status: completed
 date: 2026-06-06
+shipped: 2026-06-06
+branch: feat/langgraph-node-timing
 origin: docs/brainstorms/2026-06-06-langgraph-node-latency-metrics-requirements.md
 ---
 
@@ -207,6 +209,46 @@ ambos dependen de Slice 1.
   antes de considerar el feature completo.
 - **¿Hay un scan lento específico que motivó esto?** Si sí, usarlo para calibrar thresholds
   en lugar de P95 genérico.
-- **`graph.nodes[node]["action"]` access pattern** — verificar en dev antes de U4 que la
-  API interna de LangGraph expone el callable compilado con esa clave. Si cambia, el CI gate
-  necesita ajuste.
+
+---
+
+## Implementation Deviations (post-ship)
+
+Las siguientes decisiones difieren del plan original. Documentadas para que el plan
+refleje el código real en `feat/langgraph-node-timing`.
+
+### Feature flag: `Settings.enable_node_timing`, no `os.getenv`
+
+**Plan:** `os.getenv("ENABLE_NODE_TIMING", "true")` leído dentro de `timed_node`.
+**Implementación:** `enable_node_timing: bool = True` en `app/config.py` (Pydantic Settings),
+pasado como `enabled=settings.enable_node_timing` a `build_scan_graph()` y luego a cada
+`timed_node(..., enabled=timing)`. Esto cumple la invariante global "nunca leer `os.environ`
+directamente". El plan marcaba esto como excepción aceptable; la implementación encontró
+la solución correcta: delegar a Settings. **`config.py` SÍ se modificó** (el plan decía que no).
+
+### CI gate sentinel: `_is_timed`, no `__wrapped__`
+
+**Plan:** `assert hasattr(fn, "__wrapped__")`.
+**Implementación:** `assert hasattr(fn, "_is_timed")`. Motivo: `__wrapped__` lo setea cualquier
+`functools.wraps()` — FastAPI deps, caching decorators, otros middlewares. `_is_timed = True`
+es exclusivo de `timed_node`, haciendo el gate preciso y sin falsos positivos.
+
+### Introspection path: `.bound.afunc/.func`, no `["action"]`
+
+**Plan:** `fn = graph.nodes[node_name]["action"]`.
+**Implementación:** `rc = graph.nodes[node_name].bound` → `fn = rc.afunc if rc.afunc is not None else rc.func`.
+La API interna de LangGraph (0.4.x) expone el callable via `RunnableCallable.bound`, no
+`["action"]`. El gate tiene `try/except AttributeError: pytest.fail(...)` para detectar
+rápidamente si la API cambia en futuros upgrades.
+
+### Tests: 7, no 6
+
+Se agregó `test_timed_node_sync_exception_propagates` (sync path, excepción + finally).
+El plan listaba 6 tests; la implementación añadió uno extra para cubrir simétricamente
+el path sync (el plan solo cubría async para exception propagation).
+
+### Bidirectional CI reverse-check
+
+El plan solo verificaba `EXPECTED_NODE_NAMES ⊆ graph.nodes`. La implementación usa
+`set(actual_nodes) == set(EXPECTED_NODE_NAMES)` — bidireccional. Impide que nodos nuevos
+en el grafo pasen sin actualizar la lista esperada.

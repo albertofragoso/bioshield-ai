@@ -709,6 +709,37 @@ Script `scripts/expire_biomarkers.py` — elimina rows donde `expires_at < NOW()
 
 `users.tokens_used_today` + `users.tokens_budget_date` — actualizados atómicamente en cada llamada Gemini. Visible via `GET /auth/me`.
 
+### 11.5 Per-Node Latency Instrumentation
+
+`backend/app/agents/timing.py` — wrapper `timed_node` que instrumenta cada nodo del pipeline
+con `time.perf_counter()` y emite logs estructurados:
+
+```json
+{"ts": "...", "level": "INFO", "logger": "app.agents.timing",
+ "request_id": "...", "msg": "node_timing", "node": "biosync", "elapsed_ms": 142.3}
+{"ts": "...", "level": "WARNING", "logger": "app.agents.timing",
+ "request_id": "...", "msg": "slow_node", "node": "identify_product",
+ "elapsed_ms": 9200.0, "threshold_ms": 8000}
+```
+
+**Comportamiento clave:**
+- `finally` + `success` flag: el log de timing se emite siempre, incluyendo en paths de error
+  y `CancelledError`. `slow_node` WARNING solo se emite en happy path.
+- `_is_timed = True` sentinel en el wrapper (no `__wrapped__`) — exclusivo de `timed_node`,
+  permite que el CI gate verifique instrumentación sin falsos positivos.
+- Correlation: `request_id` llega automáticamente vía `RequestIDMiddleware` ContextVar →
+  `JsonFormatter`. No se requiere campo extra en `ScanState`.
+- Feature flag: `Settings.enable_node_timing` (default `True`) — `False` retorna el callable
+  original sin wrap. Configurable vía `ENABLE_NODE_TIMING` sin redeploy.
+
+**Thresholds** (`SLOW_NODE_THRESHOLDS`): placeholders actuales — Gemini Vision nodes (8000ms),
+resto (2000ms). Deben actualizarse a P95+20% con ≥20 scans representativos antes del merge
+a main (ver módulo docstring en `timing.py`).
+
+**CI gate:** `test_ci_gate.py::test_all_nodes_are_timed` — verifica bidireccionalmente que
+todos los nodos de `build_scan_graph()` tienen `_is_timed`. Falla si se agrega un nodo
+sin instrumentación o sin actualizar `EXPECTED_NODE_NAMES`.
+
 ---
 
 ## 12. Infraestructura y despliegue
