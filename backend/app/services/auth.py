@@ -170,17 +170,6 @@ def validate_and_rotate_refresh_token(
     return user_id, new_access, new_refresh
 
 
-def revoke_user_token(db: Session, token: str) -> None:
-    from app.models import RefreshToken
-
-    db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.token_hash == hash_token(token))
-        .values(is_revoked=True)
-    )
-    db.commit()
-
-
 def revoke_all_user_tokens(db: Session, user_id: str) -> None:
     from app.models import RefreshToken
 
