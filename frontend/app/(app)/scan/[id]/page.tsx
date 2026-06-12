@@ -135,10 +135,13 @@ function LinkBarcodeCard({ pseudoBarcode }: { pseudoBarcode: string }) {
       return;
     }
     setError(null);
-    linkPhoto({ pseudoBarcode, barcode }, {
-      onSuccess: (result) => router.push(`/scan/${result.product_barcode}`),
-      onError: () => setError("No pudimos linkear el producto. Intenta de nuevo."),
-    });
+    linkPhoto(
+      { pseudoBarcode, barcode },
+      {
+        onSuccess: (result) => router.push(`/scan/${result.product_barcode}`),
+        onError: () => setError("No pudimos linkear el producto. Intenta de nuevo."),
+      }
+    );
   }
 
   return (
@@ -738,6 +741,45 @@ function ParaTiSection({
   );
 }
 
+function Pill({
+  active,
+  id,
+  label,
+  count,
+  color,
+  onChange,
+}: {
+  active: boolean;
+  id: "alerts" | "watches";
+  label: string;
+  count: number;
+  color: string;
+  onChange: (t: "alerts" | "watches") => void;
+}) {
+  const rgb = hexToRgb(color);
+  const isEmpty = count === 0;
+  return (
+    <button
+      onClick={() => !isEmpty && onChange(id)}
+      disabled={isEmpty}
+      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-card font-mono text-[11px] uppercase tracking-[0.08em] transition-all disabled:cursor-not-allowed"
+      style={{
+        background: active && !isEmpty ? `rgba(${rgb}, .09)` : "transparent",
+        border: `1px solid rgba(${rgb}, ${active && !isEmpty ? 0.4 : 0.1})`,
+        color: active && !isEmpty ? color : "rgba(255,255,255,.25)",
+        boxShadow: active && !isEmpty ? `0 0 20px rgba(${rgb}, .12)` : "none",
+        opacity: isEmpty ? 0.45 : 1,
+      }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: color, opacity: active && !isEmpty ? 1 : 0.2 }}
+      />
+      {label} <span className="opacity-55">({count})</span>
+    </button>
+  );
+}
+
 function ParaTiTabs({
   tab,
   onChange,
@@ -749,43 +791,6 @@ function ParaTiTabs({
   alertCount: number;
   watchCount: number;
 }) {
-  const Pill = ({
-    active,
-    id,
-    label,
-    count,
-    color,
-  }: {
-    active: boolean;
-    id: "alerts" | "watches";
-    label: string;
-    count: number;
-    color: string;
-  }) => {
-    const rgb = hexToRgb(color);
-    const isEmpty = count === 0;
-    return (
-      <button
-        onClick={() => !isEmpty && onChange(id)}
-        disabled={isEmpty}
-        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-card font-mono text-[11px] uppercase tracking-[0.08em] transition-all disabled:cursor-not-allowed"
-        style={{
-          background: active && !isEmpty ? `rgba(${rgb}, .09)` : "transparent",
-          border: `1px solid rgba(${rgb}, ${active && !isEmpty ? 0.4 : 0.1})`,
-          color: active && !isEmpty ? color : "rgba(255,255,255,.25)",
-          boxShadow: active && !isEmpty ? `0 0 20px rgba(${rgb}, .12)` : "none",
-          opacity: isEmpty ? 0.45 : 1,
-        }}
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: color, opacity: active && !isEmpty ? 1 : 0.2 }}
-        />
-        {label} <span className="opacity-55">({count})</span>
-      </button>
-    );
-  };
-
   return (
     <div className="flex gap-2">
       <Pill
@@ -794,6 +799,7 @@ function ParaTiTabs({
         label="Alertas"
         count={alertCount}
         color="#FB923C"
+        onChange={onChange}
       />
       <Pill
         active={tab === "watches"}
@@ -801,6 +807,7 @@ function ParaTiTabs({
         label="Vigilar"
         count={watchCount}
         color="#FACC15"
+        onChange={onChange}
       />
     </div>
   );

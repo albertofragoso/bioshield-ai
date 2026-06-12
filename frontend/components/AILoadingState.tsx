@@ -106,12 +106,7 @@ export const ALTERNATIVES_PHASES: AILoadingPhase[] = [
   },
 ];
 
-const ORBITAL_NODES = [
-  { Icon: Eye },
-  { Icon: FlaskConical },
-  { Icon: Activity },
-  { Icon: Shield },
-];
+const ORBITAL_NODES = [{ Icon: Eye }, { Icon: FlaskConical }, { Icon: Activity }, { Icon: Shield }];
 
 export function AILoadingState({ phases }: { phases: AILoadingPhase[] }) {
   const [completedPhases, setCompletedPhases] = useState<Set<number>>(new Set());
@@ -119,6 +114,7 @@ export function AILoadingState({ phases }: { phases: AILoadingPhase[] }) {
   const [expandedPhase, setExpandedPhase] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [avatarBounce, setAvatarBounce] = useState(false);
+  // eslint-disable-next-line react-hooks/purity -- intentional: captures mount timestamp as timer start
   const startRef = useRef(Date.now());
 
   useEffect(() => {
@@ -182,8 +178,7 @@ export function AILoadingState({ phases }: { phases: AILoadingPhase[] }) {
             width: 182,
             height: 182,
             border: "1px solid rgba(45,212,191,0.18)",
-            boxShadow:
-              "0 0 9px 2px rgba(45,212,191,0.12), inset 0 0 9px 2px rgba(45,212,191,0.06)",
+            boxShadow: "0 0 9px 2px rgba(45,212,191,0.12), inset 0 0 9px 2px rgba(45,212,191,0.06)",
             animation: "bs-orbit-ccw 14s linear infinite",
           }}
         />
@@ -194,8 +189,7 @@ export function AILoadingState({ phases }: { phases: AILoadingPhase[] }) {
             width: 138,
             height: 138,
             border: "1px dashed rgba(245,158,11,0.18)",
-            boxShadow:
-              "0 0 7px 1px rgba(245,158,11,0.12), inset 0 0 7px 1px rgba(245,158,11,0.06)",
+            boxShadow: "0 0 7px 1px rgba(245,158,11,0.12), inset 0 0 7px 1px rgba(245,158,11,0.06)",
             animation: "bs-orbit-cw 8s linear infinite",
           }}
         />
