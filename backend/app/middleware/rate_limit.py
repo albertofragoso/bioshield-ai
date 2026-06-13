@@ -8,7 +8,6 @@ Limits:
 """
 
 import os as _os
-from datetime import UTC, datetime, time, timedelta
 
 from fastapi import Request
 from slowapi import Limiter
@@ -43,13 +42,6 @@ def _get_user_or_ip(request: Request) -> str:
     except Exception:
         pass
     return get_remote_address(request)
-
-
-def _seconds_until_midnight_utc() -> int:
-    """Seconds from now until 00:00:00 UTC (when daily token budget resets)."""
-    now = datetime.now(UTC)
-    midnight = datetime.combine(now.date() + timedelta(days=1), time.min, tzinfo=UTC)
-    return max(1, int((midnight - now).total_seconds()))
 
 
 _forwarded_allow_ips = _os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
