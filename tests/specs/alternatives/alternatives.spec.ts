@@ -1,4 +1,4 @@
-import { test, expect, mockScanBarcode, makeScanResponse, NUTELLA_BARCODE } from "../../fixtures";
+import { test, expect, mockScanBarcode, makeScanResponse } from "../../fixtures";
 import { mockAlternatives } from "../../fixtures/api-mocks";
 import { makeAlternativesResponse } from "../../fixtures/factories";
 
