@@ -3,7 +3,7 @@ import { test as base, expect, Page } from '@playwright/test';
 // Test credentials
 export const TEST_EMAIL = 'test@example.com';
 export const TEST_PASSWORD = 'TestPassword123!';
-export const NUTELLA_BARCODE = '3017620422003';
+export { NUTELLA_BARCODE } from "./fixtures/factories";
 
 // Custom fixture type
 type MockedPageFixture = {

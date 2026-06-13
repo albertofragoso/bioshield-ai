@@ -119,6 +119,7 @@ export default function HistoryPage() {
 
   /* Count de últimos 30 días */
   const last30 = useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity -- intentional: current-time snapshot for 30-day filter
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     return allItems.filter((i) => new Date(i.scanned_at).getTime() > cutoff).length;
   }, [allItems]);

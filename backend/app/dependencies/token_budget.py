@@ -8,13 +8,14 @@ IMPORTANT: Add Depends(token_budget(ENDPOINT_TOKEN_COST["<key>"])) to every
 endpoint that calls gemini.py. See backend/CLAUDE.md for the rule.
 """
 
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, timedelta
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.core.time_utils import _seconds_until_midnight_utc
 from app.middleware.auth import get_current_user
 from app.models import User
 from app.models.base import get_db
@@ -26,12 +27,6 @@ ENDPOINT_TOKEN_COST: dict[str, int] = {
     "scan_barcode": 1_000,
     "biosync_extract": 4_000,
 }
-
-
-def _seconds_until_midnight_utc() -> int:
-    now = datetime.now(UTC)
-    midnight = datetime.combine(now.date() + timedelta(days=1), time.min, tzinfo=UTC)
-    return max(1, int((midnight - now).total_seconds()))
 
 
 def token_budget(estimated_tokens: int):

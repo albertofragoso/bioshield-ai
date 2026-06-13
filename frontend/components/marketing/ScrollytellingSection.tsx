@@ -13,6 +13,7 @@ export function ScrollytellingSection() {
   useEffect(() => {
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isMobile = window.innerWidth < 1024;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- valid SSR-safe init: reads window only after mount
     setIsStaticMode(prefersReduced || isMobile);
   }, []);
 

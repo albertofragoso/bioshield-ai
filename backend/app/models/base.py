@@ -1,4 +1,6 @@
 from collections.abc import Generator
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -8,6 +10,14 @@ from app.config import get_settings
 
 class Base(DeclarativeBase):
     pass
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _uuid() -> str:
+    return str(uuid4())
 
 
 _engine = None

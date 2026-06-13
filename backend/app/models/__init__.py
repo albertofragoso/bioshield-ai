@@ -27,16 +27,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.models.base import Base, _now, _uuid
 from app.models.off_contribution import OFFContribution
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
-
-
-def _uuid() -> str:
-    return str(uuid4())
 
 
 def _expires_at() -> datetime:

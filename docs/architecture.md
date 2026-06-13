@@ -87,7 +87,8 @@ backend/
 │   ├── core/
 │   │   ├── context.py           # contextvars: REQUEST_ID_VAR
 │   │   ├── priorities.py        # prioridades de scanning (enum)
-│   │   └── semaphore.py         # semáforo GREEN/YELLOW/RED
+│   │   ├── semaphore.py         # semáforo GREEN/YELLOW/RED
+│   │   └── time_utils.py        # _seconds_until_midnight_utc — shared pure fn sin estado
 │   ├── dependencies/
 │   │   └── token_budget.py      # token_budget() — Depends() guard para LLM endpoints
 │   ├── middleware/

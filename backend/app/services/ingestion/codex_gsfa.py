@@ -40,10 +40,6 @@ PAGE_SIZE = 50
 FIXTURE_PATH = Path(__file__).parents[3] / "data" / "seed" / "additives.json"
 
 
-class CodexFetchError(RuntimeError):
-    """Raised when live GSFA fetch fails."""
-
-
 def parse_additives_page(html: str) -> list[IngestionRecord]:
     """Extract additive rows from a GSFA results HTML page.
 

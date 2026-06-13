@@ -4,21 +4,12 @@ Registra el consentimiento explícito del usuario (ODbL) y el resultado de cada 
 al API write de OFF. Permite audit trail sin modificar scan_history.
 """
 
-from datetime import UTC, datetime
-from uuid import uuid4
+from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
-
-
-def _uuid() -> str:
-    return str(uuid4())
+from app.models.base import Base, _uuid
 
 
 class OFFContribution(Base):

@@ -27,7 +27,8 @@ export function HomeStatsPanel({
   const hasData = biosyncData?.has_data === true;
   const expiresAt = biosyncData?.expires_at;
   const daysLeft = expiresAt
-    ? Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? // eslint-disable-next-line react-hooks/purity -- intentional: render-time days-left calculation
+      Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
   const nearExpiry = daysLeft !== null && daysLeft < 30;
 

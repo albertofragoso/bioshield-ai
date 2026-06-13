@@ -3,7 +3,8 @@ from unittest.mock import MagicMock
 
 from slowapi.errors import RateLimitExceeded
 
-from app.middleware.rate_limit import _seconds_until_midnight_utc, rate_limit_exceeded_handler
+from app.core.time_utils import _seconds_until_midnight_utc
+from app.middleware.rate_limit import rate_limit_exceeded_handler
 from app.schemas.errors import ErrorResponse
 
 
