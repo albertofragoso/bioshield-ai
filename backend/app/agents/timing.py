@@ -73,7 +73,7 @@ def timed_node(name: str, fn: Callable, *, enabled: bool = True) -> Callable:
                 except Exception:
                     pass
 
-        async_wrapper._is_timed = True
+        setattr(async_wrapper, "_is_timed", True)
         return async_wrapper
 
     else:
@@ -104,5 +104,5 @@ def timed_node(name: str, fn: Callable, *, enabled: bool = True) -> Callable:
                 except Exception:
                     pass
 
-        sync_wrapper._is_timed = True
+        setattr(sync_wrapper, "_is_timed", True)
         return sync_wrapper

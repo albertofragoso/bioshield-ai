@@ -106,9 +106,10 @@ async def test_timed_node_slow_warning(monkeypatch):
     fn.__name__ = "search_regulatory"
     wrapped = timed_node("search_regulatory", fn)
 
-    with patch("app.agents.timing.time") as mock_time, patch(
-        "app.agents.timing.logger"
-    ) as mock_logger:
+    with (
+        patch("app.agents.timing.time") as mock_time,
+        patch("app.agents.timing.logger") as mock_logger,
+    ):
         mock_time.perf_counter = fake_perf_counter
         await wrapped({})
 
