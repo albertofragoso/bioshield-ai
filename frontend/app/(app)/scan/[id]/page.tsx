@@ -5,7 +5,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useScanStreamingStore } from "@/lib/stores/scanning";
 import type { ScanPartial } from "@/lib/stores/scanning";
-import type { BiomarkerStatusResponse } from "@/lib/api/types";
 import { useScanResult, useLinkPhotoToBarcode, scanKeys } from "@/hooks/use-scan";
 import { useBiomarkerStatus } from "@/hooks/use-biosync";
 import Image from "next/image";

@@ -43,11 +43,11 @@ describe("useRegister", () => {
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
     const callOrder: string[] = [];
-    registerMock.mockImplementation(async (_body) => {
+    registerMock.mockImplementation(async () => {
       callOrder.push("register");
       return {} as never;
     });
-    loginMock.mockImplementation(async (_body) => {
+    loginMock.mockImplementation(async () => {
       callOrder.push("login");
       return {} as never;
     });

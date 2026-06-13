@@ -10,7 +10,6 @@ import type {
   Biomarker,
   BiomarkerExtractionResult,
   BiomarkerStatusResponse,
-  BiomarkerUploadRequest,
   IngredientConflict,
   IngredientResult,
   OFFContributeResponse,
@@ -142,15 +141,6 @@ export const makeBiomarkerExtraction = (
   ...overrides,
 });
 
-export const makeBiomarkerUpload = (
-  overrides: Partial<BiomarkerUploadRequest> = {},
-): BiomarkerUploadRequest => ({
-  biomarkers: [makeBiomarker()],
-  lab_name: "Lab Bioquímico Demo",
-  test_date: "2026-04-20",
-  ...overrides,
-});
-
 export const makeOrangeBiomarkerScan = (): ScanResponse =>
   makeScanResponse({
     semaphore: "ORANGE",
@@ -170,13 +160,6 @@ export const makeOrangeBiomarkerScan = (): ScanResponse =>
     ],
     personalized_insights: [makePersonalizedInsight()],
   });
-
-export const makeMixedHistory = (): ScanHistoryEntry[] => [
-  makeScanHistoryEntry({ id: "s1", semaphore: "RED", scanned_at: "2026-04-28T10:00:00Z" }),
-  makeScanHistoryEntry({ id: "s2", semaphore: "YELLOW", scanned_at: "2026-04-28T08:00:00Z" }),
-  makeScanHistoryEntry({ id: "s3", semaphore: "BLUE", scanned_at: "2026-04-27T15:00:00Z" }),
-  makeScanHistoryEntry({ id: "s4", semaphore: "ORANGE", scanned_at: "2026-04-25T12:00:00Z" }),
-];
 
 export const makeAlternativeProduct = (
   overrides: Partial<AlternativeProductOut> = {},
