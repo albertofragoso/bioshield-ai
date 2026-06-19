@@ -4,7 +4,12 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self'",
+  // Dev-only relaxations: Next.js Turbopack needs 'unsafe-inline' for the
+  // self.__next_r debug channel script, and React dev mode needs 'unsafe-eval'
+  // for callstack reconstruction. Neither is used in production builds.
+  process.env.NODE_ENV === "production"
+    ? "script-src 'self'"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   `connect-src 'self' ${apiUrl} https://challenges.cloudflare.com`,
   "img-src 'self' data: https:",
