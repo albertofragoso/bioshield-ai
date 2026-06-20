@@ -38,16 +38,22 @@ Adiciones específicas del frontend:
 ```
 frontend/
 ├── app/
+│   ├── (marketing)/                 # Landing pública (scrollytelling 4-beat)
+│   │   ├── layout.tsx
+│   │   └── page.tsx
 │   ├── (auth)/                      # Rutas públicas (sin guard JWT)
 │   │   ├── login/page.tsx
-│   │   └── register/page.tsx
+│   │   ├── register/page.tsx
+│   │   └── privacy/page.tsx
 │   ├── (app)/                       # Rutas protegidas
 │   │   ├── layout.tsx               # Navbar + guard JWT (redirect a /login si 401)
-│   │   ├── page.tsx                 # Dashboard
+│   │   ├── home/page.tsx            # Dashboard
 │   │   ├── scan/page.tsx            # Scanner (barcode + photo tabs)
 │   │   ├── scan/[id]/page.tsx       # Resultado del scan (semáforo + ingredientes)
+│   │   ├── scan/[id]/alternatives/page.tsx  # Alternativas más limpias
 │   │   ├── history/page.tsx         # Historial de scans
 │   │   └── biosync/page.tsx         # Upload/status de biomarcadores
+│   ├── scan/share/[token]/page.tsx  # Share link público (sin auth)
 │   ├── globals.css                  # CSS vars de semáforo + tokens de marca
 │   └── layout.tsx                   # QueryClientProvider + ThemeProvider
 ├── components/
@@ -56,15 +62,28 @@ frontend/
 │   ├── scanner/                     # BarcodeScanner, PhotoCapture
 │   ├── ingredients/                 # IngredientCard, ConflictDetail
 │   └── biosync/                     # BiomarkerForm, BiomarkerCSVUpload
+├── hooks/                           # Hooks layer — ÚNICO lugar para useQuery/useMutation
+│   ├── use-auth.ts                  # useLogin, useRegister, useLogout
+│   ├── use-auth.test.ts
+│   ├── use-biosync.ts               # useBiomarkerStatus, useExtractBiomarkers, etc.
+│   ├── use-biosync.test.ts
+│   ├── use-scan.ts                  # useScanResult, useScanHistory, useAlternatives, etc.
+│   ├── use-scan.test.ts
+│   ├── use-analytics.ts             # useRecordAnalyticsEvent (fire-and-forget)
+│   └── use-analytics.test.ts
 ├── lib/
 │   ├── api/
 │   │   ├── client.ts                # fetch wrapper con credentials + retry en 401
 │   │   ├── auth.ts                  # login / register / logout / refresh
 │   │   ├── scan.ts                  # scanBarcode / scanPhoto
 │   │   ├── biosync.ts               # uploadBiomarkers / getStatus / deleteBiomarkers
+│   │   ├── analytics.ts             # recordEvent
 │   │   └── types.ts                 # Espejo de backend/app/schemas/models.py
 │   ├── stores/
 │   │   └── auth.ts                  # Zustand: user, setUser, logout
+│   ├── featureFlags.ts              # Feature flags para rollout progresivo
+│   ├── riskColors.ts                # Mapa semáforo → color/label (WCAG AA)
+│   ├── legal-path.ts                # Helper para rutas legales (privacy, terms)
 │   └── utils.ts
 ├── .env.local.example
 ├── next.config.ts
