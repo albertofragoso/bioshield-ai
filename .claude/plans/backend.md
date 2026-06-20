@@ -2,7 +2,7 @@
 
 ## Context
 
-El backend es el núcleo del sistema. Procesa etiquetas nutricionales (barcode o foto), orquesta un pipeline de 7 nodos con LangGraph, busca aditivos en ChromaDB mediante retrieval híbrido (vector + BM25), cruza hallazgos con biomarcadores personalizados del usuario (AES-256 en reposo), y devuelve un semáforo de 5 colores (GRAY/BLUE/YELLOW/ORANGE/RED).
+El backend es el núcleo del sistema. Procesa etiquetas nutricionales (barcode o foto), orquesta un pipeline de 8 nodos con LangGraph, busca aditivos en ChromaDB mediante retrieval híbrido (vector + BM25), cruza hallazgos con biomarcadores personalizados del usuario (AES-256 en reposo), y devuelve un semáforo de 5 colores (GRAY/BLUE/YELLOW/ORANGE/RED).
 
 Estado actual: **MVP cerrado y verde** — 90 tests passing, 11 endpoints expuestos, pipeline LangGraph funcional, OCR Gemini Vision validado con 13 etiquetas MX reales.
 
@@ -51,14 +51,18 @@ backend/
 │   ├── routers/
 │   │   ├── auth.py                    # /auth: register, login, refresh, logout
 │   │   ├── scan.py                    # /scan: barcode, photo + helpers
-│   │   └── biosync.py                 # /biosync: upload, status, delete
+│   │   ├── biosync.py                 # /biosync: upload, status, delete
+│   │   ├── analytics.py               # /analytics/events — registro de eventos
+│   │   └── waitlist.py                # /waitlist/signup — pre-launch signups
 │   ├── schemas/
 │   │   └── models.py                  # Pydantic v2 — todos los request/response schemas
 │   ├── agents/
-│   │   ├── graph.py                   # StateGraph assembly (7 nodos)
+│   │   ├── graph.py                   # StateGraph assembly (8 nodos)
 │   │   ├── nodes.py                   # Node builders (closures sobre db + settings)
 │   │   ├── prompts.py                 # EXTRACTOR_PROMPT, RECONCILER_PROMPT, OCR_CORRECTION_PROMPT
-│   │   └── state.py                   # ScanState TypedDict
+│   │   ├── state.py                   # ScanState TypedDict
+│   │   ├── accumulator.py             # ScanStateAccumulator — acumula eventos SSE
+│   │   └── timing.py                  # timed_node() — wrapper de latencia por nodo
 │   └── services/
 │       ├── analysis.py                # compute_semaphore + BIOMARKER_RULES
 │       ├── auth.py                    # JWT create/decode, bcrypt, refresh token storage

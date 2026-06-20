@@ -7,7 +7,7 @@ El backend MVP está **cerrado y verde** (90 tests passing, 11 endpoints expuest
 El design system (dark-only, 12 avatares mascota, Pacifico + Space Grotesk + JetBrains Mono) ya está materializado en `frontend/app/globals.css` y documentado en `docs/design/tokens.md`. Login y Register ya están implementados con ese system; el login además entregó un paquete handoff completo en `docs/design/login/` (README + `design-tokens.json` + HTML prototype) que queda como referencia histórica. Las 6 pantallas pendientes (Scanner, Resultado, Biosync, Dashboard real, Historial, Polish global) se implementan **directo en Next.js** a partir de las specs embebidas en este plan, sin pasar por una plataforma de diseño intermedia.
 
 Fase 7 cubre 6 items (7.1-7.6) del review. Este plan los descompone en:
-1. **Setup monorepo `/frontend`** (Next.js 15 + Tailwind + shadcn/ui + TanStack Query + Zustand). ✅
+1. **Setup monorepo `/frontend`** (Next.js 16 + Tailwind + shadcn/ui + TanStack Query + Zustand). ✅
 2. **Design system tokens** (semáforo, typography, look biotech confiable). ✅
 3. **6 pantallas pendientes con spec embebida** (data shape, estados, componentes, tokens, avatar, tono). Claude Code las implementa directamente; Alberto valida en `pnpm dev`.
 4. **Componentes compartidos on-demand** — semáforo / ingredients / scanner / biosync nacen inline en la primera pantalla y se extraen a `components/` cuando aparezca un segundo consumer.
@@ -26,17 +26,22 @@ bio_shield/
 ├── backend/              (existente)
 ├── frontend/             (NUEVO)
 │   ├── app/
+│   │   ├── (marketing)/             # Landing pública (scrollytelling 4-beat) ✅
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
 │   │   ├── (auth)/
 │   │   │   ├── login/page.tsx
-│   │   │   └── register/page.tsx
+│   │   │   ├── register/page.tsx
+│   │   │   └── privacy/page.tsx     # Política de privacidad ✅
 │   │   ├── (app)/
 │   │   │   ├── layout.tsx           # navbar + guard JWT
-│   │   │   ├── page.tsx             # Dashboard
+│   │   │   ├── home/page.tsx        # Dashboard ✅
 │   │   │   ├── scan/page.tsx        # Scanner
 │   │   │   ├── scan/[id]/page.tsx   # Resultado
+│   │   │   ├── scan/[id]/alternatives/page.tsx  # Alternativas ✅
 │   │   │   ├── history/page.tsx     # ScanHistory list
 │   │   │   └── biosync/page.tsx     # Biosync upload/status
-│   │   ├── api/                     # proxy routes si hace falta (cookies SSR)
+│   │   ├── scan/share/[token]/page.tsx  # Share link público (sin auth) ✅
 │   │   ├── globals.css
 │   │   └── layout.tsx
 │   ├── components/
@@ -45,18 +50,29 @@ bio_shield/
 │   │   ├── scanner/                 # BarcodeScanner, PhotoCapture
 │   │   ├── ingredients/             # IngredientList, ConflictDetail
 │   │   └── biosync/                 # BiomarkerForm, BiomarkerCSVUpload
+│   ├── hooks/                       # Hooks layer — ÚNICO lugar para useQuery/useMutation ✅
+│   │   ├── use-auth.ts              # useLogin, useRegister, useLogout
+│   │   ├── use-auth.test.ts
+│   │   ├── use-biosync.ts           # useBiomarkerStatus, useExtractBiomarkers, etc.
+│   │   ├── use-biosync.test.ts
+│   │   ├── use-scan.ts              # useScanResult, useScanHistory, useAlternatives, etc.
+│   │   ├── use-scan.test.ts
+│   │   ├── use-analytics.ts         # useRecordAnalyticsEvent
+│   │   └── use-analytics.test.ts
 │   ├── lib/
 │   │   ├── api/                     # fetcher tipado + tipos generados
 │   │   │   ├── client.ts            # fetch con credentials:"include" + refresh
 │   │   │   ├── auth.ts              # login/register/logout/refresh
 │   │   │   ├── scan.ts              # barcode/photo
 │   │   │   ├── biosync.ts           # upload/status/delete
+│   │   │   ├── analytics.ts         # recordEvent
 │   │   │   └── types.ts             # mirror de backend/app/schemas/models.py
 │   │   ├── stores/
 │   │   │   └── auth.ts              # Zustand: user, isAuthenticated
+│   │   ├── featureFlags.ts          # Feature flags
+│   │   ├── riskColors.ts            # Semáforo → color/label (WCAG AA)
+│   │   ├── legal-path.ts            # Rutas legales helper
 │   │   └── utils.ts
-│   ├── tests/
-│   │   └── e2e/                     # Playwright (opcional fase A.4)
 │   ├── .env.local.example           # NEXT_PUBLIC_API_URL
 │   ├── next.config.ts
 │   ├── tailwind.config.ts
@@ -96,7 +112,7 @@ Contenido exacto a crear:
 
 ## Qué es
 
-Frontend Next.js 15 (App Router) que consume la API REST del backend FastAPI.
+Frontend Next.js 16 (App Router) que consume la API REST del backend FastAPI.
 Permite al usuario escanear productos (cámara barcode + foto etiqueta), visualizar
 el semáforo nutricional con detalle de conflictos por ingrediente, y gestionar sus
 biomarcadores de sangre para alertas personalizadas.
@@ -107,7 +123,7 @@ biomarcadores de sangre para alertas personalizadas.
 
 Adiciones específicas del frontend:
 
-- **Framework:** Next.js 15 con App Router y TypeScript strict
+- **Framework:** Next.js 16 con App Router y TypeScript strict
 - **Estilos:** Tailwind CSS v4 + shadcn/ui (Radix primitives)
 - **Server state:** TanStack Query v5 (cache, mutations, retry)
 - **Client state:** Zustand (auth: user, isAuthenticated)
@@ -174,7 +190,7 @@ frontend/
 - **Handoff histórico del login (referencia visual):** `docs/design/login/README.md`
 - **Schemas del backend (source of truth de tipos):** `backend/app/schemas/models.py`
 - **Reglas de biomarcadores (hints del form Biosync):** `backend/app/services/analysis.py`
-- **Next.js 15 App Router:** https://nextjs.org/docs/app
+- **Next.js 16 App Router:** https://nextjs.org/docs/app
 - **shadcn/ui:** https://ui.shadcn.com
 - **TanStack Query v5:** https://tanstack.com/query/v5
 - **@zxing/browser:** https://github.com/zxing-js/library

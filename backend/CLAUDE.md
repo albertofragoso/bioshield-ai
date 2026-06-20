@@ -69,10 +69,10 @@ backend/
 ├── app/
 │   ├── main.py                    # FastAPI app, CORS, rate limiting, routers
 │   ├── config.py                  # Settings (Pydantic) — todas las env vars
-│   ├── routers/                   # Endpoints HTTP: auth.py, scan.py, biosync.py
+│   ├── routers/                   # Endpoints HTTP: auth.py, scan.py, biosync.py, analytics.py, waitlist.py
 │   ├── schemas/                   # Pydantic v2 request/response models
 │   ├── models/                    # SQLAlchemy ORM models (Base, tables, relationships)
-│   ├── agents/                    # LangGraph: graph.py, nodes.py, state.py
+│   ├── agents/                    # LangGraph: graph.py, nodes.py, state.py, accumulator.py, timing.py, prompts.py
 │   └── services/                  # Clientes externos: gemini.py, off_client.py, embeddings.py
 ├── alembic/                       # Migraciones de base de datos
 ├── tests/                         # Suite de tests (ver tests/CLAUDE.md)
@@ -125,6 +125,8 @@ pytest --cov=app --cov-report=term-missing
 | POST   | /biosync/upload   | JWT  | Subir biomarcadores (AES-256-GCM)    |
 | GET    | /biosync/status   | JWT  | Estado y expiración de biomarcadores |
 | DELETE | /biosync/data     | JWT  | Eliminar datos médicos               |
+| POST   | /analytics/events | JWT  | Registrar evento de analítica        |
+| POST   | /waitlist/signup  | No   | Registro en lista de espera          |
 
 ## Variables de entorno
 

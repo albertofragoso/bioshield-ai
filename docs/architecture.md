@@ -1,8 +1,8 @@
 # BioShield AI — Arquitectura del Sistema
 
-**Versión:** 2.0  
-**Última actualización:** 2026-06-03  
-**Generado desde:** code-review-graph (1,505 nodos, 12,338 aristas)
+**Versión:** 2.1  
+**Última actualización:** 2026-06-19  
+**Generado desde:** code-review-graph (1,601 nodos, 13,328 aristas)
 
 ---
 
@@ -64,7 +64,7 @@ Invariantes globales:
     scan agent   (Flash 2.5)   (vectors)        ORM 2.0
         │                          │                │
     LangGraph                  BGE-M3 /        SQLite (dev)
-    nodes: 7                gemini-emb-001     PostgreSQL (prod)
+    nodes: 8                gemini-emb-001     PostgreSQL (prod)
 ```
 
 ---
@@ -80,9 +80,10 @@ backend/
 │   ├── config.py                # Pydantic Settings — única fuente de config
 │   ├── agents/
 │   │   ├── graph.py             # build_scan_graph() — construye el DAG LangGraph
-│   │   ├── nodes.py             # 7 nodos del agente (factories)
+│   │   ├── nodes.py             # 8 nodos del agente (factories)
 │   │   ├── state.py             # ScanState (TypedDict) — estado compartido del agente
 │   │   ├── accumulator.py       # ScanStateAccumulator — acumula eventos SSE
+│   │   ├── timing.py            # timed_node() wrapper — latencia por nodo (perf_counter)
 │   │   └── prompts.py           # constantes de prompt — importadas en nodes.py
 │   ├── core/
 │   │   ├── context.py           # contextvars: REQUEST_ID_VAR
@@ -169,7 +170,7 @@ Response → add_security_headers (CSP, HSTS, X-Frame-Options, etc.)
 
 ### 4.1 Grafo de ejecución
 
-`build_scan_graph()` en `agents/graph.py` construye un StateGraph LangGraph con 7 nodos:
+`build_scan_graph()` en `agents/graph.py` construye un StateGraph LangGraph con 8 nodos:
 
 ```
 identify_product ──► extract_ingredients ──► resolve_entities
@@ -830,7 +831,7 @@ Tests unitarios en `frontend/` — fixtures y mocks en comunidad `fixtures-mock`
 
 ## 14. Comunidades y acoplamiento
 
-Análisis del grafo de código (Leiden algorithm, 1,505 nodos, 12,338 aristas):
+Análisis del grafo de código (Leiden algorithm, 1,601 nodos, 13,328 aristas):
 
 | Comunidad | Tamaño | Cohesión | Lenguaje | Descripción |
 |-----------|--------|----------|----------|-------------|
@@ -844,6 +845,8 @@ Análisis del grafo de código (Leiden algorithm, 1,505 nodos, 12,338 aristas):
 | `tests-mock` | 36 | 0.039 | TypeScript | Tests frontend mock |
 | `api-scan` | 30 | 0.130 | TypeScript | API client layer (frontend/lib/api/) |
 | `versions-upgrade` | 28 | 0 | Python | Alembic migrations |
+| `smoke-docker` | 11 | 0.039 | TypeScript | Smoke tests Docker/CI |
+| `frontend-headers` | 2 | 0 | TypeScript | Middleware de headers en Next.js |
 
 ### 14.1 Advertencias de acoplamiento alto
 
