@@ -85,12 +85,13 @@ export function ScrollytellingSection() {
           .to(".label-additives", { opacity: 0.4, duration: 0.3 })
           .fromTo(".blood-overlay", { opacity: 0 }, { opacity: 1, duration: 0.5 }, "<");
 
-        // Beat 3 → Beat 4 (75–100%)
+        // Beat 3 → Beat 4 (75–90%): ends before exit fade so verdict card
+        // is fully visible at 1.0 opacity before the panel starts fading out.
         const tl4 = gsap.timeline({
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "75% top",
-            end: "100% top",
+            end: "90% top",
             scrub: 1,
           },
         });
@@ -105,7 +106,7 @@ export function ScrollytellingSection() {
 
         // Beat text fade-ins per scroll zone
         const starts = ["top top", "25% top", "50% top", "75% top"];
-        const ends = ["25% top", "50% top", "75% top", "100% top"];
+        const ends = ["25% top", "50% top", "75% top", "90% top"];
         BEATS.forEach((_, i) => {
           gsap.fromTo(
             `.scroll-beat-${i}`,

@@ -13,7 +13,7 @@ export function ScrollyBeat({ beat, beatIndex, isActive }: ScrollyBeatProps) {
 
   return (
     <div
-      className={`scroll-beat-${beatIndex} flex flex-col gap-3 transition-opacity duration-300`}
+      className={`scroll-beat-${beatIndex} flex flex-col gap-3`}
       style={{ opacity: isActive ? 1 : undefined }}
     >
       {/* Headline */}
