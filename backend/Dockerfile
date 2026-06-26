@@ -26,15 +26,22 @@ FROM python:3.11-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/opt/venv/bin:$PATH" \
+    HF_HOME=/opt/hf_cache
 
 RUN useradd --create-home --uid 1001 bioshield \
-    && mkdir -p /app /data/chroma_db \
+    && mkdir -p /app /data/chroma_db /opt/hf_cache \
     && chown -R bioshield:bioshield /app /data
 
 WORKDIR /app
 
 COPY --from=builder /opt/venv /opt/venv
+
+# Pre-download BGE-M3 small at build time — avoids runtime HuggingFace dependency
+RUN /opt/venv/bin/python -c \
+    "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')" \
+    && chown -R bioshield:bioshield /opt/hf_cache
+
 COPY --chown=bioshield:bioshield . .
 
 USER bioshield

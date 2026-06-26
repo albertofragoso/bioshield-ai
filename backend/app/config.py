@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     # Embeddings fallback
     use_local_embeddings: bool = False
-    bge_model_name: str = "BAAI/bge-m3"
+    bge_model_name: str = "BAAI/bge-small-en-v1.5"
 
     # USDA FoodData Central
     usda_api_key: str = "DEMO_KEY"

@@ -7,6 +7,11 @@ __pycache__/
 
 # Environment
 .env
+.env.prod
+.tunnel_url
+
+# Production data (never commit)
+data/
 
 # Databases
 *.db
@@ -58,3 +63,7 @@ backend/scripts/data/
 
 # Compound Engineering — machine-local config (never commit)
 .compound-engineering/config.local.yaml
+
+# Video assets — large files, serve from CDN in prod; copy manually in dev
+frontend/public/videos/*.mp4
+frontend/public/videos/*.webm
