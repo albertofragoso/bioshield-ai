@@ -17,9 +17,9 @@ from typing import Any
 import google.generativeai as genai
 from fastapi import HTTPException, status
 from google.api_core import exceptions as google_exceptions
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from pydantic import BaseModel
 from pydantic import BaseModel as _PydanticBase
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.agents.prompts import (
     BIOMARKER_EXTRACTION_PROMPT,
