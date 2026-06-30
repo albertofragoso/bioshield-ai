@@ -1,6 +1,6 @@
 """Text embedding service.
 
-Primary: BGE-M3 local (1024-dim) — activated when USE_LOCAL_EMBEDDINGS=true (default).
+Primary: bge-small-en-v1.5 local (384-dim) — activated when USE_LOCAL_EMBEDDINGS=true (default).
 Fallback: Gemini `gemini-embedding-001` (768-dim) — USE_LOCAL_EMBEDDINGS=false.
 Changing models requires re-indexing Chroma (dimension mismatch — see docs/runbooks).
 

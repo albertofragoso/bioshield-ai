@@ -13,6 +13,8 @@ help:
 	@echo "  make tunnel  Show the Cloudflare Tunnel public URL"
 
 up:
+	@test -f .env.prod || (echo "ERROR: .env.prod not found. Copy .env.prod.example and fill in values." && exit 1)
+	@stat -c "%a" .env.prod 2>/dev/null | grep -qE "^[46]00$$" || stat -f "%A" .env.prod 2>/dev/null | grep -qE "^[46]00$$" || (echo "ERROR: .env.prod permissions must be 600. Run: chmod 600 .env.prod" && exit 1)
 	$(COMPOSE) up -d --build
 
 down:
