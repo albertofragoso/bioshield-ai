@@ -1,0 +1,30 @@
+name: Backup ChromaDB
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"  # Sundays at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: backup-chromadb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create and upload ChromaDB backup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_VM_HOST }}
+          username: ${{ secrets.ORACLE_VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            BACKUP_FILE="chroma_db-$(date +%Y%m%d-%H%M).tar.gz"
+            tar -czf "/tmp/${BACKUP_FILE}" -C /opt/bioshield/data chroma_db
+            # Upload to Oracle Object Storage via OCI CLI (must be installed on VM)
+            oci os object put \
+              --namespace "$OCI_NAMESPACE" \
+              --bucket-name "$OCI_BUCKET" \
+              --name "backups/${BACKUP_FILE}" \
+              --file "/tmp/${BACKUP_FILE}"
+            rm -f "/tmp/${BACKUP_FILE}"
+            echo "Backup uploaded: backups/${BACKUP_FILE}"

@@ -158,6 +158,7 @@
   html {
     @apply font-sans;
     color-scheme: dark;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground;

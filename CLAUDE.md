@@ -21,6 +21,7 @@ Agente que analiza etiquetas nutricionales, detecta aditivos ocultos mediante b�
 - **Nunca leer `os.environ` directamente** — toda config pasa por `backend/app/config.py` (Pydantic Settings)
 - **Nunca llamar `fetch()` en componentes** — todo HTTP pasa por `frontend/lib/api/client.ts`
 - **Tests E2E Playwright en `tests/specs/{feature}/`** (raíz del repo), nunca dentro de `frontend/`
+- **NUNCA push directo a main** — siempre PR, aunque sea un fix de una línea. Branch protection requerido.
 
 ## Stack
 

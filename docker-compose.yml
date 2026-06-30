@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: bioshield
-      POSTGRES_PASSWORD: bioshield
+      POSTGRES_USER: ${POSTGRES_USER:-bioshield}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bioshield}
       POSTGRES_DB: bioshield
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bioshield -d bioshield"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bioshield} -d bioshield"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql://bioshield:bioshield@postgres:5432/bioshield
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bioshield}:${POSTGRES_PASSWORD:-bioshield}@postgres:5432/bioshield
       CHROMA_PERSIST_DIRECTORY: /data/chroma_db
     volumes:
       - bioshield_data:/data

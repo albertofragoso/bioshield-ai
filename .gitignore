@@ -3,10 +3,16 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
+venv*/
 .mypy_cache/
+
+# Test coverage
+.coverage*
+htmlcov/
 
 # Environment
 .env
+.env.dev
 .env.prod
 .tunnel_url
 
