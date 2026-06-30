@@ -41,7 +41,7 @@ def _client_for(persist_directory: str) -> chromadb.ClientAPI:
 def get_collection(settings: Settings) -> Collection:
     """Return the bioshield_ingredients collection, creating it if needed.
 
-    Dimension is 1024 (BGE-M3). ChromaDB infers it from the first upsert —
+    Dimension is 384 (bge-small-en-v1.5). ChromaDB infers it from the first upsert —
     re-seed required if the embedding model changes (see docs/runbooks).
     """
     client = _client_for(settings.chroma_persist_directory)
@@ -105,12 +105,20 @@ def query_by_embedding(
     top_k: int = 5,
     where: dict | None = None,
 ) -> list[RAGHit]:
-    """Return top_k hits for a query embedding, ranked by cosine similarity."""
-    result = collection.query(
-        query_embeddings=[embedding],  # type: ignore
-        n_results=top_k,
-        where=where,
-    )
+    """Return top_k hits for a query embedding, ranked by cosine similarity.
+
+    Returns empty list (degraded mode) if ChromaDB is unavailable — callers
+    already handle zero-hit results gracefully.
+    """
+    try:
+        result = collection.query(
+            query_embeddings=[embedding],  # type: ignore
+            n_results=top_k,
+            where=where,
+        )
+    except Exception:
+        logger.warning("chromadb_unavailable", extra={"fallback": "empty_hits"})
+        return []
 
     ids = (result.get("ids") or [[]])[0]
     docs = (result.get("documents") or [[]])[0]

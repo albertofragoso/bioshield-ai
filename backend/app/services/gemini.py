@@ -19,6 +19,7 @@ from fastapi import HTTPException, status
 from google.api_core import exceptions as google_exceptions
 from pydantic import BaseModel
 from pydantic import BaseModel as _PydanticBase
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.agents.prompts import (
     BIOMARKER_EXTRACTION_PROMPT,
@@ -39,7 +40,23 @@ from app.schemas.models import (
 
 logger = logging.getLogger(__name__)
 
+_GEMINI_TIMEOUT_SECONDS = 30
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(google_exceptions.ServiceUnavailable),
+    reraise=True,
+)
+async def _generate_with_retry(model, content, **kwargs):
+    """Wrapper adding timeout and retry-on-ServiceUnavailable to every Gemini call."""
+    return await model.generate_content_async(
+        content,
+        request_options={"timeout": _GEMINI_TIMEOUT_SECONDS},
+        **kwargs,
+    )
 
 
 class _ReconcilerResponse(BaseModel):
@@ -164,7 +181,8 @@ async def extract_from_image(image_b64: str, settings: Settings) -> ProductExtra
 
     model = genai.GenerativeModel(settings.gemini_model)
     try:
-        response = await model.generate_content_async(
+        response = await _generate_with_retry(
+            model,
             [
                 EXTRACTOR_PROMPT,
                 {"mime_type": "image/jpeg", "data": raw},
@@ -222,7 +240,8 @@ async def reconcile_ingredient(
 
     model = genai.GenerativeModel(settings.gemini_model)
     try:
-        response = await model.generate_content_async(
+        response = await _generate_with_retry(
+            model,
             prompt,
             generation_config={
                 "response_mime_type": "application/json",
@@ -276,7 +295,8 @@ async def extract_biomarkers_from_images(
         parts.append({"mime_type": "image/jpeg", "data": raw})
 
     try:
-        response = await model.generate_content_async(
+        response = await _generate_with_retry(
+            model,
             parts,
             generation_config={
                 "response_mime_type": "application/json",
@@ -334,7 +354,8 @@ async def extract_biomarkers_from_pdf(
     ]
 
     try:
-        response = await model.generate_content_async(
+        response = await _generate_with_retry(
+            model,
             parts,
             generation_config={
                 "response_mime_type": "application/json",
@@ -498,7 +519,8 @@ async def generate_personalized_insight(
     )
 
     try:
-        response = await model.generate_content_async(
+        response = await _generate_with_retry(
+            model,
             prompt,
             generation_config={
                 "response_mime_type": "application/json",

@@ -42,9 +42,9 @@ class Settings(BaseSettings):
     chroma_persist_directory: str = "./chroma_db"
     chroma_collection_name: str = "bioshield_ingredients"
 
-    # Embeddings fallback
-    use_local_embeddings: bool = False
-    bge_model_name: str = "BAAI/bge-m3"
+    # Embeddings — BGE-M3 small local (384-dim) is primary; Gemini is fallback
+    use_local_embeddings: bool = True
+    bge_model_name: str = "BAAI/bge-small-en-v1.5"
 
     # USDA FoodData Central
     usda_api_key: str = "DEMO_KEY"

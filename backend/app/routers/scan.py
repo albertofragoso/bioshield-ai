@@ -152,12 +152,17 @@ async def get_alternatives(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
-    """Return ingredient-based alternatives for a scanned product (Fase 2).
-
-    Semaphore guard is enforced in the frontend — endpoint works for any barcode
-    with existing scan history.
-    """
+    """Return ingredient-based alternatives for a scanned product (Fase 2)."""
     from app.services.alternatives import find_alternatives, get_active_biomarkers  # noqa: PLC0415
+
+    owned_scan = db.scalar(
+        select(ScanHistory).where(
+            ScanHistory.product_barcode == barcode,
+            ScanHistory.user_id == current_user.id,
+        )
+    )
+    if not owned_scan:
+        raise HTTPException(status_code=404, detail="Scan no encontrado.")
 
     has_biomarkers, active_biomarkers = await get_active_biomarkers(
         str(current_user.id), db, settings
@@ -332,7 +337,12 @@ async def scan_photo(
     settings: Settings = Depends(get_settings),
     _budget: User = Depends(token_budget(ENDPOINT_TOKEN_COST["scan_photo"])),
 ):
+    _MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+    if file.size and file.size > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large")
     image_bytes = await file.read()
+    if len(image_bytes) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large")
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
     photo_id = f"photo-{secrets.token_urlsafe(8)}"
     # Captura user_id como string mientras la sesión está abierta.
@@ -766,8 +776,8 @@ def create_share_link(
         db.commit()
         db.refresh(scan)
 
-    # share_expires_at is always set by this point (either pre-existing or just assigned above)
-    assert scan.share_expires_at is not None
+    if scan.share_expires_at is None:
+        raise HTTPException(status_code=500, detail="internal_error")
     return ShareResponse(
         share_url=f"{settings.frontend_url}/scan/share/{scan.share_token}",
         expires_at=scan.share_expires_at,

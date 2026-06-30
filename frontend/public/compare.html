@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @font-face { font-family: 'Pacifico'; src: url('assets/fonts/Pacifico-Regular.woff2') format('woff2'); }
+  @font-face { font-family: 'Space Grotesk'; font-weight: 700; src: url('assets/fonts/SpaceGrotesk-Bold.woff2') format('woff2'); }
+  body { background: #060906; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 50px; margin: 0; }
+  .label { color: #6b8a6a; font-family: monospace; font-size: 11px; letter-spacing: 0.2em; text-align: center; margin-bottom: 10px; }
+  .navbar-logo { display: flex; align-items: center; gap: 4px; }
+  .nav-bio { font-family: 'Pacifico', cursive; font-size: 20px; font-weight: 400; color: #55e088; }
+  .nav-ai  { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: #f6a823; }
+  .video-logo { display: flex; align-items: center; }
+  .vid-bio { font-family: 'Pacifico', cursive; font-size: 52px; font-weight: 400; color: #55e088; }
+  .vid-ai  { font-family: 'Space Grotesk', sans-serif; font-size: 47px; font-weight: 700; color: #f6a823; margin-left: 10px; }
+  .row { text-align: center; }
+  .divider { width: 500px; height: 1px; background: rgba(74,222,128,0.15); }
+  /* Scale video to navbar size for 1:1 comparison */
+  .scaled { transform: scale(0.385); transform-origin: center top; height: 30px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="label">NAVBAR (misma font, mismo tamaño)</div>
+    <div class="navbar-logo">
+      <span class="nav-bio">BioShield</span><span class="nav-ai">AI</span>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="row">
+    <div class="label">VIDEO (escalado 38.5% para comparar)</div>
+    <div class="scaled">
+      <div class="video-logo">
+        <span class="vid-bio">BioShield</span><span class="vid-ai">AI</span>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="row">
+    <div class="label">VIDEO (tamaño real del end frame)</div>
+    <div class="video-logo">
+      <span class="vid-bio">BioShield</span><span class="vid-ai">AI</span>
+    </div>
+  </div>
+</body>
+</html>

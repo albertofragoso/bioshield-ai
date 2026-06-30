@@ -12,12 +12,16 @@ import { WaitlistHero } from "@/components/marketing/WaitlistHero";
 import { MarketingFAQ } from "@/components/marketing/MarketingFAQ";
 import { StackStrip } from "@/components/marketing/StackStrip";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { GenesisVideoSection } from "@/components/marketing/GenesisVideoSection";
 
 export const dynamic = "force-static";
 
 export default function LandingPage() {
   return (
     <>
+      {/* Sección 0: Genesis — video de marca, primera experiencia */}
+      <GenesisVideoSection />
+
       {/* Sección 1: Hero */}
       <section
         id="hero"

@@ -19,7 +19,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Excluye: / (landing pública), _next/*, favicon, api/waitlist, assets, avatars, demo (fixtures públicos).
+  // Excluye: / (landing pública), _next/*, favicon, api/waitlist, assets, avatars, demo, videos.
   // La landing nunca pasa por proxy → TTFB óptimo.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/waitlist|assets|avatars|demo|$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/waitlist|assets|avatars|demo|videos|$).*)"],
 };
