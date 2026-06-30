@@ -12,6 +12,7 @@ on:
       - 'backend/**'
       - 'frontend/**'
       - 'docker-compose.yml'
+  workflow_dispatch: {}
 
 jobs:
   validate-config:
